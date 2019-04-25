@@ -117,17 +117,12 @@ Section NatLemmas.
     exact: (proj2 (gtn_gt_iff n m)).
   Qed.
 
-  Lemma succn_predn n : n.+1.-1 = n.
-  Proof.
-    done.
-  Qed.
-
   Lemma ltn_leq_sub n m :
     n < m -> n <= m - 1.
   Proof.
     rewrite leq_eqVlt. move=> /orP. case => H.
-    - rewrite -(eqP H). rewrite subn1 succn_predn. exact: leqnn.
-    - move: (leq_sub2r 1 H). rewrite subn1 succn_predn. exact: ltnW.
+    - rewrite -(eqP H). rewrite subn1 Nat.pred_succ. exact: leqnn.
+    - move: (leq_sub2r 1 H). rewrite subn1 Nat.pred_succ. exact: ltnW.
   Qed.
 
   Lemma subn_gtn : forall n m r, n < m - r -> r < m.
