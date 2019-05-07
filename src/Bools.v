@@ -31,3 +31,10 @@ Proof.
   - left; exact: (negbTE H).
   - right; exact: (negbTE H).
 Qed.
+
+Lemma neq_sym : forall (T : eqType) (x y : T), (x != y) = (y != x).
+Proof.
+  move=> T x y. case H: (x == y) => /=.
+  - rewrite eq_sym in H. rewrite H. reflexivity.
+  - rewrite eq_sym in H. rewrite H. reflexivity.
+Qed.
