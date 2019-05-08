@@ -10,3 +10,6 @@ src/FMaps.v
 src/HList.v
 src/Seqs.v
 src/Tactics.v
+src/Var.v
+src/Env.v
+src/Store.v
