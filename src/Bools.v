@@ -38,3 +38,15 @@ Proof.
   - rewrite eq_sym in H. rewrite H. reflexivity.
   - rewrite eq_sym in H. rewrite H. reflexivity.
 Qed.
+
+Lemma expand_eq :
+  forall (b1 b2 : bool), (b1 == b2) = ((b1 || ~~ b2) && (~~ b1 || b2)).
+Proof.
+  move=> b1 b2. by case: b1; case: b2.
+Qed.
+
+Lemma expand_neq :
+  forall (b1 b2 : bool), (b1 != b2) = ((b1 || b2) && (~~ b1 || ~~ b2)).
+Proof.
+  move=> b1 b2. by case: b1; case: b2.
+Qed.
