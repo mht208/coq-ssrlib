@@ -85,6 +85,17 @@ Section PositiveLemmas.
       by rewrite H.
   Qed.
 
+  Lemma pos_le_add_diag_r : forall x y : positive, x <= x + y.
+  Proof.
+    move=> x y. apply: Pos.lt_le_incl. exact: Pos.lt_add_diag_r.
+  Qed.
+
+  Lemma pos_lt_add_r : forall x y z : positive, x < y -> x < y + z.
+  Proof.
+    move=> x y z Hxy. apply: (Pos.lt_le_trans _ _ _ Hxy).
+    exact: pos_le_add_diag_r.
+  Qed.
+
 End PositiveLemmas.
 
 
