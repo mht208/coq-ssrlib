@@ -96,6 +96,30 @@ Section PositiveLemmas.
     exact: pos_le_add_diag_r.
   Qed.
 
+  Lemma pos_ltb_trans : forall x y z : positive, x <? y -> y <? z -> x <? z.
+  Proof.
+    move=> x y z /pos_ltP Hxy /pos_ltP Hyz. apply/pos_ltP.
+    exact: (Pos.lt_trans _ _ _ Hxy Hyz).
+  Qed.
+
+  Lemma pos_ltb_leb_trans : forall x y z : positive, x <? y -> y <=? z -> x <? z.
+  Proof.
+    move=> x y z /pos_ltP Hxy /pos_leP Hyz. apply/pos_ltP.
+    exact: (Pos.lt_le_trans _ _ _ Hxy Hyz).
+  Qed.
+
+  Lemma pos_leb_ltb_trans : forall x y z : positive, x <=? y -> y <? z -> x <? z.
+  Proof.
+    move=> x y z /pos_leP Hxy /pos_ltP Hyz. apply/pos_ltP.
+    exact: (Pos.le_lt_trans _ _ _ Hxy Hyz).
+  Qed.
+
+  Lemma pos_leb_trans : forall x y z : positive, x <=? y -> y <=? z -> x <=? z.
+  Proof.
+    move=> x y z /pos_leP Hxy /pos_leP Hyz. apply/pos_leP.
+    exact: (Pos.le_trans _ _ _ Hxy Hyz).
+  Qed.
+
 End PositiveLemmas.
 
 
