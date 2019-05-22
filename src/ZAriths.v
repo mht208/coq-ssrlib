@@ -120,6 +120,18 @@ Section PositiveLemmas.
     exact: (Pos.le_trans _ _ _ Hxy Hyz).
   Qed.
 
+  Lemma pos_leb_add_diag_r :
+    forall x y : positive, x <=? x + y.
+  Proof.
+    move=> x y. apply/pos_leP. apply: Pos.lt_le_incl. exact: Pos.lt_add_diag_r.
+  Qed.
+
+  Lemma pos_ltb_add_diag_r :
+    forall x y : positive, x <? x + y.
+  Proof.
+    move=> x y. apply/pos_ltP. exact: Pos.lt_add_diag_r.
+  Qed.
+
 End PositiveLemmas.
 
 
