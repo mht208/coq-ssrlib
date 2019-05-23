@@ -132,6 +132,12 @@ Section PositiveLemmas.
     move=> x y. apply/pos_ltP. exact: Pos.lt_add_diag_r.
   Qed.
 
+  Lemma pos_ltb_leb_incl :
+    forall x y : positive, x <? y -> x <=? y.
+  Proof.
+    move=> x y /pos_ltP Hxy. apply/pos_leP. exact: Pos.lt_le_incl.
+  Qed.
+
 End PositiveLemmas.
 
 

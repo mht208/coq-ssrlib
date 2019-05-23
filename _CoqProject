@@ -2,6 +2,7 @@
 src/SsrOrdered.v
 src/Types.v
 src/Lists.v
+src/Tuples.v
 src/Bools.v
 src/Nats.v
 src/ZAriths.v
