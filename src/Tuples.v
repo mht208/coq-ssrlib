@@ -57,7 +57,7 @@ Fixpoint firstn {T} {n1} n : (n+n1).-tuple T -> n.-tuple T :=
   then fun p => cons_tuple (thead p) (firstn _ (behead_tuple p)) else fun p => nil_tuple _.
 
 Lemma cons_tuple_neq_case :
-  forall w (A : eqType) (hd1 : A) (tl1 : w.-tuple A) hd2 tl2,
+  forall {w} {A : eqType} (hd1 : A) (tl1 : w.-tuple A) hd2 tl2,
     (cons_tuple hd1 tl1 != cons_tuple hd2 tl2) = (hd1 != hd2) || (tl1 != tl2).
 Proof.
   move=> w A hd1 tl1 hd2 tl2. case H: ((hd1 != hd2) || (tl1 != tl2)).
@@ -69,4 +69,18 @@ Proof.
   - apply/eqP. move: H. case Hhd: (hd1 == hd2) => /=; last by discriminate.
     case Htl: (tl1 == tl2) => /=; last by discriminate.
     by rewrite (eqP Hhd) (eqP Htl).
+Qed.
+
+Lemma ite_cons :
+  forall {A w} (bc : bool) hd1 (tl1 : w.-tuple A) hd2 (tl2 : w.-tuple A),
+  (if bc then cons_tuple hd1 tl1 else cons_tuple hd2 tl2) =
+  cons_tuple (if bc then hd1 else hd2) (if bc then tl1 else tl2).
+Proof.
+  move=> A w bc hd1 tl1 hd2 tl2. by case bc.
+Qed.
+
+Lemma tval_eq :
+  forall {A w} {t1 t2 : w.-tuple A}, tval t1 = tval t2 -> t1 = t2.
+Proof.
+  move=> A w t1 t2 H. apply: val_inj. exact: H.
 Qed.
