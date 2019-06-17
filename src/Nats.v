@@ -207,6 +207,13 @@ Section NatLemmas.
     auto with arith.
   Qed.
 
+  Lemma eqb_ltn_gtn_cases :
+    forall (m n : nat), (m == n) || (m < n) || (n < m).
+  Proof.
+    move=> m n. case Heq: (m == n) => /=; first done.
+    move/idP/negP: Heq. rewrite neq_ltn. by apply.
+  Qed.
+
   Lemma ltn_leq_mul_ltn m1 m2 n1 n2 :
     0 < m2 ->
     m1 < n1 -> m2 <= n2 -> m1 * m2 < n1 * n2.

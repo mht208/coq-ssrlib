@@ -74,3 +74,9 @@ Ltac applyb H :=
   end.
 
 Ltac sethave e1 e2 := set e1 := e2; have: e1 = e2 by reflexivity.
+
+Ltac caseb_hyps :=
+  repeat (match goal with
+          | H : is_true [&& _ & _] |- _ => case/andP: H; intros
+          | H : is_true [|| _ | _] |- _ => case/orP: H; intros
+          end).
