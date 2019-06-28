@@ -3,7 +3,7 @@
 
 (** These lemmas can be proven by facts in Coq.FSets.FMapFacts. *)
 
-From Coq Require Import FMaps OrderedType.
+From Coq Require Import FMaps FMapAVL OrderedType.
 From mathcomp Require Import ssreflect ssrbool.
 From ssrlib Require Import Types SsrOrdered.
 
@@ -171,8 +171,16 @@ Module FMapLemmas (M : FMapInterface.S).
 
 End FMapLemmas.
 
-Module Make (V : SsrOrderedType).
+Module MakeListMap (V : SsrOrderedType).
   Module M := FMapList.Make V.
   Module Lemmas := FMapLemmas(M).
   Include M.
-End Make.
+End MakeListMap.
+
+Module MakeTreeMap (V : SsrOrderedType).
+  Module M := FMapAVL.Make V.
+  Module Lemmas := FMapLemmas(M).
+  Include M.
+End MakeTreeMap.
+
+Module Make (V : SsrOrderedType) := MakeListMap V.

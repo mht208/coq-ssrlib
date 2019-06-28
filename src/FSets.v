@@ -2,8 +2,8 @@
 (** * Some auxiliary lemmas for FSets. *)
 
 From Coq Require Import FSets OrderedType.
-From mathcomp Require Import ssreflect ssrbool eqtype.
-From ssrlib Require Import Types SsrOrdered.
+From mathcomp Require Import ssreflect ssrbool eqtype seq.
+From ssrlib Require Import Types SsrOrdered Lists.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -64,12 +64,6 @@ Module Backport_Sets
   Module E := E.
 
 End Backport_Sets.
-
-Module Make (X : SsrOrderedType) <: SsrFSet with Module E := X.
-  Module X' := OrdersAlt.Update_OT X.
-  Module MSet := MSetList.Make X'.
-  Include Backport_Sets X MSet.
-End Make.
 
 Module FSetLemmas (S : SsrFSet).
 
@@ -457,7 +451,7 @@ Module FSetLemmas (S : SsrFSet).
       by rewrite H13 H23.
   Qed.
 
-  Lemma mem_in_elements :
+  Lemma mem_inA_elements :
     forall x s,
       S.mem x s ->
       InA S.E.eq x (S.elements s).
@@ -468,7 +462,7 @@ Module FSetLemmas (S : SsrFSet).
     assumption.
   Qed.
 
-  Lemma in_elements_mem :
+  Lemma inA_elements_mem :
     forall x s,
       InA S.E.eq x (S.elements s) ->
       S.mem x s.
@@ -477,6 +471,22 @@ Module FSetLemmas (S : SsrFSet).
     apply/memP.
     apply: S.elements_2.
     assumption.
+  Qed.
+
+  Lemma mem_in_elements :
+    forall x s,
+      S.mem x s ->
+      x \in (S.elements s).
+  Proof.
+    move=> x s H. apply: Lists.inA_in. exact: (mem_inA_elements H).
+  Qed.
+
+  Lemma in_elements_mem :
+    forall x s,
+      x \in (S.elements s) ->
+      S.mem x s.
+  Proof.
+    move=> x s H. apply: inA_elements_mem. apply: Lists.in_inA. exact: H.
   Qed.
 
   Lemma subset_refl :
@@ -609,6 +619,18 @@ Module FSetLemmas (S : SsrFSet).
   Proof.
     move=> Hin; apply/memP.
     exact: in_of_list2.
+  Qed.
+
+  Lemma mem_of_list_in x s :
+    S.mem x (OP.P.of_list s) -> x \in s.
+  Proof.
+    move=> H. apply: Lists.inA_in. exact: (mem_of_list1 H).
+  Qed.
+
+  Lemma in_mem_of_list x s :
+    x \in s -> S.mem x (OP.P.of_list s).
+  Proof.
+    move=> H. apply: mem_of_list2. apply: Lists.in_inA. exact: H.
   Qed.
 
   Lemma mem_remove1 x y s :
@@ -1046,6 +1068,24 @@ Module FSetLemmas (S : SsrFSet).
     apply: OP.P.subset_antisym; apply: S.subset_2; dp_subset.
 
 End FSetLemmas.
+
+Module MakeListSet (X : SsrOrderedType) <: SsrFSet with Module E := X.
+  Module X' := OrdersAlt.Update_OT X.
+  Module MS := MSetList.Make X'.
+  Module SS := Backport_Sets X MS.
+  Module Lemmas := FSetLemmas SS.
+  Include SS.
+End MakeListSet.
+
+Module MakeTreeSet (X : SsrOrderedType) <: SsrFSet with Module E := X.
+  Module X' := OrdersAlt.Update_OT X.
+  Module MS := MSetAVL.Make X'.
+  Module SS := Backport_Sets X MS.
+  Module Lemmas := FSetLemmas SS.
+  Include SS.
+End MakeTreeSet.
+
+Module Make (X : SsrOrderedType) <: SsrFSet with Module E := X := MakeListSet X.
 
 
 
