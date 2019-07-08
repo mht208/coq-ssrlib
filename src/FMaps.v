@@ -167,6 +167,13 @@ Module FMapLemmas (M : FMapInterface.S).
       exact: (Empty_In Hemp H).
     Qed.
 
+    Lemma find_some_none_neq (m : M.t elt) (x y : key) (v : elt) :
+      M.find x m = Some v -> M.find y m = None ->
+      ~ (M.E.eq x y).
+    Proof.
+      move=> Hx Hy Heq. rewrite (F.find_o _ Heq) in Hx. rewrite Hx in Hy. discriminate.
+    Qed.
+
   End FMapLemmas.
 
 End FMapLemmas.

@@ -8,13 +8,12 @@ Ltac splitb := apply/andP; split.
 
 (* Split all hypotheses of the form (_ && _). *)
 Ltac hyps_splitb :=
-  match goal with
-  | H: is_true (_ && _) |- _ =>
-    let H1 := fresh in
-    let H2 := fresh in
-    move/andP: H => [H1 H2]; hyps_splitb
-  | |- _ => idtac
-  end.
+  repeat (match goal with
+          | H: is_true (_ && _) |- _ =>
+            let H1 := fresh in
+            let H2 := fresh in
+            move/andP: H => [H1 H2]
+          end).
 
 Ltac leftb := apply/orP; left.
 
@@ -80,3 +79,5 @@ Ltac caseb_hyps :=
           | H : is_true [&& _ & _] |- _ => case/andP: H; intros
           | H : is_true [|| _ | _] |- _ => case/orP: H; intros
           end).
+
+Ltac dcase t := move: (refl_equal t); generalize t at -1.
