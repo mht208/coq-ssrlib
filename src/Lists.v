@@ -1,6 +1,7 @@
 
 From Coq Require Import List.
 From mathcomp Require Import ssreflect.
+From ssrlib Require Import Tactics.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -71,3 +72,29 @@ Section INA.
   Qed.
 
 End INA.
+
+Section ListLemmas.
+
+  Variable A : Type.
+
+  Variable B : Type.
+
+  Lemma split_cons :
+    forall (hd : A * B) (tl : list (A * B)),
+      split (hd::tl) = ((fst hd)::(fst (split tl)), (snd hd)::(snd (split tl))).
+  Proof.
+    move=> [hd1 hd2] tl /=. dcase (split tl). move=> [ls1 ls2] Hspl /=.
+    reflexivity.
+  Qed.
+
+  Lemma split_append :
+    forall (ls1 ls2 : list (A * B)),
+      split (ls1 ++ ls2) = ((fst (split ls1)) ++ (fst (split ls2)), (snd (split ls1)) ++ (snd (split ls2))).
+  Proof.
+    elim.
+    - move=> ls2 /=. exact: surjective_pairing.
+    - move=> [l1_hd1 l1_hd2] l1_tl IH ls2 /=. rewrite IH.
+      dcase (split l1_tl). move=> [l1_tl1 l1_tl2] Hspl1. reflexivity.
+  Qed.
+
+End ListLemmas.

@@ -813,7 +813,7 @@ Section ZLemmas.
   Proof.
     case H: (m == 0)%N.
     - rewrite (eqP H) Zmod_0_r /=. reflexivity.
-    - move/negP/idP: H => H. rewrite -(Nats.modn_mod _ H).
+    - move/negP/idP: H => H. rewrite -(Nats.modn_modulo _ H).
       exact: (Nat2Z_inj_modn _ H).
   Qed.
 

@@ -421,7 +421,7 @@ Section NatLemmas.
     reflexivity.
   Qed.
 
-  Lemma modn_mod (n m : nat) : m != 0 -> n %% m = Nat.modulo n m.
+  Lemma modn_modulo (n m : nat) : m != 0 -> n %% m = Nat.modulo n m.
   Proof.
     move=> Hm0. case H: (n < m)%N.
     - rewrite (modn_small H) Nat.mod_small; first reflexivity.
@@ -449,7 +449,7 @@ Section NatLemmas.
     - move/negP/idP: Hm => Hm. have Hne: (m <> 0) by move/eqP: Hm; apply.
       move: (eq_refl n). rewrite {1}(divn_eq n m).
       rewrite {3}(Nat.div_mod n m Hne).
-      rewrite -(modn_mod _ Hm) -addn_add. rewrite eqn_add2r.
+      rewrite -(modn_modulo _ Hm) -addn_add. rewrite eqn_add2r.
       rewrite -muln_mul mulnC. rewrite -lt0n in Hm. rewrite (eqn_pmul2l Hm).
       move/eqP=> H. exact: H.
   Qed.
