@@ -30,6 +30,11 @@ Module ZType <: Equalities.Typ.
   Definition t : Set := Z.
 End ZType.
 
+Module Type HasDefault <: Equalities.Typ.
+  Parameter t : Type.
+  Parameter default : t.
+End HasDefault.
+
 
 
 (** Structure with a base eqType t. *)
