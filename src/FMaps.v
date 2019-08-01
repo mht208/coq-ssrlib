@@ -496,18 +496,19 @@ Module Map2Map (M1 : FMapInterface.S) (M2 : FMapInterface.S).
   Section Map2Map.
 
     Variable elt1 elt2 : Type.
-    Variable fk : M1.key -> option M2.key.
+    Variable fk : M1.E.t -> option M2.E.t.
     Variable fk_eq_none :
-      forall k1 k2 : M1.key,
+      forall k1 k2 : M1.E.t,
         M1.E.eq k1 k2 -> fk k1 = None -> fk k2 = None.
     Variable fk_eq_some :
-      forall (k1 k2 : M1.key) (fk1 : M2.key),
+      forall (k1 k2 : M1.E.t) (fk1 : M2.E.t),
         M1.E.eq k1 k2 -> fk k1 = Some fk1 ->
         exists fk2, fk k2 = Some fk2 /\ M2.E.eq fk1 fk2.
     Variable fk_neq_some :
-      forall (k1 k2 : M1.key) (fk1 fk2 : M2.key),
+      forall (k1 k2 : M1.E.t) (fk1 fk2 : M2.E.t),
         ~ M1.E.eq k1 k2 -> fk k1 = Some fk1 -> fk k2 = Some fk2 -> ~ M2.E.eq fk1 fk2.
     Variable fv : elt1 -> elt2.
+
     Definition f k1 v1 m2 :=
       match fk k1 with
       | None => m2
