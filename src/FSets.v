@@ -3,16 +3,24 @@
 
 From Coq Require Import FSets OrderedType.
 From mathcomp Require Import ssreflect ssrbool eqtype seq.
-From ssrlib Require Import Types SsrOrdered Lists.
+From ssrlib Require Import SsrOrdered Lists.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Module Type SsrFSet.
+
+
+(* Finite sets of elements with decidable equality. *)
+
+Module Type SsrFSet <: FSetInterface.S.
   Declare Module E : SsrOrderedType.
   Include Sfun E.
 End SsrFSet.
+
+
+
+(* Copied from Coq source code to avoid errors *)
 
 Module Backport_Sets
        (E : SsrOrderedType)
@@ -65,10 +73,14 @@ Module Backport_Sets
 
 End Backport_Sets.
 
-Module FSetLemmas (S : SsrFSet).
 
-  Module F := Facts(S).
-  Module OP := OrdProperties(S).
+
+(* Extra lemmas for Coq finite sets *)
+
+Module FSetLemmas (S : FSetInterface.S).
+
+  Module F := Facts S.
+  Module OP := OrdProperties S.
   Include F.
   Include OP.
 
@@ -375,8 +387,7 @@ Module FSetLemmas (S : SsrFSet).
     move/memP=> H.
     apply: S.subset_1 => y Hy.
     move: (S.singleton_1 Hy) => {Hy} Hxy.
-    rewrite -(eqP Hxy).
-    assumption.
+    exact: (S.In_1 Hxy H).
   Qed.
 
   Lemma subset_singleton x s :
@@ -471,22 +482,6 @@ Module FSetLemmas (S : SsrFSet).
     apply/memP.
     apply: S.elements_2.
     assumption.
-  Qed.
-
-  Lemma mem_in_elements :
-    forall x s,
-      S.mem x s ->
-      x \in (S.elements s).
-  Proof.
-    move=> x s H. apply: Lists.inA_in. exact: (mem_inA_elements H).
-  Qed.
-
-  Lemma in_elements_mem :
-    forall x s,
-      x \in (S.elements s) ->
-      S.mem x s.
-  Proof.
-    move=> x s H. apply: inA_elements_mem. apply: Lists.in_inA. exact: H.
   Qed.
 
   Lemma subset_refl :
@@ -619,18 +614,6 @@ Module FSetLemmas (S : SsrFSet).
   Proof.
     move=> Hin; apply/memP.
     exact: in_of_list2.
-  Qed.
-
-  Lemma mem_of_list_in x s :
-    S.mem x (OP.P.of_list s) -> x \in s.
-  Proof.
-    move=> H. apply: Lists.inA_in. exact: (mem_of_list1 H).
-  Qed.
-
-  Lemma in_mem_of_list x s :
-    x \in s -> S.mem x (OP.P.of_list s).
-  Proof.
-    move=> H. apply: mem_of_list2. apply: Lists.in_inA. exact: H.
   Qed.
 
   Lemma mem_remove1 x y s :
@@ -1069,11 +1052,53 @@ Module FSetLemmas (S : SsrFSet).
 
 End FSetLemmas.
 
+
+
+(* Extra lemmas for SsrFSet *)
+
+Module SsrFSetLemmas (S : SsrFSet).
+
+  Include FSetLemmas S.
+
+  Lemma mem_in_elements :
+    forall x s,
+      S.mem x s ->
+      x \in (S.elements s).
+  Proof.
+    move=> x s H. apply: Lists.inA_in. exact: (mem_inA_elements H).
+  Qed.
+
+  Lemma in_elements_mem :
+    forall x s,
+      x \in (S.elements s) ->
+      S.mem x s.
+  Proof.
+    move=> x s H. apply: inA_elements_mem. apply: Lists.in_inA. exact: H.
+  Qed.
+
+  Lemma mem_of_list_in x s :
+    S.mem x (OP.P.of_list s) -> x \in s.
+  Proof.
+    move=> H. apply: Lists.inA_in. exact: (mem_of_list1 H).
+  Qed.
+
+  Lemma in_mem_of_list x s :
+    x \in s -> S.mem x (OP.P.of_list s).
+  Proof.
+    move=> H. apply: mem_of_list2. apply: Lists.in_inA. exact: H.
+  Qed.
+
+End SsrFSetLemmas.
+
+
+
+(* Functors for making SsrFSet *)
+
 Module MakeListSet (X : SsrOrderedType) <: SsrFSet with Module E := X.
   Module X' := OrdersAlt.Update_OT X.
   Module MS := MSetList.Make X'.
   Module SS := Backport_Sets X MS.
-  Module Lemmas := FSetLemmas SS.
+  Module Lemmas := SsrFSetLemmas SS.
   Include SS.
 End MakeListSet.
 
@@ -1081,13 +1106,58 @@ Module MakeTreeSet (X : SsrOrderedType) <: SsrFSet with Module E := X.
   Module X' := OrdersAlt.Update_OT X.
   Module MS := MSetAVL.Make X'.
   Module SS := Backport_Sets X MS.
-  Module Lemmas := FSetLemmas SS.
+  Module Lemmas := SsrFSetLemmas SS.
   Include SS.
 End MakeTreeSet.
 
 Module Make (X : SsrOrderedType) <: SsrFSet with Module E := X := MakeListSet X.
 
 
+
+(* Sets that can generate new elements. *)
+
+Module MakeElementGenerator (X : SsrFSet) (D : Types.HasDefault X.E) (S : HasSucc X.E) (L : HasLtbSucc X.E X.E S).
+
+  Definition new_elt (s : X.t) : X.elt :=
+    match X.max_elt s with
+    | Some v => S.succ v
+    | None => D.default
+    end.
+
+  Lemma new_elt_is_new :
+    forall (s : X.t), ~~ X.mem (new_elt s) s.
+  Proof.
+    move=> s. apply/negP => Hmem. move/X.mem_2: Hmem.
+    rewrite /new_elt. case H: (X.max_elt s) => Hin.
+    - apply: (X.max_elt_2 H Hin). exact: L.ltb_succ.
+    - move: (X.max_elt_3 H) => {H} H. apply: (H D.default). assumption.
+  Qed.
+
+End MakeElementGenerator.
+
+Module Type SsrFSetWithNew <: SsrFSet.
+  Include SsrFSet.
+  Parameter new_elt : t -> elt.
+  Parameter new_elt_is_new : forall (s : t), ~~ mem (new_elt s) s.
+End SsrFSetWithNew.
+
+Module MakeListSetWithNew (X : SsrOrderedWithDefaultSucc) <: SsrFSetWithNew.
+  Module S := MakeListSet X.
+  Include S.
+  Module G := MakeElementGenerator S X X X.
+  Include G.
+End MakeListSetWithNew.
+
+Module MakeTreeSetWithNew (X : SsrOrderedWithDefaultSucc) <: SsrFSetWithNew.
+  Module S := MakeTreeSet X.
+  Include S.
+  Module G := MakeElementGenerator S X X X.
+  Include G.
+End MakeTreeSetWithNew.
+
+
+
+(* Map a set of type A to another set of type B *)
 
 Module Map2 (S1 S2 : SsrFSet).
 
@@ -1222,12 +1292,10 @@ Module Map2 (S1 S2 : SsrFSet).
     Proof.
       move=> v; split => /Lemmas2.memP Hmem; apply: Lemmas2.memP.
       - move: (map2_mem2 Hmem) => [y [Hy Hmemy]].
-        apply: Lemmas2.mem_singleton2.
-        rewrite Hy.
+        apply: Lemmas2.mem_singleton2. rewrite (eqP Hy).
         exact: (f_preserve _ (Lemmas1.mem_singleton1 Hmemy)).
-      - rewrite (Lemmas2.mem_singleton1 Hmem) map2_mem1.
-        apply: Lemmas1.mem_singleton2.
-        exact: S1.E.eq_refl.
+      - rewrite (eqP (Lemmas2.mem_singleton1 Hmem)) map2_mem1.
+        apply: Lemmas1.mem_singleton2. exact: S1.E.eq_refl.
     Qed.
 
     Lemma map2_add v s :
@@ -1236,20 +1304,12 @@ Module Map2 (S1 S2 : SsrFSet).
       move=> x; split; move=> /Lemmas2.memP Hmem; apply/Lemmas2.memP.
       - move: (map2_mem2 Hmem) => [y [Hfy Hmemy]].
         case: (Lemmas1.mem_add1 Hmemy) => {Hmemy} Hy.
-        + rewrite Hfy.
-          apply: Lemmas2.mem_add2.
-          exact: (f_preserve _ Hy).
-        + apply: Lemmas2.mem_add3.
-          rewrite Hfy map2_mem1.
-          assumption.
+        + rewrite Hfy. apply: Lemmas2.mem_add2. exact: (f_preserve _ Hy).
+        + apply: Lemmas2.mem_add3. rewrite Hfy map2_mem1. assumption.
       - case: (Lemmas2.mem_add1 Hmem) => {Hmem} Hx.
-        + rewrite Hx map2_mem1.
-          apply: Lemmas1.mem_add2.
-          exact: S1.E.eq_refl.
-        + move: (map2_mem2 Hx) => [y [Hfy Hmemy]].
-          rewrite Hfy map2_mem1.
-          apply: Lemmas1.mem_add3.
-          assumption.
+        + rewrite (eqP Hx) map2_mem1. apply: Lemmas1.mem_add2. exact: S1.E.eq_refl.
+        + move: (map2_mem2 Hx) => [y [Hfy Hmemy]]. rewrite Hfy map2_mem1.
+          apply: Lemmas1.mem_add3. assumption.
     Qed.
 
     Lemma map2_union s1 s2 :
@@ -1259,18 +1319,12 @@ Module Map2 (S1 S2 : SsrFSet).
       move=> x; split; move=> /Lemmas2.memP Hmem; apply/Lemmas2.memP.
       - move: (map2_mem2 Hmem) => [y [Hy Hmemy]].
         case: (Lemmas1.mem_union1 Hmemy) => {Hmemy} Hmemy.
-        + apply: Lemmas2.mem_union2.
-          rewrite Hy map2_mem1.
-          assumption.
-        + apply: Lemmas2.mem_union3.
-          rewrite Hy map2_mem1.
-          assumption.
+        + apply: Lemmas2.mem_union2. rewrite Hy map2_mem1. assumption.
+        + apply: Lemmas2.mem_union3. rewrite Hy map2_mem1. assumption.
       - case: (Lemmas2.mem_union1 Hmem) => {Hmem} Hmemx.
-        + move: (map2_mem2 Hmemx) => [y [Hy Hmemy]].
-          rewrite Hy map2_mem1.
+        + move: (map2_mem2 Hmemx) => [y [Hy Hmemy]]. rewrite Hy map2_mem1.
           apply/Lemmas1.mem_union2; assumption.
-        + move: (map2_mem2 Hmemx) => [y [Hy Hmemy]].
-          rewrite Hy map2_mem1.
+        + move: (map2_mem2 Hmemx) => [y [Hy Hmemy]]. rewrite Hy map2_mem1.
           apply/Lemmas1.mem_union3; assumption.
     Qed.
 
@@ -1278,52 +1332,41 @@ Module Map2 (S1 S2 : SsrFSet).
       S2.mem x (map2 (S1.union s1 s2)) =
       (S2.mem x (map2 s1)) || (S2.mem x (map2 s2)).
     Proof.
-      rewrite map2_union.
-      rewrite Lemmas2.F.union_b.
-      reflexivity.
+      rewrite map2_union. rewrite Lemmas2.F.union_b. reflexivity.
     Qed.
 
     Lemma map2_union1 x s1 s2 :
       S2.mem x (map2 (S1.union s1 s2)) ->
       S2.mem x (map2 s1) \/ S2.mem x (map2 s2).
     Proof.
-      rewrite map2_union => Hmem.
-      case: (Lemmas2.mem_union1 Hmem); [by left | by right].
+      rewrite map2_union => Hmem. case: (Lemmas2.mem_union1 Hmem); [by left | by right].
     Qed.
 
     Lemma map2_union2 x s1 s2 :
       S2.mem x (map2 s1) ->
       S2.mem x (map2 (S1.union s1 s2)).
     Proof.
-      rewrite map2_union => Hmem.
-      apply: Lemmas2.mem_union2; assumption.
+      rewrite map2_union => Hmem. apply: Lemmas2.mem_union2; assumption.
     Qed.
 
     Lemma map2_union3 x s1 s2 :
       S2.mem x (map2 s2) ->
       S2.mem x (map2 (S1.union s1 s2)).
     Proof.
-      rewrite map2_union => Hmem.
-      apply: Lemmas2.mem_union3; assumption.
+      rewrite map2_union => Hmem. apply: Lemmas2.mem_union3; assumption.
     Qed.
 
     Lemma map2_subset s1 s2 :
       S2.subset (map2 s1) (map2 s2) = S1.subset s1 s2.
     Proof.
       case H: (S1.subset s1 s2).
-      - apply: S2.subset_1 => x /Lemmas2.memP Hmem.
-        apply/Lemmas2.memP.
+      - apply: S2.subset_1 => x /Lemmas2.memP Hmem. apply/Lemmas2.memP.
         move: (map2_mem2 Hmem) => {Hmem} [fx [Heq Hmem]].
-        rewrite Heq map2_mem1.
-        exact: (Lemmas1.mem_subset Hmem H).
-      - apply/negP => Hsubset.
-        move/negP: H; apply.
-        apply: S1.subset_1 => x /Lemmas1.memP Hmem.
-        apply/Lemmas1.memP.
-        rewrite -map2_mem1.
-        apply: (Lemmas2.mem_subset _ Hsubset).
-        rewrite map2_mem1.
-        assumption.
+        rewrite Heq map2_mem1. exact: (Lemmas1.mem_subset Hmem H).
+      - apply/negP => Hsubset. move/negP: H; apply.
+        apply: S1.subset_1 => x /Lemmas1.memP Hmem. apply/Lemmas1.memP.
+        rewrite -map2_mem1. apply: (Lemmas2.mem_subset _ Hsubset).
+        rewrite map2_mem1. assumption.
     Qed.
 
   End Map2.

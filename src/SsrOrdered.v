@@ -329,3 +329,24 @@ Module UnitOrdered <: SsrOrderedType.
   Module O := MakeSsrOrderedType UnitOrderedMinimal.
   Include O.
 End UnitOrdered.
+
+
+
+(* OrderedType with a default value and a successor function,
+   useful for generating new values *)
+
+Module Type HasSucc (Import T : SsrOrderedType).
+  Parameter succ : t -> t.
+End HasSucc.
+
+Module Type HasLtb (Import T : SsrOrderedType).
+  Parameter ltb : t -> t -> bool.
+End HasLtb.
+
+Module Type HasLtbSucc (Import T : SsrOrderedType) (Import L : HasLtb T) (Import S : HasSucc T).
+  Parameter ltb_succ : forall (x : t), ltb x (succ x).
+End HasLtbSucc.
+
+Module Type SsrOrderedWithDefaultSucc :=
+  SsrOrderedType <+ HasDefault <+ HasSucc <+ HasLtbSucc.
+

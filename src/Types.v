@@ -30,10 +30,11 @@ Module ZType <: Equalities.Typ.
   Definition t : Set := Z.
 End ZType.
 
-Module Type HasDefault <: Equalities.Typ.
-  Parameter t : Type.
+Module Type HasDefault (Import T : Equalities.Typ).
   Parameter default : t.
 End HasDefault.
+
+Module Type HasDefaultTyp := Equalities.Typ <+ HasDefault.
 
 
 

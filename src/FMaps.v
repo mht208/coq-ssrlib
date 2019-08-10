@@ -3,15 +3,26 @@
 
 (** These lemmas can be proven by facts in Coq.FSets.FMapFacts. *)
 
-From Coq Require Import FMaps FMapAVL OrderedType.
-From mathcomp Require Import ssreflect ssrbool eqtype.
-From ssrlib Require Import Types SsrOrdered Lists Tactics.
+From Coq Require Import FunInd FMaps FMapAVL OrderedType.
+From mathcomp Require Import ssreflect ssrbool eqtype seq.
+From ssrlib Require Import Types SsrOrdered Lists FSets Tactics.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
 
+
+(* Finite maps of elements with decidable equality *)
+
+Module Type SsrFMap <: FMapInterface.S.
+  Declare Module E : SsrOrderedType.
+  Include Sfun E.
+End SsrFMap.
+
+
+
+(* Extra lemmas for Coq finite maps *)
 
 Module FMapLemmas (M : FMapInterface.S).
 
@@ -96,6 +107,19 @@ Module FMapLemmas (M : FMapInterface.S).
       exact: Heq.
     Qed.
 
+    Lemma mem_add_eq (m : M.t elt) (x y : M.key) (e : elt) :
+      M.E.eq x y -> M.mem x (M.add y e m).
+    Proof.
+      move=> Hxy. apply: F.add_eq_b. apply: M.E.eq_sym. exact: Hxy.
+    Qed.
+
+    Lemma mem_add_neq (m : M.t elt) (x y : M.key) (e : elt) :
+      ~(M.E.eq x y) -> M.mem x (M.add y e m) = M.mem x m.
+    Proof.
+      move=> Hne. apply: F.add_neq_b. move=> Heq; apply: Hne; apply: M.E.eq_sym.
+      exact: Heq.
+    Qed.
+
     Lemma find_some_map (f : elt -> elt') (m : M.t elt) (x : M.key) (e : elt) :
       M.find x m = Some e ->
       M.find x (M.map f m) = Some (f e).
@@ -127,6 +151,12 @@ Module FMapLemmas (M : FMapInterface.S).
       rewrite F.map_o. rewrite /option_map. case: (M.find x m).
       - discriminate.
       - reflexivity.
+    Qed.
+
+    Lemma mem_map (f : elt -> elt') (m : M.t elt) (x : M.key) :
+      M.mem x (M.map f m) = M.mem x m.
+    Proof.
+      exact: F.map_b.
     Qed.
 
     Lemma empty_mem (m : M.t elt) (x : M.key) :
@@ -472,21 +502,778 @@ Module FMapLemmas (M : FMapInterface.S).
 
   End Submap.
 
+  Module EFacts := OrderedType.OrderedTypeFacts M.E.
+
+  Section MaxMin.
+
+    Variable elt : Type.
+
+    Lemma eqb_eq k1 k2 : eqb k1 k2 -> M.E.eq k1 k2.
+    Proof.
+      rewrite /eqb. case: P.F.eq_dec.
+      - move=> H _; exact: H.
+      - move=> _ H. discriminate.
+    Qed.
+
+    Lemma eqb_key_refl : forall (k : M.key), eqb k k.
+    Proof.
+      move=> k. rewrite /eqb. case: (P.F.eq_dec k k); first by done.
+      move=> H; apply: False_ind; apply: H. exact: M.E.eq_refl.
+    Qed.
+
+    (* max_key *)
+
+    Definition max_opt (k : M.key) (o : option M.key) : M.key :=
+      match o with
+      | None => k
+      | Some k' => match M.E.compare k k' with
+                   | LT _ => k'
+                   | _ => k
+                   end
+      end.
+
+    Lemma max_opt_cases k x o :
+      max_opt k o = x ->
+      (o = None /\ x = k) \/
+      (exists k', o = Some k' /\ M.E.lt k k' /\ x = k') \/
+      (exists k', o = Some k' /\ ~(M.E.lt k k') /\ x = k).
+    Proof.
+      case: o=> /=.
+      - move=> k'. dcase (M.E.compare k k'). case.
+        + move=> Hlt Hcomp Hx. right; left. exists k'. rewrite -Hx.
+          repeat split; try reflexivity. exact: Hlt.
+        + move=> Heq Hcomp Hx. right; right. exists k'. rewrite -Hx.
+          repeat split; try reflexivity. exact: (EFacts.eq_not_lt Heq).
+        + move=> Hgt Hcomp Hx. right; right. exists k'. rewrite -Hx.
+          repeat split; try reflexivity. move=> Hlt. move: (M.E.lt_trans Hgt Hlt).
+          exact: (@EFacts.lt_antirefl k').
+      - move=> Hx. rewrite -Hx. by left.
+    Qed.
+
+    Lemma max_opt_none k : max_opt k None = k.
+    Proof.
+      reflexivity.
+    Qed.
+
+    Lemma max_opt_lt k k' : M.E.lt k k' -> max_opt k (Some k') = k'.
+    Proof.
+      move=> Hlt /=. move: (EFacts.elim_compare_lt Hlt)=> {Hlt} [Hlt ->].
+      reflexivity.
+    Qed.
+
+    Lemma max_opt_eq k k' : M.E.eq k k' -> max_opt k (Some k') = k.
+    Proof.
+      move=> Heq /=. move: (EFacts.elim_compare_eq Heq) => {Heq} [Heq ->].
+      reflexivity.
+    Qed.
+
+    Lemma max_opt_gt k k' : M.E.lt k' k -> max_opt k (Some k') = k.
+    Proof.
+      move=> Hgt /=. move: (EFacts.elim_compare_gt Hgt) => {Hgt} [Hgt ->].
+      reflexivity.
+    Qed.
+
+    Lemma max_opt_not_lt_l k o x : max_opt k o = x -> ~ M.E.lt x k.
+    Proof.
+      move=> Hmax. case: (max_opt_cases Hmax); last case.
+      - move=> [Ho Hx]. rewrite Hx. exact: (@EFacts.lt_antirefl k).
+      - move=> [k' [Ho [Hlt Hx]]]. rewrite Hx => H. move: (M.E.lt_trans Hlt H).
+        exact: (@EFacts.lt_antirefl k).
+      - move=> [k' [Ho [Hlt Hx]]]. rewrite Hx. exact: (@EFacts.lt_antirefl k).
+    Qed.
+
+    Lemma max_opt_not_lt_r k k' x : max_opt k (Some k') = x -> ~ M.E.lt x k'.
+    Proof.
+      move=> Hmax. case: (max_opt_cases Hmax); last case.
+      - move=> [H1 H2]; discriminate.
+      - move=> [k'' [[] Hk'' [Hk Hx]]]. rewrite Hx -Hk''.
+        exact: (@EFacts.lt_antirefl k').
+      - move=> [k'' [[] Hk'' [Hk Hx]]]. rewrite Hx Hk''. assumption.
+    Qed.
+
+    Fixpoint max_key_elements (l : list (M.key * elt)) : option M.key :=
+      match l with
+      | [::] => None
+      | (k, _)::tl => Some (max_opt k (max_key_elements tl))
+      end.
+
+    Definition max_key (m : M.t elt) : option M.key :=
+      max_key_elements (M.elements m).
+
+    Lemma max_key_elements_mem :
+      forall (elements : seq (M.key * elt)) (k : M.key),
+        max_key_elements elements = Some k ->
+        existsb (fun p : M.E.t * elt => eqb k (fst p)) elements.
+    Proof.
+      elim => /=.
+      - discriminate.
+      - move=> [k_hd v_hd] tl IH k Hmax_tl /=.
+        case Heqb: (eqb k k_hd); first by done. rewrite /=. apply: IH. move: Hmax_tl.
+        move=> [] Hmax. case: (max_opt_cases Hmax); last case.
+        + move=> [_ Hk]. rewrite Hk eqb_key_refl in Heqb. discriminate.
+        + move=> [k' [Hmax_tl [Hlt Hk]]]. rewrite Hk. assumption.
+        + move=> [k' [Hmax_tl [Heq Hk]]]. rewrite Hk eqb_key_refl in Heqb.
+          discriminate.
+    Qed.
+
+    Lemma max_key_mem :
+      forall (m : M.t elt) k, max_key m = Some k -> M.mem k m.
+    Proof.
+      rewrite /max_key=> m k Hmax. rewrite elements_b. move: k Hmax.
+      move: (M.elements m) => {m}. exact: max_key_elements_mem.
+    Qed.
+
+    Lemma max_key_elements_none :
+      forall l, max_key_elements l = None -> l = [::].
+    Proof.
+      case => /=.
+      - reflexivity.
+      - move=> [k v] tl H. discriminate.
+    Qed.
+
+    Lemma max_key_none :
+      forall (m : M.t elt), max_key m = None -> M.Empty m.
+    Proof.
+      rewrite /max_key=> m Hmax. apply/OP.P.elements_Empty. move: Hmax.
+      move: (M.elements m) => {m}. exact: max_key_elements_none.
+    Qed.
+
+    Lemma max_key_elements_not_lt :
+      forall (elements : seq (M.key * elt)) (k1 k2 : M.key),
+        max_key_elements elements = Some k1 ->
+        existsb (fun p : M.E.t * elt => eqb k2 (fst p)) elements -> ~ M.E.lt k1 k2.
+    Proof.
+      elim=> /=.
+      - discriminate.
+      - move=> [k_hd v_hd] tl IH k1 k2 [] Hmax /=. case/orP.
+        + move=> Hk2 Hlt. apply: (max_opt_not_lt_l Hmax).
+          move: (eqb_eq Hk2) => {Hk2} Hk2. exact: (EFacts.lt_eq Hlt Hk2).
+        + case: (max_opt_cases Hmax); last case.
+          * move=> [Hmax_tl Hk1]. rewrite (max_key_elements_none Hmax_tl) /=. done.
+          * move=> [k_tl [Hmax_tl [Hk_tl Hk1]]]. move=> H; apply: (IH _ _ _ H).
+            rewrite Hk1; assumption.
+          * move=> [k_tl [Hmax_tl [Hk_tl Hk1]]]. move=> H. move: (IH _ _ Hmax_tl H).
+            move=> Hlt_tl Hlt_k1. rewrite Hk1 in Hlt_k1 => {Hmax Hk1}.
+            case: (EFacts.lt_total k_hd k_tl); last case; move=> Hlt_hd.
+            -- apply: Hk_tl; assumption.
+            -- apply: Hlt_tl. exact: (EFacts.eq_lt (M.E.eq_sym Hlt_hd) Hlt_k1).
+            -- apply: Hlt_tl. exact: (M.E.lt_trans Hlt_hd Hlt_k1).
+    Qed.
+
+    Lemma max_key_not_lt :
+      forall (m : M.t elt) k1 k2,
+        max_key m = Some k1 -> M.mem k2 m -> ~ M.E.lt k1 k2.
+    Proof.
+      rewrite /max_key=> m k1 k2. rewrite elements_b. move: k1 k2.
+      move: (M.elements m) => {m}. exact: max_key_elements_not_lt.
+    Qed.
+
+    (* min_key *)
+
+    Definition min_opt (k : M.key) (o : option M.key) : M.key :=
+      match o with
+      | None => k
+      | Some k' => match M.E.compare k k' with
+                   | GT _ => k'
+                   | _ => k
+                   end
+      end.
+
+    Lemma min_opt_cases k x o :
+      min_opt k o = x ->
+      (o = None /\ x = k) \/
+      (exists k', o = Some k' /\ M.E.lt k' k /\ x = k') \/
+      (exists k', o = Some k' /\ ~(M.E.lt k' k) /\ x = k).
+    Proof.
+      case: o=> /=.
+      - move=> k'. dcase (M.E.compare k k'). case.
+        + move=> Hlt Hcomp Hx. right; right; exists k'. rewrite -Hx.
+          repeat split; try reflexivity. exact: (EFacts.lt_le Hlt).
+        + move=> Heq Hcomp Hx. right; right; exists k'. rewrite -Hx.
+          repeat split; try reflexivity. exact: (EFacts.eq_not_lt (M.E.eq_sym Heq)).
+        + move=> Hgt Hcomp Hx. right; left; exists k'. rewrite -Hx.
+          repeat split; try reflexivity. assumption.
+      - move=> Hx. rewrite -Hx. by left.
+    Qed.
+
+    Lemma min_opt_none k : min_opt k None = k.
+    Proof.
+      reflexivity.
+    Qed.
+
+    Lemma min_opt_lt k k' : M.E.lt k k' -> min_opt k (Some k') = k.
+    Proof.
+      move=> Hlt /=. move: (EFacts.elim_compare_lt Hlt)=> {Hlt} [Hlt ->].
+      reflexivity.
+    Qed.
+
+    Lemma min_opt_eq k k' : M.E.eq k k' -> min_opt k (Some k') = k.
+    Proof.
+      move=> Heq /=. move: (EFacts.elim_compare_eq Heq) => {Heq} [Heq ->].
+      reflexivity.
+    Qed.
+
+    Lemma min_opt_gt k k' : M.E.lt k' k -> min_opt k (Some k') = k'.
+    Proof.
+      move=> Hgt /=. move: (EFacts.elim_compare_gt Hgt) => {Hgt} [Hgt ->].
+      reflexivity.
+    Qed.
+
+    Lemma min_opt_not_lt_l k o x : min_opt k o = x -> ~ M.E.lt k x.
+    Proof.
+      move=> Hmin. case: (min_opt_cases Hmin); last case.
+      - move=> [Ho Hx]. rewrite Hx. exact: (@EFacts.lt_antirefl k).
+      - move=> [k' [Ho [Hlt Hx]]]. rewrite Hx => H. move: (M.E.lt_trans Hlt H).
+        exact: (@EFacts.lt_antirefl k').
+      - move=> [k' [Ho [Hlt Hx]]]. rewrite Hx. exact: (@EFacts.lt_antirefl k).
+    Qed.
+
+    Lemma min_opt_not_lt_r k k' x : min_opt k (Some k') = x -> ~ M.E.lt k' x.
+    Proof.
+      move=> Hmin. case: (min_opt_cases Hmin); last case.
+      - move=> [H1 H2]; discriminate.
+      - move=> [k'' [[] Hk'' [Hk Hx]]]. rewrite Hx -Hk''.
+        exact: (@EFacts.lt_antirefl k').
+      - move=> [k'' [[] Hk'' [Hk Hx]]]. rewrite Hx Hk''. assumption.
+    Qed.
+
+    Fixpoint min_key_elements (l : list (M.key * elt)) : option M.key :=
+      match l with
+      | [::] => None
+      | (k, _)::tl => Some (min_opt k (min_key_elements tl))
+      end.
+
+    Definition min_key (m : M.t elt) : option M.key :=
+      min_key_elements (M.elements m).
+
+    Lemma min_key_elements_mem :
+      forall (elements : seq (M.key * elt)) (k : M.key),
+        min_key_elements elements = Some k ->
+        existsb (fun p : M.E.t * elt => eqb k (fst p)) elements.
+    Proof.
+      elim => /=.
+      - discriminate.
+      - move=> [k_hd v_hd] tl IH k Hmin_tl /=.
+        case Heqb: (eqb k k_hd); first by done. rewrite /=. apply: IH. move: Hmin_tl.
+        move=> [] Hmin. case: (min_opt_cases Hmin); last case.
+        + move=> [_ Hk]. rewrite Hk eqb_key_refl in Heqb. discriminate.
+        + move=> [k' [Hmin_tl [Hlt Hk]]]. rewrite Hk. assumption.
+        + move=> [k' [Hmin_tl [Heq Hk]]]. rewrite Hk eqb_key_refl in Heqb.
+          discriminate.
+    Qed.
+
+    Lemma min_key_mem :
+      forall (m : M.t elt) k, min_key m = Some k -> M.mem k m.
+    Proof.
+      rewrite /min_key=> m k Hmin. rewrite elements_b. move: k Hmin.
+      move: (M.elements m) => {m}. exact: min_key_elements_mem.
+    Qed.
+
+    Lemma min_key_elements_none :
+      forall l, min_key_elements l = None -> l = [::].
+    Proof.
+      case => /=.
+      - reflexivity.
+      - move=> [k v] tl H. discriminate.
+    Qed.
+
+    Lemma min_key_none :
+      forall (m : M.t elt), min_key m = None -> M.Empty m.
+    Proof.
+      rewrite /min_key=> m Hmin. apply/OP.P.elements_Empty. move: Hmin.
+      move: (M.elements m) => {m}. exact: min_key_elements_none.
+    Qed.
+
+    Lemma min_key_elements_not_lt :
+      forall (elements : seq (M.key * elt)) (k1 k2 : M.key),
+        min_key_elements elements = Some k1 ->
+        existsb (fun p : M.E.t * elt => eqb k2 (fst p)) elements -> ~ M.E.lt k2 k1.
+    Proof.
+      elim=> /=.
+      - discriminate.
+      - move=> [k_hd v_hd] tl IH k1 k2 [] Hmin /=. case/orP.
+        + move=> Hk2 Hlt. apply: (min_opt_not_lt_l Hmin).
+          move: (eqb_eq Hk2) => {Hk2} Hk2. exact: (EFacts.eq_lt (M.E.eq_sym Hk2) Hlt).
+        + case: (min_opt_cases Hmin); last case.
+          * move=> [Hmin_tl Hk1]. rewrite (min_key_elements_none Hmin_tl) /=. done.
+          * move=> [k_tl [Hmin_tl [Hk_tl Hk1]]]. move=> H; apply: (IH _ _ _ H).
+            rewrite Hk1; assumption.
+          * move=> [k_tl [Hmin_tl [Hk_tl Hk1]]]. move=> H. move: (IH _ _ Hmin_tl H).
+            move=> Hlt_tl Hlt_k1. rewrite Hk1 in Hlt_k1 => {Hmin Hk1}.
+            case: (EFacts.lt_total k_hd k_tl); last case; move=> Hlt_hd.
+            -- apply: Hlt_tl. exact: (M.E.lt_trans Hlt_k1 Hlt_hd).
+            -- apply: Hlt_tl. exact: (EFacts.lt_eq Hlt_k1 Hlt_hd).
+            -- apply: Hk_tl; assumption.
+    Qed.
+
+    Lemma min_key_not_lt :
+      forall (m : M.t elt) k1 k2,
+        min_key m = Some k1 -> M.mem k2 m -> ~ M.E.lt k2 k1.
+    Proof.
+      rewrite /min_key=> m k1 k2. rewrite elements_b. move: k1 k2.
+      move: (M.elements m) => {m}. exact: min_key_elements_not_lt.
+    Qed.
+
+  End MaxMin.
+
 End FMapLemmas.
 
-Module MakeListMap (V : SsrOrderedType).
-  Module M := FMapList.Make V.
-  Module Lemmas := FMapLemmas(M).
+
+
+(* Functors for making finite maps *)
+
+Module MapKeyLemmas (X : SsrOrderedType) (M : SsrFMap with Module E := X) (S : SsrFSet with Module E := X).
+
+  Module MLemmas := FMapLemmas M.
+  Module SLemmas := FSetLemmas S.
+
+  Section Aux.
+
+    Variable elt : Type.
+
+    (* Return the keys as a set *)
+    Definition key_set (m : M.t elt) : S.t :=
+      M.fold (fun x _ s => S.add x s) m S.empty.
+
+    Lemma mem_key_set m :
+      forall x, M.mem x m -> S.mem x (key_set m).
+    Proof.
+      rewrite /key_set. eapply MLemmas.P.fold_rec.
+      - move=> {m} m Hempty x Hmem. apply: False_ind.
+        exact: (MLemmas.empty_mem Hempty Hmem).
+      - move=> x e m' E1 E2 _ _ Hadd Hind y Hmem. case Hyx: (y == x).
+        + exact: (SLemmas.mem_add_eq _ Hyx).
+        + move/negP: Hyx => Hyx. rewrite (SLemmas.mem_add_neq _ Hyx).
+          apply: Hind. move: (Hadd y) => {Hadd}.
+          rewrite (MLemmas.find_add_neq _ _ Hyx) => {Hyx} Hfind.
+          rewrite -(MLemmas.find_eq_mem_eq Hfind). exact: Hmem.
+    Qed.
+
+  End Aux.
+
+End MapKeyLemmas.
+
+
+
+Module FMapListRaw (X:SsrOrderedType).
+  Include FMapList.Raw X.
+End FMapListRaw.
+
+(* Copied from Coq source code to avoid errors *)
+Module FMapListMake (X: SsrOrderedType) <: S with Module E := X.
+
+  Module Raw := FMapListRaw X.
+  Module E := X.
+
+  Definition key := E.t.
+
+  Record slist (elt:Type) :=
+    {this :> Raw.t elt; sorted : sort (@Raw.PX.ltk elt) this}.
+  Definition t (elt:Type) : Type := slist elt.
+
+  Section Elt.
+    Variable elt elt' elt'':Type.
+
+    Implicit Types m : t elt.
+    Implicit Types x y : key.
+    Implicit Types e : elt.
+
+    Definition empty : t elt := Build_slist (Raw.empty_sorted elt).
+    Definition is_empty m : bool := Raw.is_empty m.(this).
+    Definition add x e m : t elt := Build_slist (Raw.add_sorted m.(sorted) x e).
+    Definition find x m : option elt := Raw.find x m.(this).
+    Definition remove x m : t elt := Build_slist (Raw.remove_sorted m.(sorted) x).
+    Definition mem x m : bool := Raw.mem x m.(this).
+    Definition map f m : t elt' := Build_slist (Raw.map_sorted m.(sorted) f).
+    Definition mapi (f:key->elt->elt') m : t elt' := Build_slist (Raw.mapi_sorted m.(sorted) f).
+    Definition map2 f m (m':t elt') : t elt'' :=
+      Build_slist (Raw.map2_sorted f m.(sorted) m'.(sorted)).
+    Definition elements m : list (key*elt) := @Raw.elements elt m.(this).
+    Definition cardinal m := length m.(this).
+    Definition fold (A:Type)(f:key->elt->A->A) m (i:A) : A := @Raw.fold elt A f m.(this) i.
+    Definition equal cmp m m' : bool := @Raw.equal elt cmp m.(this) m'.(this).
+
+    Definition MapsTo x e m : Prop := Raw.PX.MapsTo x e m.(this).
+    Definition In x m : Prop := Raw.PX.In x m.(this).
+    Definition Empty m : Prop := Raw.Empty m.(this).
+
+    Definition Equal m m' := forall y, find y m = find y m'.
+    Definition Equiv (eq_elt:elt->elt->Prop) m m' :=
+      (forall k, In k m <-> In k m') /\
+      (forall k e e', MapsTo k e m -> MapsTo k e' m' -> eq_elt e e').
+    Definition Equivb cmp m m' : Prop := @Raw.Equivb elt cmp m.(this) m'.(this).
+
+    Definition eq_key : (key*elt) -> (key*elt) -> Prop := @Raw.PX.eqk elt.
+    Definition eq_key_elt : (key*elt) -> (key*elt) -> Prop:= @Raw.PX.eqke elt.
+    Definition lt_key : (key*elt) -> (key*elt) -> Prop := @Raw.PX.ltk elt.
+
+    Lemma MapsTo_1 : forall m x y e, E.eq x y -> MapsTo x e m -> MapsTo y e m.
+    Proof. intros m; exact (@Raw.PX.MapsTo_eq elt m.(this)). Qed.
+
+    Lemma mem_1 : forall m x, In x m -> mem x m = true.
+    Proof. intros m; exact (@Raw.mem_1 elt m.(this) m.(sorted)). Qed.
+    Lemma mem_2 : forall m x, mem x m = true -> In x m.
+    Proof. intros m; exact (@Raw.mem_2 elt m.(this) m.(sorted)). Qed.
+
+    Lemma empty_1 : Empty empty.
+    Proof. exact (@Raw.empty_1 elt). Qed.
+
+    Lemma is_empty_1 : forall m, Empty m -> is_empty m = true.
+    Proof. intros m; exact (@Raw.is_empty_1 elt m.(this)). Qed.
+    Lemma is_empty_2 :  forall m, is_empty m = true -> Empty m.
+    Proof. intros m; exact (@Raw.is_empty_2 elt m.(this)). Qed.
+
+    Lemma add_1 : forall m x y e, E.eq x y -> MapsTo y e (add x e m).
+    Proof. intros m; exact (@Raw.add_1 elt m.(this)). Qed.
+    Lemma add_2 : forall m x y e e', ~ E.eq x y -> MapsTo y e m -> MapsTo y e (add x e' m).
+    Proof. intros m; exact (@Raw.add_2 elt m.(this)). Qed.
+    Lemma add_3 : forall m x y e e', ~ E.eq x y -> MapsTo y e (add x e' m) -> MapsTo y e m.
+    Proof. intros m; exact (@Raw.add_3 elt m.(this)). Qed.
+
+    Lemma remove_1 : forall m x y, E.eq x y -> ~ In y (remove x m).
+    Proof. intros m; exact (@Raw.remove_1 elt m.(this) m.(sorted)). Qed.
+    Lemma remove_2 : forall m x y e, ~ E.eq x y -> MapsTo y e m -> MapsTo y e (remove x m).
+    Proof. intros m; exact (@Raw.remove_2 elt m.(this) m.(sorted)). Qed.
+    Lemma remove_3 : forall m x y e, MapsTo y e (remove x m) -> MapsTo y e m.
+    Proof. intros m; exact (@Raw.remove_3 elt m.(this) m.(sorted)). Qed.
+
+    Lemma find_1 : forall m x e, MapsTo x e m -> find x m = Some e.
+    Proof. intros m; exact (@Raw.find_1 elt m.(this) m.(sorted)). Qed.
+    Lemma find_2 : forall m x e, find x m = Some e -> MapsTo x e m.
+    Proof. intros m; exact (@Raw.find_2 elt m.(this)). Qed.
+
+    Lemma elements_1 : forall m x e, MapsTo x e m -> InA eq_key_elt (x,e) (elements m).
+    Proof. intros m; exact (@Raw.elements_1 elt m.(this)). Qed.
+    Lemma elements_2 : forall m x e, InA eq_key_elt (x,e) (elements m) -> MapsTo x e m.
+    Proof. intros m; exact (@Raw.elements_2 elt m.(this)). Qed.
+    Lemma elements_3 : forall m, sort lt_key (elements m).
+    Proof. intros m; exact (@Raw.elements_3 elt m.(this) m.(sorted)). Qed.
+    Lemma elements_3w : forall m, NoDupA eq_key (elements m).
+    Proof. intros m; exact (@Raw.elements_3w elt m.(this) m.(sorted)). Qed.
+
+    Lemma cardinal_1 : forall m, cardinal m = length (elements m).
+    Proof. intros; reflexivity. Qed.
+
+    Lemma fold_1 : forall m (A : Type) (i : A) (f : key -> elt -> A -> A),
+        fold f m i = fold_left (fun a p => f (fst p) (snd p) a) (elements m) i.
+    Proof. intros m; exact (@Raw.fold_1 elt m.(this)). Qed.
+
+    Lemma equal_1 : forall m m' cmp, Equivb cmp m m' -> equal cmp m m' = true.
+    Proof. intros m m'; exact (@Raw.equal_1 elt m.(this) m.(sorted) m'.(this) m'.(sorted)). Qed.
+    Lemma equal_2 : forall m m' cmp, equal cmp m m' = true -> Equivb cmp m m'.
+    Proof. intros m m'; exact (@Raw.equal_2 elt m.(this) m.(sorted) m'.(this) m'.(sorted)). Qed.
+
+  End Elt.
+
+  Lemma map_1 : forall (elt elt':Type)(m: t elt)(x:key)(e:elt)(f:elt->elt'),
+      MapsTo x e m -> MapsTo x (f e) (map f m).
+  Proof. intros elt elt' m; exact (@Raw.map_1 elt elt' m.(this)). Qed.
+  Lemma map_2 : forall (elt elt':Type)(m: t elt)(x:key)(f:elt->elt'),
+      In x (map f m) -> In x m.
+  Proof. intros elt elt' m; exact (@Raw.map_2 elt elt' m.(this)). Qed.
+
+  Lemma mapi_1 : forall (elt elt':Type)(m: t elt)(x:key)(e:elt)
+                        (f:key->elt->elt'), MapsTo x e m ->
+                                            exists y, E.eq y x /\ MapsTo x (f y e) (mapi f m).
+  Proof. intros elt elt' m; exact (@Raw.mapi_1 elt elt' m.(this)). Qed.
+  Lemma mapi_2 : forall (elt elt':Type)(m: t elt)(x:key)
+                        (f:key->elt->elt'), In x (mapi f m) -> In x m.
+  Proof. intros elt elt' m; exact (@Raw.mapi_2 elt elt' m.(this)). Qed.
+
+  Lemma map2_1 : forall (elt elt' elt'':Type)(m: t elt)(m': t elt')
+	                    (x:key)(f:option elt->option elt'->option elt''),
+	  In x m \/ In x m' ->
+      find x (map2 f m m') = f (find x m) (find x m').
+  Proof.
+    intros elt elt' elt'' m m' x f;
+      exact (@Raw.map2_1 elt elt' elt'' f m.(this) m.(sorted) m'.(this) m'.(sorted) x).
+  Qed.
+  Lemma map2_2 : forall (elt elt' elt'':Type)(m: t elt)(m': t elt')
+	                    (x:key)(f:option elt->option elt'->option elt''),
+      In x (map2 f m m') -> In x m \/ In x m'.
+  Proof.
+    intros elt elt' elt'' m m' x f;
+      exact (@Raw.map2_2 elt elt' elt'' f m.(this) m.(sorted) m'.(this) m'.(sorted) x).
+  Qed.
+
+End FMapListMake.
+
+Module MakeListMap (X : SsrOrderedType) <: SsrFMap with Module E := X.
+  Module M := FMapListMake X.
+  Module S := MakeListSet X.
+  Module KeyLemmas := MapKeyLemmas X M S.
+  Module Lemmas := KeyLemmas.MLemmas.
+
+  Include KeyLemmas.
   Include M.
+
 End MakeListMap.
 
-Module MakeTreeMap (V : SsrOrderedType).
-  Module M := FMapAVL.Make V.
-  Module Lemmas := FMapLemmas(M).
+
+
+(* Copied from Coq source code to avoid errors *)
+Module FMapAVLIntMake (I:ZArith.Int.Int)(X: SsrOrderedType) <: S with Module E := X.
+
+  Module E := X.
+  Module Raw := FMapAVL.Raw I X.
+  Import Raw.Proofs.
+
+  Record bst (elt:Type) :=
+    Bst {this :> Raw.tree elt; is_bst : Raw.bst this}.
+
+  Definition t := bst.
+  Definition key := E.t.
+
+  Section Elt.
+    Variable elt elt' elt'': Type.
+
+    Implicit Types m : t elt.
+    Implicit Types x y : key.
+    Implicit Types e : elt.
+
+    Definition empty : t elt := Bst (empty_bst elt).
+    Definition is_empty m : bool := Raw.is_empty m.(this).
+    Definition add x e m : t elt := Bst (add_bst x e m.(is_bst)).
+    Definition remove x m : t elt := Bst (remove_bst x m.(is_bst)).
+    Definition mem x m : bool := Raw.mem x m.(this).
+    Definition find x m : option elt := Raw.find x m.(this).
+    Definition map f m : t elt' := Bst (map_bst f m.(is_bst)).
+    Definition mapi (f:key->elt->elt') m : t elt' :=
+      Bst (mapi_bst f m.(is_bst)).
+    Definition map2 f m (m':t elt') : t elt'' :=
+      Bst (map2_bst f m.(is_bst) m'.(is_bst)).
+    Definition elements m : list (key*elt) := Raw.elements m.(this).
+    Definition cardinal m := Raw.cardinal m.(this).
+    Definition fold (A:Type) (f:key->elt->A->A) m i := Raw.fold (A:=A) f m.(this) i.
+    Definition equal cmp m m' : bool := Raw.equal cmp m.(this) m'.(this).
+
+    Definition MapsTo x e m : Prop := Raw.MapsTo x e m.(this).
+    Definition In x m : Prop := Raw.In0 x m.(this).
+    Definition Empty m : Prop := Empty m.(this).
+
+    Definition eq_key : (key*elt) -> (key*elt) -> Prop := @PX.eqk elt.
+    Definition eq_key_elt : (key*elt) -> (key*elt) -> Prop := @PX.eqke elt.
+    Definition lt_key : (key*elt) -> (key*elt) -> Prop := @PX.ltk elt.
+
+    Lemma MapsTo_1 : forall m x y e, E.eq x y -> MapsTo x e m -> MapsTo y e m.
+    Proof. intros m; exact (@MapsTo_1 _ m.(this)). Qed.
+
+    Lemma mem_1 : forall m x, In x m -> mem x m = true.
+    Proof.
+      unfold In, mem; intros m x; rewrite In_alt; simpl; apply mem_1; auto.
+      apply m.(is_bst).
+    Qed.
+
+    Lemma mem_2 : forall m x, mem x m = true -> In x m.
+    Proof.
+      unfold In, mem; intros m x; rewrite In_alt; simpl; apply mem_2; auto.
+    Qed.
+
+    Lemma empty_1 : Empty empty.
+    Proof. exact (@empty_1 elt). Qed.
+
+    Lemma is_empty_1 : forall m, Empty m -> is_empty m = true.
+    Proof. intros m; exact (@is_empty_1 _ m.(this)). Qed.
+    Lemma is_empty_2 : forall m, is_empty m = true -> Empty m.
+    Proof. intros m; exact (@is_empty_2 _ m.(this)). Qed.
+
+    Lemma add_1 : forall m x y e, E.eq x y -> MapsTo y e (add x e m).
+    Proof. intros m x y e; exact (@add_1 elt _ x y e). Qed.
+    Lemma add_2 : forall m x y e e', ~ E.eq x y -> MapsTo y e m -> MapsTo y e (add x e' m).
+    Proof. intros m x y e e'; exact (@add_2 elt _ x y e e'). Qed.
+    Lemma add_3 : forall m x y e e', ~ E.eq x y -> MapsTo y e (add x e' m) -> MapsTo y e m.
+    Proof. intros m x y e e'; exact (@add_3 elt _ x y e e'). Qed.
+
+    Lemma remove_1 : forall m x y, E.eq x y -> ~ In y (remove x m).
+    Proof.
+      unfold In, remove; intros m x y; rewrite In_alt; simpl; apply remove_1; auto.
+      apply m.(is_bst).
+    Qed.
+    Lemma remove_2 : forall m x y e, ~ E.eq x y -> MapsTo y e m -> MapsTo y e (remove x m).
+    Proof. intros m x y e; exact (@remove_2 elt _ x y e m.(is_bst)). Qed.
+    Lemma remove_3 : forall m x y e, MapsTo y e (remove x m) -> MapsTo y e m.
+    Proof. intros m x y e; exact (@remove_3 elt _ x y e m.(is_bst)). Qed.
+
+
+    Lemma find_1 : forall m x e, MapsTo x e m -> find x m = Some e.
+    Proof. intros m x e; exact (@find_1 elt _ x e m.(is_bst)). Qed.
+    Lemma find_2 : forall m x e, find x m = Some e -> MapsTo x e m.
+    Proof. intros m; exact (@find_2 elt m.(this)). Qed.
+
+    Lemma fold_1 : forall m (A : Type) (i : A) (f : key -> elt -> A -> A),
+        fold f m i = fold_left (fun a p => f (fst p) (snd p) a) (elements m) i.
+    Proof. intros m; exact (@fold_1 elt m.(this) m.(is_bst)). Qed.
+
+    Lemma elements_1 : forall m x e,
+        MapsTo x e m -> InA eq_key_elt (x,e) (elements m).
+    Proof.
+      intros; unfold elements, MapsTo, eq_key_elt; rewrite elements_mapsto; auto.
+    Qed.
+
+    Lemma elements_2 : forall m x e,
+        InA eq_key_elt (x,e) (elements m) -> MapsTo x e m.
+    Proof.
+      intros; unfold elements, MapsTo, eq_key_elt; rewrite <- elements_mapsto; auto.
+    Qed.
+
+    Lemma elements_3 : forall m, sort lt_key (elements m).
+    Proof. intros m; exact (@elements_sort elt m.(this) m.(is_bst)). Qed.
+
+    Lemma elements_3w : forall m, NoDupA eq_key (elements m).
+    Proof. intros m; exact (@elements_nodup elt m.(this) m.(is_bst)). Qed.
+
+    Lemma cardinal_1 : forall m, cardinal m = length (elements m).
+    Proof. intro m; exact (@elements_cardinal elt m.(this)). Qed.
+
+    Definition Equal m m' := forall y, find y m = find y m'.
+    Definition Equiv (eq_elt:elt->elt->Prop) m m' :=
+      (forall k, In k m <-> In k m') /\
+      (forall k e e', MapsTo k e m -> MapsTo k e' m' -> eq_elt e e').
+    Definition Equivb cmp := Equiv (Cmp cmp).
+
+    Lemma Equivb_Equivb : forall cmp m m',
+        Equivb cmp m m' <-> Raw.Proofs.Equivb cmp m m'.
+    Proof.
+      intros; unfold Equivb, Equiv, Raw.Proofs.Equivb, In. intuition. 
+      generalize (H0 k); do 2 rewrite In_alt; intuition.
+      generalize (H0 k); do 2 rewrite In_alt; intuition.
+      generalize (H0 k); do 2 rewrite <- In_alt; intuition.
+      generalize (H0 k); do 2 rewrite <- In_alt; intuition.
+    Qed.
+
+    Lemma equal_1 : forall m m' cmp,
+        Equivb cmp m m' -> equal cmp m m' = true.
+    Proof.
+      unfold equal; intros (m,b) (m',b') cmp; rewrite Equivb_Equivb;
+        intros; simpl in *; rewrite equal_Equivb; auto.
+    Qed.
+
+    Lemma equal_2 : forall m m' cmp,
+        equal cmp m m' = true -> Equivb cmp m m'.
+    Proof.
+      unfold equal; intros (m,b) (m',b') cmp; rewrite Equivb_Equivb;
+        intros; simpl in *; rewrite <-equal_Equivb; auto.
+    Qed.
+
+  End Elt.
+
+  Lemma map_1 : forall (elt elt':Type)(m: t elt)(x:key)(e:elt)(f:elt->elt'),
+      MapsTo x e m -> MapsTo x (f e) (map f m).
+  Proof. intros elt elt' m x e f; exact (@map_1 elt elt' f m.(this) x e). Qed.
+
+  Lemma map_2 : forall (elt elt':Type)(m:t elt)(x:key)(f:elt->elt'), In x (map f m) -> In x m.
+  Proof.
+    intros elt elt' m x f; do 2 unfold In in *; do 2 rewrite In_alt; simpl.
+    apply map_2; auto.
+  Qed.
+
+  Lemma mapi_1 : forall (elt elt':Type)(m: t elt)(x:key)(e:elt)
+                        (f:key->elt->elt'), MapsTo x e m ->
+                                            exists y, E.eq y x /\ MapsTo x (f y e) (mapi f m).
+  Proof. intros elt elt' m x e f; exact (@mapi_1 elt elt' f m.(this) x e). Qed.
+  Lemma mapi_2 : forall (elt elt':Type)(m: t elt)(x:key)
+                        (f:key->elt->elt'), In x (mapi f m) -> In x m.
+  Proof.
+    intros elt elt' m x f; unfold In in *; do 2 rewrite In_alt; simpl; apply mapi_2; auto.
+  Qed.
+
+  Lemma map2_1 : forall (elt elt' elt'':Type)(m: t elt)(m': t elt')
+                        (x:key)(f:option elt->option elt'->option elt''),
+      In x m \/ In x m' ->
+      find x (map2 f m m') = f (find x m) (find x m').
+  Proof.
+    unfold find, map2, In; intros elt elt' elt'' m m' x f.
+    do 2 rewrite In_alt; intros; simpl; apply map2_1; auto.
+    apply m.(is_bst).
+    apply m'.(is_bst).
+  Qed.
+
+  Lemma map2_2 : forall (elt elt' elt'':Type)(m: t elt)(m': t elt')
+                        (x:key)(f:option elt->option elt'->option elt''),
+      In x (map2 f m m') -> In x m \/ In x m'.
+  Proof.
+    unfold In, map2; intros elt elt' elt'' m m' x f.
+    do 3 rewrite In_alt; intros; simpl in *; eapply map2_2; eauto.
+    apply m.(is_bst).
+    apply m'.(is_bst).
+  Qed.
+
+End FMapAVLIntMake.
+
+Module MakeFMapAVL (X: SsrOrderedType) <: FMapInterface.S with Module E := X
+  := FMapAVLIntMake(ZArith.Int.Z_as_Int)(X).
+
+Module MakeTreeMap (X : SsrOrderedType) <: SsrFMap with Module E := X.
+  Module M := MakeFMapAVL  X.
+  Module S := MakeTreeSet X.
+  Module KeyLemmas := MapKeyLemmas X M S.
+  Module Lemmas := KeyLemmas.MLemmas.
+
+  Include KeyLemmas.
   Include M.
+
 End MakeTreeMap.
 
+
+
 Module Make (V : SsrOrderedType) := MakeListMap V.
+
+
+
+(* Maps that can generate new keys. *)
+
+Module MakeElementGenerator (M : SsrFMap) (D : HasDefault M.E) (S : HasSucc M.E) (L : HasLtbSucc M.E M.E S).
+
+  Module GLemmas := FMapLemmas M.
+
+  Section Gen.
+
+    Variable elt : Type.
+
+    (* Generate a new key *)
+    Definition new_key (m : M.t elt) : M.key :=
+      match GLemmas.max_key m with
+      | Some k => S.succ k
+      | None => D.default
+      end.
+
+    Lemma new_key_is_new :
+      forall (m : M.t elt), ~~ M.mem (new_key m) m.
+    Proof.
+      move=> m. rewrite /new_key. case H: (GLemmas.max_key m).
+      - apply/negP=> Hmem. apply: (GLemmas.max_key_not_lt H Hmem). exact: L.ltb_succ.
+      - move: (GLemmas.max_key_none H) => Hempty.
+        exact: (GLemmas.Empty_mem D.default Hempty).
+    Qed.
+
+  End Gen.
+
+End MakeElementGenerator.
+
+Module Type SsrFMapWithNew <: SsrFMap.
+  Include SsrFMap.
+  Section NewKey.
+    Variable elt : Type.
+    Parameter new_key : t elt -> key.
+    Parameter new_key_is_new : forall (m : t elt), ~~ mem (new_key m) m.
+  End NewKey.
+End SsrFMapWithNew.
+
+Module MakeListMapWithNew (X : SsrOrderedWithDefaultSucc) <: SsrFMapWithNew.
+  Module LM := MakeListMap X.
+  Include LM.
+  Include MakeElementGenerator LM X X X.
+End MakeListMapWithNew.
+
+Module MakeTreeMapWithNew (X : SsrOrderedWithDefaultSucc) <: SsrFMapWithNew.
+  Module TM := MakeTreeMap X.
+  Include TM.
+  Include MakeElementGenerator TM X X X.
+End MakeTreeMapWithNew.
+
+
+
+(* Map a map to another map *)
 
 Module Map2Map (M1 : FMapInterface.S) (M2 : FMapInterface.S).
 

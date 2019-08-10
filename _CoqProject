@@ -1,6 +1,7 @@
 -R src ssrlib
-src/SsrOrdered.v
 src/Types.v
+src/SsrOrdered.v
+src/Tactics.v
 src/Lists.v
 src/Tuples.v
 src/Bools.v
@@ -10,7 +11,6 @@ src/FSets.v
 src/FMaps.v
 src/HList.v
 src/Seqs.v
-src/Tactics.v
 src/Var.v
 src/Env.v
 src/Store.v

@@ -2,9 +2,8 @@
 (** * Stores of variable values *)
 
 From Coq Require Import Program Program.Tactics FMaps ZArith.
-From mathcomp Require Import ssreflect ssrbool eqtype.
-From ssrlib Require Import Types SsrOrdered HList FMaps ZAriths Env Var.
-Import HEnv.
+From mathcomp Require Import ssreflect ssrbool eqtype seq.
+From ssrlib Require Import Types SsrOrdered HList FMaps ZAriths Env Tactics.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -14,7 +13,7 @@ Import Prenex Implicits.
 
 (** Stores as total maps from variables to values of a single type. *)
 
-Module Type TSTORE (V : SsrOrderedType).
+Module Type TStore (V : SsrOrderedType).
 
   Local Notation var := V.t.
 
@@ -132,9 +131,11 @@ Module Type TSTORE (V : SsrOrderedType).
 
   End TStore.
 
-End TSTORE.
+End TStore.
 
-Module MakeTStore (X : SsrOrderedType) <: TSTORE X.
+
+
+Module MakeTStore (X : SsrOrderedType) <: TStore X.
 
   Section TStore.
 
@@ -352,6 +353,8 @@ Module MakeTStore (X : SsrOrderedType) <: TSTORE X.
 
 End MakeTStore.
 
+
+
 Module TStoreAdapter (X : SsrOrderedType) (V : Equalities.Typ).
   Module S := MakeTStore X.
   Definition value := V.t.
@@ -509,7 +512,9 @@ Module TStoreAdapter (X : SsrOrderedType) (V : Equalities.Typ).
   Qed.
 End TStoreAdapter.
 
-Module MakeRealizableTStore (X : SsrOrderedType) <: TSTORE X.
+
+
+Module MakeRealizableTStore (X : SsrOrderedType) <: TStore X.
 
   Section TStore.
 
@@ -727,7 +732,9 @@ Module MakeRealizableTStore (X : SsrOrderedType) <: TSTORE X.
 
 End MakeRealizableTStore.
 
-Module RealizableTStoreAdapter (X : SsrOrderedType) (V : HasDefault).
+
+
+Module RealizableTStoreAdapter (X : SsrOrderedType) (V : HasDefaultTyp).
   Module S := MakeRealizableTStore X.
   Definition value := V.t.
   Definition var := S.var.
@@ -888,7 +895,7 @@ End RealizableTStoreAdapter.
 
 (** Stores as partial maps from variables to values of a single type. *)
 
-Module Type PSTORE (V : SsrOrderedType).
+Module Type PStore (V : SsrOrderedType).
 
   Local Notation var := V.t.
 
@@ -998,9 +1005,11 @@ Module Type PSTORE (V : SsrOrderedType).
 
   End PStore.
 
-End PSTORE.
+End PStore.
 
-Module MakePStore (X : SsrOrderedType) <: PSTORE X.
+
+
+Module MakePStore (X : SsrOrderedType) <: PStore X.
 
   Module M := FMapList.Make(X).
   Module L := FMapLemmas(M).
@@ -1210,6 +1219,8 @@ Module MakePStore (X : SsrOrderedType) <: PSTORE X.
 
 End MakePStore.
 
+
+
 Module PStoreAdapter (X : SsrOrderedType) (V : Equalities.Typ).
   Module S := MakePStore X.
   Definition var := S.var.
@@ -1344,13 +1355,14 @@ Module PStoreAdapter (X : SsrOrderedType) (V : Equalities.Typ).
   Qed.
 End PStoreAdapter.
 
-Module VStore := MakePStore NOrder.
 
 
+(** Stores with heterogeneous values. The environment is pre-defined. *)
 
-(** Stores with heterogeneous values. *)
+Module Type HStorePreDefined.
 
-Module Type HSTORE.
+  Declare Module V : SsrOrderedType.
+  Declare Module HE : HEnv with Module V := V.
 
   Local Open Scope hlist_scope.
 
@@ -1358,53 +1370,59 @@ Module Type HSTORE.
 
   Parameter V : T -> Set.
 
-  Parameter t : HEnv.t T -> Type.
+  Parameter t : HE.t T -> Type.
 
-  Parameter empty : forall E : HEnv.t T, t E.
+  Parameter empty : forall E : HE.t T, t E.
 
   Parameter upd :
-    forall (E : HEnv.t T) (ty : T),
-      pvar E ty -> V ty -> t E -> t E.
+    forall (E : HE.t T) (ty : T),
+      HE.pvar E ty -> V ty -> t E -> t E.
 
   Parameter acc :
-    forall (E : HEnv.t T) (ty : T),
-      pvar E ty -> t E -> V ty.
+    forall (E : HE.t T) (ty : T),
+      HE.pvar E ty -> t E -> V ty.
 
-  Parameter bisim : forall (E : HEnv.t T), t E -> t E -> Prop.
+  Parameter bisim : forall (E : HE.t T), t E -> t E -> Prop.
 
   Axiom acc_upd_heq :
-    forall (E : HEnv.t T) (tyx tyy : T) (x : pvar E tyx) (y : pvar E tyy)
+    forall (E : HE.t T) (tyx tyy : T) (x : HE.pvar E tyx) (y : HE.pvar E tyy)
            (e : V tyy) (s : t E),
-      pvar_var x == pvar_var y ->
+      HE.pvar_var x == HE.pvar_var y ->
       acc x (upd y e s) =v e.
 
   Axiom acc_upd_eq :
-    forall (E : HEnv.t T) (ty : T) (x : pvar E ty) (y : pvar E ty)
+    forall (E : HE.t T) (ty : T) (x : HE.pvar E ty) (y : HE.pvar E ty)
            (e : V ty) (s : t E),
-      pvar_var x == pvar_var y ->
+      HE.pvar_var x == HE.pvar_var y ->
       acc x (upd y e s) = e.
 
   Axiom acc_upd_neq :
-    forall (E : HEnv.t T) (tyx tyy : T) (x : pvar E tyx) (y : pvar E tyy)
+    forall (E : HE.t T) (tyx tyy : T) (x : HE.pvar E tyx) (y : HE.pvar E tyy)
            (e : V tyy) (s : t E),
-      pvar_var x != pvar_var y ->
+      HE.pvar_var x != HE.pvar_var y ->
       acc x (upd y e s) = acc x s.
 
-  Axiom bisim_refl : forall (E : HEnv.t T) (s : t E), bisim s s.
+  Axiom bisim_refl : forall (E : HE.t T) (s : t E), bisim s s.
 
   Axiom bisim_pvar_inv :
-    forall (E : HEnv.t T) (s1 s2 : t E) (ty : T) (x : pvar E ty),
+    forall (E : HE.t T) (s1 s2 : t E) (ty : T) (x : HE.pvar E ty),
       bisim s1 s2 -> acc x s1 = acc x s2.
 
-End HSTORE.
+End HStorePreDefined.
+
+
 
 Module Type HETEROGENEOUS.
   Parameter T : Set.
   Parameter V : T -> Set.
   Parameter default : forall (x : T), V x.
+  Axiom ty_dec : forall (x y : T), {x = y} + {x <> y}.
 End HETEROGENEOUS.
 
-Module MakeHStore (H : HETEROGENEOUS) <: HSTORE.
+Module MakeHStorePreDefined (V : SsrOrderedType) (H : HETEROGENEOUS) (HE : HEnv with Module V := V) <: HStorePreDefined with Module V := V with Module HE := HE.
+
+  Module V := V.
+  Module HE := HE.
 
   Local Open Scope hlist_scope.
 
@@ -1412,7 +1430,7 @@ Module MakeHStore (H : HETEROGENEOUS) <: HSTORE.
 
   Definition V : T -> Set := H.V.
 
-  Definition t (E : HEnv.t T) : Type := hlist V (HEnv.vtypes E).
+  Definition t (E : HE.t T) : Type := hlist V (HE.vtypes E).
 
   Program Fixpoint defaults (types : list T) : hlist V types :=
     match types with
@@ -1420,31 +1438,31 @@ Module MakeHStore (H : HETEROGENEOUS) <: HSTORE.
     | cons hd tl => Hcons (H.default hd) (defaults tl)
     end.
 
-  Definition empty (E : HEnv.t T) : t E := defaults (HEnv.vtypes E).
+  Definition empty (E : HE.t T) : t E := defaults (HE.vtypes E).
 
-  Definition upd E ty (x : pvar E ty) (v : V ty) (st : t E) : t E :=
-    updlidx (pvar_lidx x) v st.
+  Definition upd E ty (x : HE.pvar E ty) (v : V ty) (st : t E) : t E :=
+    updlidx (HE.pvar_lidx x) v st.
 
-  Definition acc E ty (x : pvar E ty) (st : t E) : V ty :=
-    acclidx (pvar_lidx x) st.
+  Definition acc E ty (x : HE.pvar E ty) (st : t E) : V ty :=
+    acclidx (HE.pvar_lidx x) st.
 
   Definition bisim E (s1 s2 : t E) : Prop :=
-    forall ty (x : pvar E ty), acc x s1 = acc x s2.
+    forall ty (x : HE.pvar E ty), acc x s1 = acc x s2.
 
-  Lemma acc_upd_heq E tyx tyy (x : pvar E tyx) (y : pvar E tyy)
+  Lemma acc_upd_heq E tyx tyy (x : HE.pvar E tyx) (y : HE.pvar E tyy)
         (e : V tyy) (s : t E) :
-    pvar_var x == pvar_var y ->
+    HE.pvar_var x == HE.pvar_var y ->
     (acc x (upd y e s) =v e).
   Proof.
     rewrite /acc /upd /= => Hxy.
     rewrite acclidx_updlidx_heq.
     - reflexivity.
-    - apply: pvar_lidx_heq.
+    - apply: HE.pvar_lidx_heq.
       assumption.
   Qed.
 
-  Lemma acc_upd_eq E ty (x y : pvar E ty) (e : V ty) (s : t E) :
-    pvar_var x == pvar_var y ->
+  Lemma acc_upd_eq E ty (x y : HE.pvar E ty) (e : V ty) (s : t E) :
+    HE.pvar_var x == HE.pvar_var y ->
     acc x (upd y e s) = e.
   Proof.
     move=> Hxy.
@@ -1453,15 +1471,15 @@ Module MakeHStore (H : HETEROGENEOUS) <: HSTORE.
     assumption.
   Qed.
 
-  Lemma acc_upd_neq E tyx tyy (x : pvar E tyx) (y : pvar E tyy)
+  Lemma acc_upd_neq E tyx tyy (x : HE.pvar E tyx) (y : HE.pvar E tyy)
         (e : V tyy) (s : t E) :
-    pvar_var x != pvar_var y ->
+    HE.pvar_var x != HE.pvar_var y ->
     acc x (upd y e s) = acc x s.
   Proof.
     rewrite /acc /upd /= => Hne.
     rewrite acclidx_updlidx_hneq.
     - reflexivity.
-    - apply: pvar_lidx_hneq.
+    - apply: HE.pvar_lidx_hneq.
       assumption.
   Qed.
 
@@ -1470,11 +1488,186 @@ Module MakeHStore (H : HETEROGENEOUS) <: HSTORE.
     move=> ty x; reflexivity.
   Qed.
 
-  Lemma bisim_pvar_inv E (s1 s2 : t E) ty (x : pvar E ty) :
+  Lemma bisim_pvar_inv E (s1 s2 : t E) ty (x : HE.pvar E ty) :
     bisim s1 s2 -> acc x s1 = acc x s2.
   Proof.
     move=> Hs.
     exact: Hs.
+  Qed.
+
+End MakeHStorePreDefined.
+
+
+
+(** Stores with heterogeneous values. The environment is updated with store. *)
+
+Module Type HStore.
+
+  Declare Module V : SsrOrderedType.
+  Declare Module HE : HEnv with Module V := V.
+
+  Local Open Scope hlist_scope.
+
+  (* Syntax of types *)
+  Parameter T : Set.
+
+  (* Semantics of types *)
+  Parameter V : T -> Set.
+
+  (* Stores *)
+  Parameter t : HE.t T -> Type.
+
+  (* An empty store *)
+  Parameter empty : t (HE.empty T).
+
+  (* Update a variable that is already in the environment *)
+  Parameter upd :
+    forall (E : HE.t T) (ty : T) (x : HE.pvar E ty), V ty -> t E -> t E.
+
+  (* Add a new variable or change the type of a variable *)
+  Parameter add :
+    forall (E : HE.t T) (x : V.t) (ty : T), V ty -> t E -> t (HE.add x ty E).
+
+  (* Access a variable known to be in the environment *)
+  Parameter accp : forall (E : HE.t T) (ty : T), HE.pvar E ty -> t E -> V ty.
+
+  (* Access a variable *)
+  Parameter acc : forall (E : HE.t T), V.t -> forall (ty : T), t E -> option (V ty).
+
+  Axiom accp_upd_heq :
+    forall E s tyx (x : HE.pvar E tyx) tyy (y : HE.pvar E tyy) (v : V tyy),
+      HE.pvar_var x == HE.pvar_var y ->
+      accp x (upd y v s) =v v.
+
+  Axiom accp_upd_eq :
+    forall E s ty (x y : HE.pvar E ty) (v : V ty),
+      HE.pvar_var x == HE.pvar_var y ->
+      accp x (upd y v s) = v.
+
+  Axiom accp_upd_neq :
+    forall E s tyx (x : HE.pvar E tyx) tyy (y : HE.pvar E tyy) (v : V tyy),
+      HE.pvar_var x != HE.pvar_var y ->
+      accp x (upd y v s) = accp x s.
+
+  (* Bi-simulation *)
+
+  Parameter bisim : forall (E : HE.t T), t E -> t E -> Prop.
+
+  Axiom bisim_refl : forall (E : HE.t T) (s : t E), bisim s s.
+
+  Axiom bisim_pvar_inv :
+    forall (E : HE.t T) (s1 s2 : t E)(ty : T) (x : HE.pvar E ty),
+      bisim s1 s2 -> accp x s1 = accp x s2.
+
+End HStore.
+
+
+
+Module MakeHStore (V : SsrOrderedType) (H : HETEROGENEOUS) (HE : HEnv with Module V := V) <: HStore with Module V := V with Module HE := HE.
+
+  Module V := V.
+  Module HE := HE.
+
+  Local Open Scope hlist_scope.
+  Local Notation var := V.t.
+
+  Definition T := H.T.
+
+  Definition V := H.V.
+
+  Definition t (E : HE.t T) : Type := hlist V (HE.vtypes E).
+
+  Fixpoint defaults (types : list T) : hlist V types :=
+    match types with
+    | nil => hnil V
+    | cons hd tl => Hcons (H.default hd) (defaults tl)
+    end.
+
+  Definition empty : t (HE.empty T) := defaults (HE.vtypes (HE.empty T)).
+
+  (* Update a variable that is already in the environment *)
+  Definition upd E (ty : T) (x : HE.pvar E ty) (v : V ty) (s : t E) : t E :=
+    updlidx (HE.pvar_lidx x) v s.
+
+  (* Add a new variable or change the type of a variable *)
+  Program Definition add E (x : var) (ty : T) (v : V ty) (s : t E) : t (HE.add x ty E) :=
+    Hcons v s.
+  Next Obligation.
+  Proof.
+    rewrite HE.vtypes_add. reflexivity.
+  Qed.
+
+  (* Access a variable known to be in the environment *)
+  Definition accp (E : HE.t T) (ty : T) (x : HE.pvar E ty) (s : t E) : V ty :=
+    acclidx (HE.pvar_lidx x) s.
+
+  (* Access a variable *)
+  Program Definition acc (E : HE.t T) (x : var) (ty : T) (s : t E) : option (V ty) :=
+    match HE.find x E with
+    | None => None
+    | Some e =>
+      match H.ty_dec ty (HE.vty e) with
+      | left _ => Some (acclidx (HE.vidx e) s)
+      | right _ => None
+      end
+    end.
+
+  Lemma accp_upd_heq
+        E (s : t E) tyx (x : HE.pvar E tyx) tyy (y : HE.pvar E tyy) (v : V tyy) :
+      HE.pvar_var x == HE.pvar_var y ->
+      accp x (upd y v s) =v v.
+  Proof.
+    rewrite /accp /upd /= => Hxy. rewrite acclidx_updlidx_heq; first by reflexivity.
+    apply: HE.pvar_lidx_heq. assumption.
+  Qed.
+
+  Lemma accp_upd_eq E (s : t E) ty (x y : HE.pvar E ty) (v : V ty) :
+    HE.pvar_var x == HE.pvar_var y ->
+    accp x (upd y v s) = v.
+  Proof.
+    move=> Hxy. apply: value_eq_eq. apply: accp_upd_heq. assumption.
+  Qed.
+
+  Lemma accp_upd_neq
+        E (s : t E) tyx (x : HE.pvar E tyx) tyy (y : HE.pvar E tyy) (v : V tyy) :
+    HE.pvar_var x != HE.pvar_var y ->
+    accp x (upd y v s) = accp x s.
+  Proof.
+    rewrite /accp /upd /= => Hne. rewrite acclidx_updlidx_hneq; first by reflexivity.
+    apply: HE.pvar_lidx_hneq. assumption.
+  Qed.
+
+  Lemma acc_add_eq E (s : t E) (x y : V.t) (ty : T) (v : V ty) :
+    x == y ->
+    acc x ty (add y v s) = Some v.
+  Proof.
+    move=> Hxy. rewrite /acc /add /=.
+    move: (HE.find_add_eq E x ty) => [e [Hfind [Hty Hidx]]].
+    rewrite -(eqP Hxy). rewrite Hfind.
+    (* Does not know how to proceed *)
+  Abort.
+
+  Lemma acc_upd_neq E (s : t E) (x : V.t) (ty : T) (y : HE.pvar E ty) (v : V ty) :
+    x != HE.pvar_var y ->
+    acc x ty (upd y v s) = acc x ty s.
+  Proof.
+    move=> Hne. rewrite /upd. rewrite /acc.
+  Abort.
+
+  (* Bi-simulation*)
+
+  Definition bisim E (s1 s2 : t E) : Prop :=
+    forall ty (x : HE.pvar E ty), accp x s1 = accp x s2.
+
+  Lemma bisim_refl E (s : t E) : bisim s s.
+  Proof.
+    move=> ty x; reflexivity.
+  Qed.
+
+  Lemma bisim_pvar_inv (E : HE.t T) (s1 s2 : t E)(ty : T) (x : HE.pvar E ty) :
+    bisim s1 s2 -> accp x s1 = accp x s2.
+  Proof.
+    move=> Hs. exact: Hs.
   Qed.
 
 End MakeHStore.
@@ -1487,7 +1680,7 @@ From ssrlib Require Import FSets.
 
 Module TStateEqmod
        (X : SsrOrderedType)
-       (Store : TSTORE X) (VS : SsrFSet with Module E := X).
+       (Store : TStore X) (VS : SsrFSet with Module E := X).
 
   Section SEQM1.
 
