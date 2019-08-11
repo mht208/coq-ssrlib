@@ -1680,7 +1680,7 @@ From ssrlib Require Import FSets.
 
 Module TStateEqmod
        (X : SsrOrderedType)
-       (Store : TStore X) (VS : SsrFSet with Module E := X).
+       (Store : TStore X) (VS : SsrFSet with Module SE := X).
 
   Section SEQM1.
 

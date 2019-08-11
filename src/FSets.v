@@ -14,64 +14,21 @@ Import Prenex Implicits.
 (* Finite sets of elements with decidable equality. *)
 
 Module Type SsrFSet <: FSetInterface.S.
-  Declare Module E : SsrOrderedType.
+  Declare Module SE : SsrOrderedType.
+  Module E : OrderedType.OrderedType
+      with Definition t := SE.t
+      with Definition eq := SE.eq
+      with Definition lt := SE.lt
+      with Definition eq_refl := SE.eq_refl
+      with Definition eq_sym := SE.eq_sym
+      with Definition eq_trans := SE.eq_trans
+      with Definition lt_trans := SE.lt_trans
+      with Definition lt_not_eq := SE.lt_not_eq
+      with Definition compare := SE.compare
+      with Definition eq_dec := SE.eq_dec
+    := SE.
   Include Sfun E.
 End SsrFSet.
-
-
-
-(* Copied from Coq source code to avoid errors *)
-
-Module Backport_Sets
-       (E : SsrOrderedType)
-       (M : MSetInterface.Sets with Definition E.t := E.t
-                               with Definition E.eq := E.eq
-                               with Definition E.lt := E.lt)
-       <: SsrFSet with Module E := E.
-
-  Include Coq.FSets.FSetCompat.Backport_WSets E M.
-
-  Implicit Type s : t.
-  Implicit Type x y : elt.
-
-  Definition lt : t -> t -> Prop := M.lt.
-  Definition min_elt : t -> option elt := M.min_elt.
-  Definition max_elt : t -> option elt := M.max_elt.
-  Definition min_elt_1 : forall s x, min_elt s = Some x -> In x s
-   := M.min_elt_spec1.
-  Definition min_elt_2 : forall s x y,
-   min_elt s = Some x -> In y s -> ~ E.lt y x
-   := M.min_elt_spec2.
-  Definition min_elt_3 : forall s, min_elt s = None -> Empty s
-   := M.min_elt_spec3.
-  Definition max_elt_1 : forall s x, max_elt s = Some x -> In x s
-   := M.max_elt_spec1.
-  Definition max_elt_2 : forall s x y,
-   max_elt s = Some x -> In y s -> ~ E.lt x y
-   := M.max_elt_spec2.
-  Definition max_elt_3 : forall s, max_elt s = None -> Empty s
-   := M.max_elt_spec3.
-  Definition elements_3 : forall s, sort E.lt (elements s)
-   := M.elements_spec2.
-  Definition choose_3 : forall s s' x y,
-   choose s = Some x -> choose s' = Some y -> Equal s s' -> E.eq x y
-   := M.choose_spec3.
-  Definition lt_trans : forall s s' s'', lt s s' -> lt s' s'' -> lt s s''
-   := @StrictOrder_Transitive _ _ M.lt_strorder.
-  Lemma lt_not_eq : forall s s', lt s s' -> ~ eq s s'.
-  Proof.
-   unfold lt, eq. intros s s' Hlt Heq. rewrite -> Heq in Hlt.
-   apply (StrictOrder_Irreflexive s'); auto.
-  Qed.
-  Definition compare : forall s s', Compare lt eq s s'.
-  Proof.
-   intros s s'; destruct (CompSpec2Type (M.compare_spec s s'));
-    [ apply EQ | apply LT | apply GT ]; auto.
-  Defined.
-
-  Module E := E.
-
-End Backport_Sets.
 
 
 
@@ -1094,29 +1051,35 @@ End SsrFSetLemmas.
 
 (* Functors for making SsrFSet *)
 
-Module MakeListSet (X : SsrOrderedType) <: SsrFSet with Module E := X.
-  Module X' := OrdersAlt.Update_OT X.
-  Module MS := MSetList.Make X'.
-  Module SS := Backport_Sets X MS.
-  Module Lemmas := SsrFSetLemmas SS.
-  Include SS.
+Module MakeListSet' (X : SsrOrderedType) <: SsrFSet with Module SE := X.
+  Module SE := X.
+  Include FSetList.Make X.
+End MakeListSet'.
+
+Module MakeListSet (X : SsrOrderedType) <: SsrFSet with Module SE := X.
+  Module LS := MakeListSet' X.
+  Module Lemmas := SsrFSetLemmas LS.
+  Include LS.
 End MakeListSet.
 
-Module MakeTreeSet (X : SsrOrderedType) <: SsrFSet with Module E := X.
-  Module X' := OrdersAlt.Update_OT X.
-  Module MS := MSetAVL.Make X'.
-  Module SS := Backport_Sets X MS.
-  Module Lemmas := SsrFSetLemmas SS.
-  Include SS.
+Module MakeTreeSet' (X : SsrOrderedType) <: SsrFSet with Module SE := X.
+  Module SE := X.
+  Include FSetAVL.Make X.
+End MakeTreeSet'.
+
+Module MakeTreeSet (X : SsrOrderedType) <: SsrFSet with Module SE := X.
+  Module TS := MakeTreeSet' X.
+  Module Lemmas := SsrFSetLemmas TS.
+  Include TS.
 End MakeTreeSet.
 
-Module Make (X : SsrOrderedType) <: SsrFSet with Module E := X := MakeListSet X.
+Module Make (X : SsrOrderedType) <: SsrFSet with Module SE := X := MakeListSet X.
 
 
 
 (* Sets that can generate new elements. *)
 
-Module MakeElementGenerator (X : SsrFSet) (D : Types.HasDefault X.E) (S : HasSucc X.E) (L : HasLtbSucc X.E X.E S).
+Module MakeElementGenerator (X : SsrFSet) (D : Types.HasDefault X.SE) (S : HasSucc X.SE) (L : HasLtbSucc X.SE X.SE S).
 
   Definition new_elt (s : X.t) : X.elt :=
     match X.max_elt s with
