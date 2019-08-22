@@ -196,18 +196,23 @@ Section NatLemmas.
     move=> /ltP H1 /ltP H2. apply/ltP. exact: (Nat.add_lt_mono _ _ _ _ H1 H2).
   Qed.
 
-  Lemma ltb_leq n m :
-    (n <? m) = true ->
-    n <= m.
+  Lemma ltn_leq_addn x y a b : x < a -> y <= b -> x + y < a + b.
   Proof.
-    move=> H.
-    apply/leP.
-    move: (Nat.ltb_lt n m) => [H1 _].
-    move: (H1 H) => {H1 H} H.
+    move => /ltP H1 /leP H2. apply/ltP. exact: (Nat.add_lt_le_mono _ _ _ _ H1 H2).
+  Qed.
+
+  Lemma leq_ltn_addn x y a b : x <= a -> y < b -> x + y < a + b.
+  Proof.
+    move=> H1 H2. rewrite (addnC x) (addnC a). exact: ltn_leq_addn.
+  Qed.
+
+  Lemma ltb_leq n m : (n <? m) = true -> n <= m.
+  Proof.
+    move=> H. apply/leP. move: (Nat.ltb_lt n m) => [H1 _]. move: (H1 H) => {H1 H} H.
     auto with arith.
   Qed.
 
-  Lemma eqb_ltn_gtn_cases :
+  Lemma eqn_ltn_gtn_cases :
     forall (m n : nat), (m == n) || (m < n) || (n < m).
   Proof.
     move=> m n. case Heq: (m == n) => /=; first done.

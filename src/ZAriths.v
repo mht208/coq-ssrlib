@@ -281,6 +281,20 @@ Section NLemmas.
     exact: (N.lt_le_incl _ _ H).
   Qed.
 
+  Lemma Nltn_ltnF (n m : N) : n <? m -> m <? n = false.
+  Proof.
+    move=> H1. apply/negP => H2.  move: (Nltn_trans H1 H2). by rewrite Nltnn.
+  Qed.
+
+  Lemma Nltn_neqAlt (n m : N) : n <? m = (n != m) && ~~ (m <? n).
+  Proof.
+    case H: (n == m).
+    - rewrite (eqP H) Nltnn. reflexivity.
+    - move/negPf/eqP: H => H. move/(N.lt_gt_cases n m): H. case.
+      + move/N_ltP=> H. rewrite H. rewrite (Nltn_ltnF H). reflexivity.
+      + move/N_ltP=> H; rewrite H. rewrite (Nltn_ltnF H). reflexivity.
+  Qed.
+
   Lemma Nleqnn n : n <=? n.
   Proof.
     exact: N.leb_refl.

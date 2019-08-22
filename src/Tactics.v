@@ -1,5 +1,5 @@
 
-From mathcomp Require Import ssreflect ssrbool.
+From mathcomp Require Import ssreflect ssrbool eqtype.
 
 (** General tactics *)
 
@@ -81,3 +81,64 @@ Ltac caseb_hyps :=
           end).
 
 Ltac dcase t := move: (refl_equal t); generalize t at -1.
+
+Ltac t_decide_hook := fail.
+
+(* Decide the goal *)
+Ltac t_decide :=
+  repeat (match goal with
+          | H : is_true false |- _ => discriminate
+          | |- is_true true => reflexivity
+          | H : ?e |- ?e => assumption
+          | H : ?e |- context [?e || _] => rewrite H orTb
+          | H : ?e |- context [_ || ?e] => rewrite H orbT
+          | H : ?e |- context [?e && _] => rewrite H andTb
+          | H : ?e |- context [_ && ?e] => rewrite H andbT
+          | |- context [?e == ?e] => rewrite eqxx
+          | |- context [_ || true] => rewrite orbT
+          | |- context [true || _] => rewrite orTb
+          | |- context [_ && true] => rewrite andbT
+          | |- context [true && _] => rewrite andTb
+          | |- context [_ || false] => rewrite orbF
+          | |- context [false || _] => rewrite orFb
+          | |- context [_ && false] => rewrite andbF
+          | |- context [false && _] => rewrite andFb
+          | |- _ => t_decide_hook
+          end).
+
+(* Clear some useless hypotheses *)
+Ltac t_clear :=
+  repeat (match goal with
+          | H : is_true true |- _ => clear H
+          | H : ?e = ?e |- _ => clear H
+          | H : is_true (?e == ?e) |- _ => clear H
+          | H : context [_ || true] |- _ => rewrite orbT in H
+          | H : context [true || _] |- _ => rewrite orTb in H
+          | H : context [_ || false] |- _ => rewrite orbF in H
+          | H : context [false || _] |- _ => rewrite orFb in H
+          | H : context [_ && true] |- _ => rewrite andbT in H
+          | H : context [true && _] |- _ => rewrite andTb in H
+          | H : context [_ && false] |- _ => rewrite andbF in H
+          | H : context [false && _] |- _ => rewrite andFb in H
+          end).
+
+(* Substitute using all equalities *)
+Ltac subst_all :=
+  repeat (match goal with
+          | H : ?e = ?e |- _ => clear H
+          | H : is_true (?e == ?e) |- _ => clear H
+          | H : is_true (_ == _) |- _ => move/eqP: H; intro H
+          | H1 : is_true ?e, H2 : context [?e] |- _ => rewrite H1 in H2
+          | H : is_true ?e |- context [?e] => rewrite H
+          | H1 : ?e = _, H2 : context [?e] |- _ => rewrite H1 in H2
+          | H : ?e = _ |- _ => try rewrite H; first [injection H; intros | clear H]
+          | H1 : _ = ?e, H2 : context [?e] |- _ => rewrite -H1 in H2
+          | H : _ = ?e |- _ => try rewrite -H; first [injection H; intros | clear H]
+          end).
+
+Ltac t_auto_first := idtac.
+Ltac t_auto_hook := fail.
+
+Ltac t_auto :=
+  t_auto_first; intros;
+  repeat (caseb_hyps; t_clear || subst_all || t_decide || t_auto_hook).
