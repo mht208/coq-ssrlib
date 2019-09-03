@@ -16,6 +16,13 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma singleton_eq (A : eqType) (x y : A) : ([::x] == [::y]) = (x == y).
+Proof.
+  case H: (x == y).
+  - by rewrite (eqP H) eqxx.
+  - apply/negP => /eqP [] Heq. by rewrite Heq eqxx in H.
+Qed.
+
 Lemma last_decomp A (l : seq A) (n : nat) :
   size l = (n + 1)%N -> exists s x, l = rcons s x.
 Proof.
