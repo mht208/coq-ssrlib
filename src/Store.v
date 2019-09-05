@@ -1590,24 +1590,23 @@ Module MakeHStore (V : SsrOrderedType) (H : HETEROGENEOUS) (HE : HEnv with Modul
     updlidx (HE.pvar_lidx x) v s.
 
   (* Add a new variable or change the type of a variable *)
-  Program Definition add E (x : var) (ty : T) (v : V ty) (s : t E) : t (HE.add x ty E) :=
-    Hcons v s.
-  Next Obligation.
-  Proof.
-    rewrite HE.vtypes_add. reflexivity.
-  Qed.
+  Definition add E (x : var) (ty : T) (v : V ty) (s : t E) : t (HE.add x ty E) :=
+    eq_rect (ty::HE.vtypes E) (fun tys => hlist V tys) (Hcons v s)
+            (HE.vtypes (HE.add x ty E))
+            (Logic.eq_sym (HE.vtypes_add E x ty)).
 
   (* Access a variable known to be in the environment *)
   Definition accp (E : HE.t T) (ty : T) (x : HE.pvar E ty) (s : t E) : V ty :=
     acclidx (HE.pvar_lidx x) s.
 
   (* Access a variable *)
-  Program Definition acc (E : HE.t T) (x : var) (ty : T) (s : t E) : option (V ty) :=
+  Definition acc (E : HE.t T) (x : var) (ty : T) (s : t E) : option (V ty) :=
     match HE.find x E with
     | None => None
     | Some e =>
       match H.ty_dec ty (HE.vty e) with
-      | left _ => Some (acclidx (HE.vidx e) s)
+      | left pf => Some (eq_rect (HE.vty e) (fun ty => V ty) (acclidx (HE.vidx e) s)
+                                 ty (Logic.eq_sym pf))
       | right _ => None
       end
     end.
@@ -1643,7 +1642,9 @@ Module MakeHStore (V : SsrOrderedType) (H : HETEROGENEOUS) (HE : HEnv with Modul
   Proof.
     move=> Hxy. rewrite /acc /add /=.
     move: (HE.find_add_eq E x ty) => [e [Hfind [Hty Hidx]]].
-    rewrite -(eqP Hxy). rewrite Hfind.
+    move/eqP: Hxy => Hxy; subst. rewrite {}Hfind. case: (H.ty_dec ty (HE.vty e)).
+    - move: e Hty Hidx. simplify_eqs.
+    -
     (* Does not know how to proceed *)
   Abort.
 
