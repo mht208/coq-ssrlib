@@ -23,6 +23,18 @@ Proof.
   - apply/negP => /eqP [] Heq. by rewrite Heq eqxx in H.
 Qed.
 
+Lemma map_l_nil (A B : eqType) (f : A -> B) (l : seq A) :
+  (map f l == [::]) = (l == [::]).
+Proof. by case: l. Qed.
+
+Lemma unzip1_l_nil (A B : eqType) (pairs : seq (A * B)) :
+  (unzip1 pairs == [::]) = (pairs == [::]).
+Proof. by rewrite /unzip1 map_l_nil. Qed.
+
+Lemma unzip2_l_nil (A B : eqType) (pairs : seq (A * B)) :
+  (unzip2 pairs == [::]) = (pairs == [::]).
+Proof. by rewrite /unzip2 map_l_nil. Qed.
+
 Lemma last_decomp A (l : seq A) (n : nat) :
   size l = (n + 1)%N -> exists s x, l = rcons s x.
 Proof.
@@ -43,6 +55,18 @@ Lemma seq_neq_split (A : eqType) (x y : A) (xs ys : seq A) :
   (x::xs != y::ys) = ((x != y) || (xs != ys)).
 Proof.
   rewrite negb_and -/eqseq. case Hxy: (x == y) => /=; by trivial.
+Qed.
+
+Lemma has_catrev A p (l1 l2 : seq A) : has p (catrev l1 l2) = has p l1 || has p l2.
+Proof.
+  elim: l1 l2 => [| hd tl IH] l2 //=. rewrite -cat1s catrev_catr has_cat IH /=.
+  rewrite orbF (Bool.orb_comm (has p tl)). reflexivity.
+Qed.
+
+Lemma all_catrev A p (l1 l2 : seq A) : all p (catrev l1 l2) = all p l1 && all p l2.
+Proof.
+  elim: l1 l2 => [| hd tl IH] l2 //=. rewrite -cat1s catrev_catr all_cat IH /=.
+  rewrite andbT (Bool.andb_comm (all p tl)). reflexivity.
 Qed.
 
 Module SeqOrderedMinimal (X : SsrOrderedType) <: SsrOrderedTypeMinimal.
