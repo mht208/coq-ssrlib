@@ -198,88 +198,52 @@ Section NLemmas.
 
   Lemma N_ltP : forall x y : N, reflect (x < y) (x <? y).
   Proof.
-    move=> x y.
-    move: (N.ltb_lt x y) => [H1 H2].
-    case H: (x <? y).
-    - apply: ReflectT.
-      exact: (H1 H).
-    - apply: ReflectF.
-      move=> Hlt.
-      move: (H2 Hlt).
-        by rewrite H.
+    move=> x y. move: (N.ltb_lt x y) => [H1 H2]. case H: (x <? y).
+    - apply: ReflectT. exact: (H1 H).
+    - apply: ReflectF. move=> Hlt. move: (H2 Hlt). by rewrite H.
   Qed.
 
   Lemma N_leP : forall x y : N, reflect (x <= y) (x <=? y).
   Proof.
-    move=> x y.
-    move: (N.leb_le x y) => [H1 H2].
-    case H: (x <=? y).
-    - apply: ReflectT.
-      exact: (H1 H).
-    - apply: ReflectF.
-      move=> Hlt.
-      move: (H2 Hlt).
-      by rewrite H.
+    move=> x y. move: (N.leb_le x y) => [H1 H2]. case H: (x <=? y).
+    - apply: ReflectT. exact: (H1 H).
+    - apply: ReflectF. move=> Hlt. move: (H2 Hlt). by rewrite H.
   Qed.
 
   Lemma NltSn n : n < n + 1.
-  Proof.
-    rewrite N.add_1_r.
-    exact: N.lt_succ_diag_r.
-  Qed.
+  Proof. rewrite N.add_1_r. exact: N.lt_succ_diag_r. Qed.
 
   Lemma NltnSn n : n <? n + 1.
-  Proof.
-    apply/N_ltP.
-    exact: NltSn.
-  Qed.
+  Proof. apply/N_ltP. exact: NltSn. Qed.
 
   Lemma Nltnn n : (n <? n) = false.
-  Proof.
-    exact: N.ltb_irrefl.
-  Qed.
+  Proof. exact: N.ltb_irrefl. Qed.
 
   Lemma Nltn_trans n m p : (m <? n) -> (n <? p) -> (m <? p).
   Proof.
-    move=> /N_ltP Hmn /N_ltP Hnp.
-    apply/N_ltP.
-    exact: (N.lt_trans _ _ _ Hmn Hnp).
+    move=> /N_ltP Hmn /N_ltP Hnp. apply/N_ltP. exact: (N.lt_trans _ _ _ Hmn Hnp).
   Qed.
 
   Lemma Nleq_trans n m p : (m <=? n) -> (n <=? p) -> (m <=? p).
   Proof.
-    move=> /N_leP Hmn /N_leP Hnp.
-    apply/N_leP.
-    exact: (N.le_trans _ _ _ Hmn Hnp).
+    move=> /N_leP Hmn /N_leP Hnp. apply/N_leP. exact: (N.le_trans _ _ _ Hmn Hnp).
   Qed.
 
   Lemma Nleq_ltn_trans n m p : (m <=? n) -> (n <? p) -> (m <? p).
   Proof.
-    move=> /N_leP Hmn /N_ltP Hnp.
-    apply/N_ltP.
-    exact: (N.le_lt_trans _ _ _ Hmn Hnp).
+    move=> /N_leP Hmn /N_ltP Hnp. apply/N_ltP. exact: (N.le_lt_trans _ _ _ Hmn Hnp).
   Qed.
 
   Lemma Nltn_leq_trans n m p : (m <? n) -> (n <=? p) -> (m <? p).
   Proof.
-    move=> /N_ltP Hmn /N_leP Hnp.
-    apply/N_ltP.
-    exact: (N.lt_le_trans _ _ _ Hmn Hnp).
+    move=> /N_ltP Hmn /N_leP Hnp. apply/N_ltP. exact: (N.lt_le_trans _ _ _ Hmn Hnp).
   Qed.
 
   Lemma Nltn0Sn n : 0 <? n + 1.
-  Proof.
-    apply/N_ltP.
-    apply: N.add_pos_r.
-    done.
-  Qed.
+  Proof. apply/N_ltP. apply: N.add_pos_r. done. Qed.
 
   Lemma NltnW m n : (m <? n) -> (m <=? n).
-  Proof.
-    move=> /N_ltP H.
-    apply/N_leP.
-    exact: (N.lt_le_incl _ _ H).
-  Qed.
+  Proof. move=> /N_ltP H. apply/N_leP. exact: (N.lt_le_incl _ _ H). Qed.
 
   Lemma Nltn_ltnF (n m : N) : n <? m -> m <? n = false.
   Proof.
@@ -296,9 +260,7 @@ Section NLemmas.
   Qed.
 
   Lemma Nleqnn n : n <=? n.
-  Proof.
-    exact: N.leb_refl.
-  Qed.
+  Proof. exact: N.leb_refl. Qed.
 
   Lemma Nleqn0 n : (n <=? 0) = (n == 0).
   Proof.
@@ -310,10 +272,17 @@ Section NLemmas.
       by rewrite H in Heq.
   Qed.
 
+  Lemma Nleb_add_diag_r x y : x <=? x + y.
+  Proof. apply/N_leP. exact: N.le_add_r. Qed.
+
+  Lemma Nltb_add_diag_r x y : 0 <? y -> x <? x + y.
+  Proof. move/N_ltP=> H. apply/N_ltP. exact: (N.lt_add_pos_r _ _ H). Qed.
+
+  Lemma Nltb_leb_incl x y : x <? y -> x <=? y.
+  Proof. move/N_ltP=> H. apply/N_leP. exact: (N.lt_le_incl _ _ H). Qed.
+
   Lemma Nsubn0 n : n - 0 = n.
-  Proof.
-    exact: (N.sub_0_r n).
-  Qed.
+  Proof. exact: (N.sub_0_r n). Qed.
 
   Lemma Nleq_eqVlt m n : (m <=? n) = (m == n) || (m <? n).
   Proof.
