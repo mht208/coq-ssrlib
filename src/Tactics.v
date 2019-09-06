@@ -139,6 +139,15 @@ Ltac subst_all :=
 Ltac t_auto_first := idtac.
 Ltac t_auto_hook := fail.
 
-Ltac t_auto :=
-  t_auto_first; intros;
-  repeat (caseb_hyps; t_clear || subst_all || t_decide || t_auto_hook).
+Ltac t_auto_first_with f t :=
+  (f unit); intros;
+  repeat (caseb_hyps; t_clear || subst_all || t_decide || (t unit)).
+
+Ltac t_auto_with t := t_auto_first_with ltac:(fun _ => t_auto_first) t.
+
+Tactic Notation "t_auto" :=
+  t_auto_first_with ltac:(fun _ => t_auto_first) ltac:(fun _ => t_auto_hook).
+Tactic Notation "t_auto" "with" tactic(t) :=
+  t_auto_first_with ltac:(fun _ => t_auto_first) ltac:(t).
+Tactic Notation "t_auto" "first" tactic(f) "with" tactic(t) :=
+  t_auto_first_with ltac:(f) ltac:(t).
