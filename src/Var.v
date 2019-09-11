@@ -16,7 +16,7 @@ Definition var : Set := N.
 Module VarOrder <: SsrOrderedWithDefaultSucc.
   Include NOrder.
   Definition succ := N.succ.
-  Lemma ltb_succ : forall (x : t), ltb x (succ x).
+  Lemma ltn_succ : forall (x : t), ltn x (succ x).
   Proof.
     move=> x. apply/N.ltb_lt. exact: N.lt_succ_diag_r.
   Qed.
@@ -135,9 +135,9 @@ Proof.
   apply: (proj2 (N.ltb_lt v (N.succ v))). exact: N.lt_succ_diag_r.
 Qed.
 
-Lemma V_ltb_succ v i j : SSAVarOrder.ltb (v, j) ((N.succ v), i).
+Lemma V_ltb_succ v i j : SSAVarOrder.ltn (v, j) ((N.succ v), i).
 Proof.
-  rewrite /SSAVarOrder.ltb /SSAVarOrder.M.lt /VarOrder.ltb /NOrderMinimal.lt /=.
+  rewrite /SSAVarOrder.ltn /SSAVarOrder.M.ltn /VarOrder.ltn /NOrderMinimal.ltn /=.
   rewrite N_ltb_succ. exact: is_true_true.
 Qed.
 

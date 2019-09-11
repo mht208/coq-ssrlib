@@ -219,6 +219,9 @@ Section NLemmas.
   Lemma Nltnn n : (n <? n) = false.
   Proof. exact: N.ltb_irrefl. Qed.
 
+  Lemma Nltn_eqF n m : (n <? m) -> (n == m) = false.
+  Proof. move/N_ltP => H. apply/eqP. exact: N.lt_neq. Qed.
+
   Lemma Nltn_trans n m p : (m <? n) -> (n <? p) -> (m <? p).
   Proof.
     move=> /N_ltP Hmn /N_ltP Hnp. apply/N_ltP. exact: (N.lt_trans _ _ _ Hmn Hnp).
@@ -850,53 +853,40 @@ Module PositiveOrderMinimal <: SsrOrderedTypeMinimal.
 
   Definition t : eqType := pos_eqType.
 
-  Definition eq : t -> t -> bool := fun x y : t => x == y.
+  Definition eqn : t -> t -> bool := fun x y : t => x == y.
 
-  Definition lt : t -> t -> bool := fun x y => Pos.ltb x y.
+  Definition ltn : t -> t -> bool := fun x y => Pos.ltb x y.
 
-  Hint Unfold eq lt.
+  Hint Unfold eqn ltn.
 
-  Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
   Proof.
-    move=> x y z Hxy Hyz.
-    move/pos_ltP: Hxy; move/pos_ltP: Hyz => Hyz Hxy.
-    apply/pos_ltP.
-    exact: (Pos.lt_trans _ _ _ Hxy Hyz).
+    move=> Hxy Hyz. move/pos_ltP: Hxy; move/pos_ltP: Hyz => Hyz Hxy.
+    apply/pos_ltP. exact: (Pos.lt_trans _ _ _ Hxy Hyz).
   Qed.
 
-  Lemma lt_not_eq : forall x y : t, lt x y -> x != y.
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
   Proof.
-    move=> x y Hlt.
-    apply/negP => Heq.
-    rewrite (eqP Heq) in Hlt.
-    apply: (Pos.lt_irrefl y).
-    apply/pos_ltP.
-    assumption.
+    move=> Hlt. apply/negP => Heq. rewrite (eqP Heq) in Hlt.
+    apply: (Pos.lt_irrefl y). apply/pos_ltP. assumption.
   Qed.
 
-  Lemma compare : forall x y : t, Compare lt eq x y.
+  Lemma compare (x y : t) : Compare ltn eqn x y.
   Proof.
-    move=> x y.
     case H: (Pos.compare x y).
-    - apply: EQ.
-      move: (Pos.compare_eq_iff x y) => [Hc _].
-      apply/eqP.
-      exact: (Hc H).
-    - apply: LT.
-      move: (Pos.compare_lt_iff x y) => [Hc _].
-      apply/pos_ltP.
-      exact: (Hc H).
-    - apply: GT.
-      move: (Pos.compare_gt_iff x y) => [Hc _].
-      apply/pos_ltP.
-      exact: (Hc H).
+    - apply: EQ. move: (Pos.compare_eq_iff x y) => [Hc _].
+      apply/eqP. exact: (Hc H).
+    - apply: LT. move: (Pos.compare_lt_iff x y) => [Hc _].
+      apply/pos_ltP. exact: (Hc H).
+    - apply: GT. move: (Pos.compare_gt_iff x y) => [Hc _].
+      apply/pos_ltP. exact: (Hc H).
   Defined.
 
   Local Close Scope positive_scope.
 
 End PositiveOrderMinimal.
 
-Module PositiveOrder <: SsrOrderedType := MakeSsrOrderedType PositiveOrderMinimal.
+Module PositiveOrder <: SsrOrderedTypeWithFacts := MakeSsrOrderedType PositiveOrderMinimal.
 
 
 
@@ -908,53 +898,40 @@ Module NOrderMinimal <: SsrOrderedTypeMinimal.
 
   Definition t : eqType := N_eqType.
 
-  Definition eq : t -> t -> bool := fun x y : t => x == y.
+  Definition eqn : t -> t -> bool := fun x y : t => x == y.
 
-  Definition lt : t -> t -> bool := fun x y => N.ltb x y.
+  Definition ltn : t -> t -> bool := fun x y => N.ltb x y.
 
-  Hint Unfold eq lt.
+  Hint Unfold eqn ltn.
 
-  Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
   Proof.
-    move=> x y z Hxy Hyz.
-    move/N_ltP: Hxy; move/N_ltP: Hyz => Hyz Hxy.
-    apply/N_ltP.
-    exact: (N.lt_trans _ _ _ Hxy Hyz).
+    move=> Hxy Hyz. move/N_ltP: Hxy; move/N_ltP: Hyz => Hyz Hxy.
+    apply/N_ltP. exact: (N.lt_trans _ _ _ Hxy Hyz).
   Qed.
 
-  Lemma lt_not_eq : forall x y : t, lt x y -> x != y.
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
   Proof.
-    move=> x y Hlt.
-    apply/negP => Heq.
-    rewrite (eqP Heq) in Hlt.
-    apply: (N.lt_irrefl y).
-    apply/N_ltP.
-    assumption.
+    move=> Hlt. apply/negP => Heq. rewrite (eqP Heq) in Hlt.
+    apply: (N.lt_irrefl y). apply/N_ltP. assumption.
   Qed.
 
-  Lemma compare : forall x y : t, Compare lt eq x y.
+  Lemma compare (x y : t) : Compare ltn eqn x y.
   Proof.
-    move=> x y.
     case H: (N.compare x y).
-    - apply: EQ.
-      move: (N.compare_eq_iff x y) => [Hc _].
-      apply/eqP.
-      exact: (Hc H).
-    - apply: LT.
-      move: (N.compare_lt_iff x y) => [Hc _].
-      apply/N_ltP.
-      exact: (Hc H).
-    - apply: GT.
-      move: (N.compare_gt_iff x y) => [Hc _].
-      apply/N_ltP.
-      exact: (Hc H).
+    - apply: EQ. move: (N.compare_eq_iff x y) => [Hc _].
+      apply/eqP. exact: (Hc H).
+    - apply: LT. move: (N.compare_lt_iff x y) => [Hc _].
+      apply/N_ltP. exact: (Hc H).
+    - apply: GT. move: (N.compare_gt_iff x y) => [Hc _].
+      apply/N_ltP. exact: (Hc H).
   Defined.
 
   Local Close Scope N_scope.
 
 End NOrderMinimal.
 
-Module NOrder <: SsrOrderedType := MakeSsrOrderedType NOrderMinimal.
+Module NOrder <: SsrOrderedTypeWithFacts := MakeSsrOrderedType NOrderMinimal.
 
 
 
@@ -966,53 +943,40 @@ Module ZOrderMinimal <: SsrOrderedTypeMinimal.
 
   Definition t : eqType := Z_eqType.
 
-  Definition eq : t -> t -> bool := fun x y : t => x == y.
+  Definition eqn : t -> t -> bool := fun x y : t => x == y.
 
-  Definition lt : t -> t -> bool := fun x y => Z.ltb x y.
+  Definition ltn : t -> t -> bool := fun x y => Z.ltb x y.
 
-  Hint Unfold eq lt.
+  Hint Unfold eqn ltn.
 
-  Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
   Proof.
-    move=> x y z Hxy Hyz.
-    move/Z_ltP: Hxy; move/Z_ltP: Hyz => Hyz Hxy.
-    apply/Z_ltP.
-    exact: (Z.lt_trans _ _ _ Hxy Hyz).
+    move=> Hxy Hyz. move/Z_ltP: Hxy; move/Z_ltP: Hyz => Hyz Hxy.
+    apply/Z_ltP. exact: (Z.lt_trans _ _ _ Hxy Hyz).
   Qed.
 
-  Lemma lt_not_eq : forall x y : t, lt x y -> x != y.
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
   Proof.
-    move=> x y Hlt.
-    apply/negP => Heq.
-    rewrite (eqP Heq) in Hlt.
-    apply: (Z.lt_irrefl y).
-    apply/Z_ltP.
-    assumption.
+    move=> Hlt. apply/negP => Heq. rewrite (eqP Heq) in Hlt.
+    apply: (Z.lt_irrefl y). apply/Z_ltP. assumption.
   Qed.
 
-  Lemma compare : forall x y : t, Compare lt eq x y.
+  Lemma compare (x y : t) : Compare ltn eqn x y.
   Proof.
-    move=> x y.
     case H: (Z.compare x y).
-    - apply: EQ.
-      move: (Z.compare_eq_iff x y) => [Hc _].
-      apply/eqP.
-      exact: (Hc H).
-    - apply: LT.
-      move: (Z.compare_lt_iff x y) => [Hc _].
-      apply/Z_ltP.
-      exact: (Hc H).
-    - apply: GT.
-      move: (Z.compare_gt_iff x y) => [Hc _].
-      apply/Z_ltP.
-      exact: (Hc H).
+    - apply: EQ. move: (Z.compare_eq_iff x y) => [Hc _].
+      apply/eqP. exact: (Hc H).
+    - apply: LT. move: (Z.compare_lt_iff x y) => [Hc _].
+      apply/Z_ltP. exact: (Hc H).
+    - apply: GT. move: (Z.compare_gt_iff x y) => [Hc _].
+      apply/Z_ltP. exact: (Hc H).
   Defined.
 
   Local Close Scope Z_scope.
 
 End ZOrderMinimal.
 
-Module ZOrder <: SsrOrderedType := MakeSsrOrderedType ZOrderMinimal.
+Module ZOrder <: SsrOrderedTypeWithFacts := MakeSsrOrderedType ZOrderMinimal.
 
 
 

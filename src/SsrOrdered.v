@@ -13,19 +13,19 @@ Import Prenex Implicits.
 
 Module Type SsrOrderedTypeMinimal.
   Parameter t : eqType.
-  Definition eq : t -> t -> bool := fun x y => x == y.
-  Parameter lt : t -> t -> bool.
-  Axiom lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
-  Axiom lt_not_eq : forall x y : t, lt x y -> x != y.
-  Parameter compare : forall x y : t, Compare lt eq x y.
+  Definition eqn : t -> t -> bool := fun x y => x == y.
+  Parameter ltn : t -> t -> bool.
+  Axiom ltn_trans : forall x y z : t, ltn x y -> ltn y z -> ltn x z.
+  Axiom ltn_not_eqn : forall x y : t, ltn x y -> x != y.
+  Parameter compare : forall x y : t, Compare ltn eqn x y.
 End SsrOrderedTypeMinimal.
 
 Module Type SsrOrderedType <: OrderedType.
   Parameter T : eqType.
   Definition t : Type := T.
   Definition eq : t -> t -> Prop := fun x y => x == y.
-  Parameter ltb : t -> t -> bool.
-  Definition lt : t -> t -> Prop := fun x y => ltb x y.
+  Parameter ltn : t -> t -> bool.
+  Definition lt : t -> t -> Prop := fun x y => ltn x y.
   Axiom eq_refl : forall x : t, eq x x.
   Axiom eq_sym : forall x y : t, eq x y -> eq y x.
   Axiom eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z.
@@ -35,37 +35,44 @@ Module Type SsrOrderedType <: OrderedType.
   Parameter eq_dec : forall x y : t, { eq x y } + { ~ eq x y }.
 End SsrOrderedType.
 
-Module MakeSsrOrderedType (M : SsrOrderedTypeMinimal) <: SsrOrderedType.
+Module Type SsrOrderedTypeFacts (Import O : SsrOrderedType).
+  Axiom ltn_trans : forall x y z : t, ltn x y -> ltn y z -> ltn x z.
+  Axiom ltn_eqF : forall (x y : t), ltn x y -> (x == y) = false.
+  Axiom ltnn : forall (x : t), ltn x x = false.
+  Axiom nltn_eqVlt : forall (x y : t), (~~ ltn x y) = ((x == y) || ltn y x).
+  Axiom ltn_neqAlt : forall (x y : t), ltn x y = (x != y) && ~~ (ltn y x).
+  Axiom neq_ltn : forall (x y : t), (x != y) = (ltn x y) || (ltn y x).
+End SsrOrderedTypeFacts.
+
+Module Type SsrOrderedTypeWithFacts := SsrOrderedType <+ SsrOrderedTypeFacts.
+
+Module MakeSsrOrderedType (M : SsrOrderedTypeMinimal) <: SsrOrderedTypeWithFacts.
+
   Definition T : eqType := M.t.
+
   Definition t : Type := T.
+
   Definition eq : t -> t -> Prop := fun x y => x == y.
-  Definition ltb : t -> t -> bool := M.lt.
-  Definition lt : t -> t -> Prop := fun x y => ltb x y.
-  Lemma eq_refl : forall x : t, eq x x.
-  Proof.
-    exact: eqxx.
-  Qed.
-  Lemma eq_sym : forall x y : t, eq x y -> eq y x.
-  Proof.
-    move=> x y H.
-    rewrite /eq eq_sym.
-    exact: H.
-  Qed.
-  Lemma eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z.
-  Proof.
-    move=> x y z Hxy Hyz.
-    rewrite (eqP Hxy).
-    exact: Hyz.
-  Qed.
+
+  Definition ltn : t -> t -> bool := M.ltn.
+
+  Definition lt : t -> t -> Prop := fun x y => ltn x y.
+
+  Lemma eq_refl (x : t) : eq x x.
+  Proof. exact: eqxx. Qed.
+
+  Lemma eq_sym (x y : t) : eq x y -> eq y x.
+  Proof. by rewrite /eq eq_sym. Qed.
+
+  Lemma eq_trans (x y z : t) : eq x y -> eq y z -> eq x z.
+  Proof. move=> Hxy Hyz. rewrite (eqP Hxy). exact: Hyz. Qed.
+
   Definition lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z :=
-    M.lt_trans.
-  Lemma lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
-  Proof.
-    move=> x y Hlt Heq.
-    move/negP: (M.lt_not_eq Hlt).
-    apply.
-    assumption.
-  Qed.
+    M.ltn_trans.
+
+  Lemma lt_not_eq (x y : t) : lt x y -> ~ eq x y.
+  Proof. move=> Hlt Heq. by move/negP: (M.ltn_not_eqn Hlt). Qed.
+
   Definition compare : forall x y : t, Compare lt eq x y := M.compare.
   Lemma eq_dec : forall x y : t, { eq x y } + { ~ eq x y }.
   Proof.
@@ -76,6 +83,43 @@ Module MakeSsrOrderedType (M : SsrOrderedTypeMinimal) <: SsrOrderedType.
       apply/negPf: Hxy.
       exact: Heq.
   Qed.
+
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
+  Proof. exact: lt_trans. Qed.
+
+  Lemma ltn_eqF (x y : t) : ltn x y -> (x == y) = false.
+  Proof. move=> H. apply/negP. exact: lt_not_eq. Qed.
+
+  Lemma ltnn (x : t) : ltn x x = false.
+  Proof. case H: (ltn x x) => //=. move: (ltn_eqF H). by rewrite eqxx. Qed.
+
+  Lemma nltn_eqVlt (x y : t) : (~~ ltn x y) = ((x == y) || ltn y x).
+  Proof.
+    case Heq: (x == y) => /=.
+    - by rewrite (eqP Heq) ltnn.
+    - case Hlt: (ltn x y) => /=; symmetry.
+      + apply/negP => Hyx. move: (ltn_trans Hlt Hyx). by rewrite ltnn.
+      + move: Heq Hlt. case: (compare x y); by move=> ->.
+  Qed.
+
+  Lemma ltn_neqAlt (x y : t) : ltn x y = (x != y) && ~~ (ltn y x).
+  Proof.
+    rewrite nltn_eqVlt. case H: ((x != y) && ((y == x) || ltn x y)).
+    - move/andP: H=> [H1 H2]. case/orP: H2 => H2.
+      + by rewrite (eqP H2) eqxx in H1.
+      + assumption.
+    - apply/negP=> H2. move/negP: H; apply. rewrite (ltn_eqF H2) H2.
+      by rewrite orbT.
+  Qed.
+
+  Lemma neq_ltn (x y : t) : (x != y) = (ltn x y) || (ltn y x).
+  Proof.
+    case: (compare x y) => H.
+    - by rewrite (ltn_eqF H) H.
+    - by rewrite H (eqP H) !ltnn.
+    - by rewrite H eqtype.eq_sym (ltn_eqF H) orbT.
+  Qed.
+
 End MakeSsrOrderedType.
 
 
@@ -86,101 +130,45 @@ Module MakeProdOrderedMinimal (O1 O2 : SsrOrderedType) <: SsrOrderedTypeMinimal 
 
   Definition t : eqType := prod_eqType O1.T O2.T.
 
-  Definition eq : t -> t -> bool := fun x y => x == y.
+  Definition eqn (x y : t) : bool := x == y.
 
-  Definition lt : t -> t -> bool :=
-    fun x y =>
-      if O1.ltb (fst x) (fst y) then true
-      else if (fst x) == (fst y) then O2.ltb (snd x) (snd y)
-           else false.
+  Definition ltn (x y : t) : bool :=
+    O1.ltn (fst x) (fst y) || (fst x == fst y) && O2.ltn (snd x) (snd y).
 
-  Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
   Proof.
-    move=> [] x1 x2 [] y1 y2 [] z1 z2.
-    rewrite /lt /=.
-    case Hx1y1: (O1.ltb x1 y1).
-    - case Hy1z1: (O1.ltb y1 z1).
-      + case Hx1z1: (O1.ltb x1 z1); [done | idtac].
-        move: (O1.lt_trans Hx1y1 Hy1z1) => Hx1z1'.
-        rewrite /O1.lt Hx1z1 in Hx1z1'.
-        done.
-      + case Ey1z1: (y1 == z1); [idtac | done].
-        case Hy2z2: (O2.ltb y2 z2); [idtac | done].
-        case Hx1z1: (O1.ltb x1 z1); [done | idtac].
-        case Ex1z1: (x1 == z1).
-        * rewrite (eqP Ex1z1) -(eqP Ey1z1) in Hx1y1.
-          apply: False_ind.
-          apply: (O1.lt_not_eq Hx1y1).
-          exact: O1.eq_refl.
-        * rewrite (eqP Ey1z1) in Hx1y1.
-          rewrite Hx1y1 in Hx1z1.
-          discriminate.
-    - case Ex1y1: (x1 == y1); [idtac | done].
-      case Hx2y2: (O2.ltb x2 y2); [idtac | done].
-      case Hy1z1: (O1.ltb y1 z1).
-      + case Hx1z1: (O1.ltb x1 z1); [done | idtac].
-        rewrite (eqP Ex1y1) Hy1z1 in Hx1z1.
-        discriminate.
-      + case Ey1z1: (y1 == z1); [idtac | done].
-        case Hy2z2: (O2.ltb y2 z2); [idtac | done].
-        case Hx1z1: (O1.ltb x1 z1); [done | idtac].
-        case Ex1z1: (x1 == z1).
-        * move=> _ _; exact: (O2.lt_trans Hx2y2 Hy2z2).
-        * move: (O1.eq_trans Ex1y1 Ey1z1).
-          rewrite /O1.eq Ex1z1.
-          done.
+    case: x => x1 x2; case: y => y1 y2; case: z => z1 z2. rewrite /ltn /=.
+    case/orP=> [Hxy1 | /andP [Hxy1 Hxy2]]; (case/orP=> [Hyz1 | /andP [Hyz1 Hyz2]]).
+    - by rewrite (O1.lt_trans Hxy1 Hyz1).
+    - by rewrite -(eqP Hyz1) Hxy1.
+    - by rewrite (eqP Hxy1) Hyz1.
+    - by rewrite (eqP Hxy1) (eqP Hyz1) eqxx (O2.lt_trans Hxy2 Hyz2) orbT.
   Qed.
 
-  Lemma lt_not_eq : forall x y : t, lt x y -> x != y.
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
   Proof.
-    move=> [] x1 x2 [] y1 y2.
-    rewrite /lt /=.
-    case Hx1y1: (O1.ltb x1 y1).
-    - move=> _.
-      apply/eqP => H.
-      case: H => H1 _.
-      apply: (O1.lt_not_eq Hx1y1).
-      by apply/eqP.
-    - case Ex1y1: (x1 == y1); [idtac | done].
-      case Hx2y2: (O2.ltb x2 y2); [idtac | done].
-      move=> _.
-      apply/eqP => H.
-      case: H => _ H2.
-      apply: (O2.lt_not_eq Hx2y2).
-      by apply/eqP.
+    case: x => x1 x2; case: y => y1 y2. rewrite /ltn /=.
+    case/orP=> [Hxy1 | /andP [Hxy1 Hxy2]].
+    - apply/eqP=> H. case: H => H1 H2. apply: (O1.lt_not_eq Hxy1). by apply/eqP.
+    - apply/eqP=> H. case: H => H1 H2. apply: (O2.lt_not_eq Hxy2). by apply/eqP.
   Qed.
 
-  Definition compare : forall x y : t, Compare lt eq x y.
+  Definition compare (x y : t) : Compare ltn eqn x y.
   Proof.
-    move=> [] x1 x2 [] y1 y2.
-    move: (O1.compare x1 y1) (O2.compare x2 y2) => Hc1 Hc2.
-    inversion_clear Hc1.
-    - apply: LT.
-      rewrite /lt /=.
-      rewrite /O1.lt in H.
-      by rewrite H.
-    - inversion_clear Hc2.
-      + apply: LT.
-        rewrite /lt /=.
-        case Hx1y1: (O1.ltb x1 y1); [done | idtac].
-        rewrite H.
-        exact: H0.
-      + apply: EQ.
-        rewrite /eq /=.
-        by apply/andP; split; assumption.
-      + apply: GT.
-        rewrite /lt /=.
-        case Hy1x1: (O1.ltb y1 x1); [done | idtac].
-        rewrite (O1.eq_sym H).
-        exact: H0.
-    - apply: GT.
-      rewrite /lt /=.
-      by rewrite H.
+    case: x => x1 x2; case: y => y1 y2. rewrite /ltn /eqn.
+    case: (O1.compare x1 y1) => H1.
+    - apply: LT => /=. by rewrite H1.
+    - case: (O2.compare x2 y2) => H2.
+      + apply: LT => /=. by rewrite H1 H2 orbT.
+      + apply: EQ => /=. by rewrite (eqP H1) (eqP H2).
+      + apply: GT => /=. by rewrite (eqP H1) eqxx H2 orbT.
+    - apply: GT => /=. by rewrite H1.
   Defined.
 
 End MakeProdOrderedMinimal.
 
-Module MakeProdOrdered (O1 O2 : SsrOrderedType) <: SsrOrderedType with Definition T := prod_eqType O1.T O2.T.
+Module MakeProdOrdered (O1 O2 : SsrOrderedType) <: SsrOrderedTypeWithFacts
+    with Definition T := prod_eqType O1.T O2.T.
   Module M := MakeProdOrderedMinimal O1 O2.
   Module P := MakeSsrOrderedType M.
   Include P.
@@ -231,40 +219,32 @@ Module MakeUnionOrderedMinimal
 
   Definition t : eqType := uo_eqType.
 
-  Definition eq : t -> t -> bool := uo_eqb.
+  Definition eqn : t -> t -> bool := uo_eqb.
 
-  Definition lt (x y : t) : bool :=
+  Definition ltn (x y : t) : bool :=
     match x, y with
-    | C1 x, C1 y => V1.ltb x y
+    | C1 x, C1 y => V1.ltn x y
     | C1 _, C2 _ => true
     | C2 _, C1 _ => false
-    | C2 x, C2 y => V2.ltb x y
+    | C2 x, C2 y => V2.ltn x y
     end.
 
-  Lemma lt_trans :
-    forall x y z : t, lt x y -> lt y z -> lt x z.
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
   Proof.
-    move=> x y z.
     case: z; case: y; case: x => //=.
     - exact: V1.lt_trans.
     - exact: V2.lt_trans.
   Qed.
 
-  Lemma lt_not_eq :
-    forall x y : t, lt x y -> x != y.
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
   Proof.
-    move=> x y; case: y; case: x => //=.
-    - move=> x y H.
-      apply/negP.
-      exact: V1.lt_not_eq.
-    - move=> x y H.
-      apply/negP.
-      exact: V2.lt_not_eq.
+    case: y; case: x => //=.
+    - move=> x y H. apply/negP. exact: V1.lt_not_eq.
+    - move=> x y H. apply/negP. exact: V2.lt_not_eq.
   Qed.
 
-  Definition compare : forall x y : t, Compare lt eq x y.
+  Definition compare (x y : t) : Compare ltn eqn x y.
   Proof.
-    move=> x y.
     case: y; case: x.
     - move=> x y.
       case H: (V1.compare x y).
@@ -285,7 +265,7 @@ Module MakeUnionOrderedMinimal
 End MakeUnionOrderedMinimal.
 
 Module MakeUnionOrdered
-       (V1 : SsrOrderedType) (V2 : SsrOrderedType) <: SsrOrderedType.
+       (V1 : SsrOrderedType) (V2 : SsrOrderedType) <: SsrOrderedTypeWithFacts.
   Module M := MakeUnionOrderedMinimal V1 V2.
   Module O := MakeSsrOrderedType M.
   Include O.
@@ -301,31 +281,22 @@ Module UnitOrderedMinimal <: SsrOrderedTypeMinimal.
 
   Definition t : eqType := unit_eqType.
 
-  Definition eq (x y : t) : bool := x == y.
+  Definition eqn (x y : t) : bool := x == y.
 
-  Definition lt (x y : t) : bool := false.
+  Definition ltn (x y : t) : bool := false.
 
-  Lemma lt_trans :
-    forall x y z : t, lt x y -> lt y z -> lt x z.
-  Proof.
-    done.
-  Qed.
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
+  Proof. done. Qed.
 
-  Lemma lt_not_eq :
-    forall x y : t, lt x y -> x != y.
-  Proof.
-    done.
-  Qed.
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
+  Proof. done. Qed.
 
-  Definition compare : forall x y : t, Compare lt eq x y.
-  Proof.
-    move=> x y.
-    by apply: EQ.
-  Defined.
+  Definition compare (x y : t) : Compare ltn eqn x y.
+  Proof. by apply: EQ. Defined.
 
 End UnitOrderedMinimal.
 
-Module UnitOrdered <: SsrOrderedType.
+Module UnitOrdered <: SsrOrderedTypeWithFacts.
   Module O := MakeSsrOrderedType UnitOrderedMinimal.
   Include O.
 End UnitOrdered.
@@ -339,14 +310,14 @@ Module Type HasSucc (Import T : SsrOrderedType).
   Parameter succ : t -> t.
 End HasSucc.
 
-Module Type HasLtb (Import T : SsrOrderedType).
-  Parameter ltb : t -> t -> bool.
-End HasLtb.
+Module Type HasLtn (Import T : SsrOrderedType).
+  Parameter ltn : t -> t -> bool.
+End HasLtn.
 
-Module Type HasLtbSucc (Import T : SsrOrderedType) (Import L : HasLtb T) (Import S : HasSucc T).
-  Parameter ltb_succ : forall (x : t), ltb x (succ x).
-End HasLtbSucc.
+Module Type HasLtnSucc (Import T : SsrOrderedType) (Import L : HasLtn T) (Import S : HasSucc T).
+  Parameter ltn_succ : forall (x : t), ltn x (succ x).
+End HasLtnSucc.
 
 Module Type SsrOrderedWithDefaultSucc :=
-  SsrOrderedType <+ HasDefault <+ HasSucc <+ HasLtbSucc.
+  SsrOrderedType <+ HasDefault <+ HasSucc <+ HasLtnSucc.
 

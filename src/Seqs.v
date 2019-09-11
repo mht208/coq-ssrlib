@@ -71,16 +71,16 @@ Qed.
 
 Module SeqOrderedMinimal (X : SsrOrderedType) <: SsrOrderedTypeMinimal.
   Definition t := seq_eqType X.T.
-  Definition eq (x y : t) : bool := x == y.
-  Fixpoint lt (x y : t) : bool :=
+  Definition eqn (x y : t) : bool := x == y.
+  Fixpoint ltn (x y : t) : bool :=
     match x, y with
     | _, [::] => false
     | [::], hd::_ => true
-    | hd1::tl1, hd2::tl2 => (X.ltb hd1 hd2) || ((hd1 == hd2) && (lt tl1 tl2))
+    | hd1::tl1, hd2::tl2 => (X.ltn hd1 hd2) || ((hd1 == hd2) && (ltn tl1 tl2))
     end.
-  Lemma lt_trans : forall (x y z : t), lt x y -> lt y z -> lt x z.
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
   Proof.
-    elim.
+    elim: x y z.
     - case; first by trivial.
       move=> hdy tly. elim; by trivial.
     - move=> hdx tlx IHx. case; first by trivial.
@@ -92,16 +92,16 @@ Module SeqOrderedMinimal (X : SsrOrderedType) <: SsrOrderedTypeMinimal.
       + move=> /andP [Hyz_hd Hyz_tl] /andP [Hxy_hd Hxy_tl].
         by rewrite (eqP Hxy_hd) (eqP Hyz_hd) eqxx (IHx _ _ Hxy_tl Hyz_tl) orbT.
   Qed.
-  Lemma lt_not_eq : forall (x y : t), lt x y -> x != y.
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
   Proof.
-    elim.
+    elim: x y.
     - case; by trivial.
     - move=> hdx tlx IHx. case; first by trivial.
       move=> hdy tly /=. rewrite seq_neq_split. case/orP.
       + move=> Hhd. move/negP: (X.lt_not_eq Hhd). by move=> ->.
       + move/andP=> [Hhd Htl]. by rewrite (IHx _ Htl) orbT.
   Qed.
-  Definition compare (x y : t) : Compare lt eq x y.
+  Definition compare (x y : t) : Compare ltn eqn x y.
     elim: x y.
     - case.
       + by apply: EQ.
@@ -119,7 +119,7 @@ Module SeqOrderedMinimal (X : SsrOrderedType) <: SsrOrderedTypeMinimal.
   Defined.
 End SeqOrderedMinimal.
 
-Module SeqOrdered (X : SsrOrderedType) <: SsrOrderedType.
+Module SeqOrdered (X : SsrOrderedType) <: SsrOrderedTypeWithFacts.
   Module Y := SeqOrderedMinimal X.
   Module M := MakeSsrOrderedType Y.
   Include M.

@@ -1079,7 +1079,7 @@ Module Make (X : SsrOrderedType) <: SsrFSet with Module SE := X := MakeListSet X
 
 (* Sets that can generate new elements. *)
 
-Module MakeElementGenerator (X : SsrFSet) (D : Types.HasDefault X.SE) (S : HasSucc X.SE) (L : HasLtbSucc X.SE X.SE S).
+Module MakeElementGenerator (X : SsrFSet) (D : Types.HasDefault X.SE) (S : HasSucc X.SE) (L : HasLtnSucc X.SE X.SE S).
 
   Definition new_elt (s : X.t) : X.elt :=
     match X.max_elt s with
@@ -1092,7 +1092,7 @@ Module MakeElementGenerator (X : SsrFSet) (D : Types.HasDefault X.SE) (S : HasSu
   Proof.
     move=> s. apply/negP => Hmem. move/X.mem_2: Hmem.
     rewrite /new_elt. case H: (X.max_elt s) => Hin.
-    - apply: (X.max_elt_2 H Hin). exact: L.ltb_succ.
+    - apply: (X.max_elt_2 H Hin). exact: L.ltn_succ.
     - move: (X.max_elt_3 H) => {H} H. apply: (H D.default). assumption.
   Qed.
 

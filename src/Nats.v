@@ -482,44 +482,29 @@ Module NatOrderMinimal <: SsrOrderedTypeMinimal.
 
   Definition t : eqType := nat_eqType.
 
-  Definition eq : t -> t -> bool := fun x y : t => x == y.
+  Definition eqn : t -> t -> bool := fun x y : t => x == y.
 
-  Definition lt : t -> t -> bool := fun x y => x < y.
+  Definition ltn : t -> t -> bool := fun x y => x < y.
 
-  Hint Unfold eq lt.
+  Hint Unfold eqn ltn.
 
-  Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
+  Proof. exact: ltn_trans. Qed.
+
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
+  Proof. move=> H. by rewrite (ltn_eqF H). Qed.
+
+  Lemma compare (x y : t) : Compare ltn eqn x y.
   Proof.
-    move=> x y z.
-    exact: ltn_trans.
-  Qed.
-
-  Lemma lt_not_eq : forall x y : t, lt x y -> x != y.
-  Proof.
-    move=> x y Hlt.
-    apply/negP => Heq.
-    apply/idP: Hlt.
-    by rewrite /lt (eqP Heq) ltnn.
-  Qed.
-
-  Lemma compare : forall x y : t, Compare lt eq x y.
-  Proof.
-    move=> x y.
     case H: (Nat.compare x y).
-    - apply: EQ.
-      move: (PeanoNat.Nat.compare_eq_iff x y) => [Hc _].
-      apply/eqP.
-      exact: (Hc H).
-    - apply: LT.
-      move: (PeanoNat.Nat.compare_lt_iff x y) => [Hc _].
-      apply/ltP.
-      exact: (Hc H).
-    - apply: GT.
-      move: (PeanoNat.Nat.compare_gt_iff x y) => [Hc _].
-      apply/ltP.
-      exact: (Hc H).
+    - apply: EQ. move: (PeanoNat.Nat.compare_eq_iff x y) => [Hc _].
+      apply/eqP. exact: (Hc H).
+    - apply: LT. move: (PeanoNat.Nat.compare_lt_iff x y) => [Hc _].
+      apply/ltP. exact: (Hc H).
+    - apply: GT. move: (PeanoNat.Nat.compare_gt_iff x y) => [Hc _].
+      apply/ltP. exact: (Hc H).
   Defined.
 
 End NatOrderMinimal.
 
-Module NatOrder <: SsrOrderedType := MakeSsrOrderedType NatOrderMinimal.
+Module NatOrder <: SsrOrderedTypeWithFacts := MakeSsrOrderedType NatOrderMinimal.

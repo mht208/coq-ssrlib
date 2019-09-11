@@ -900,7 +900,7 @@ Module Make (X : SsrOrderedType) <: SsrFMap with Module SE := X := MakeListMap X
 
 (* Maps that can generate new keys. *)
 
-Module MakeElementGenerator (M : SsrFMap) (D : HasDefault M.SE) (S : HasSucc M.SE) (L : HasLtbSucc M.SE M.SE S).
+Module MakeElementGenerator (M : SsrFMap) (D : HasDefault M.SE) (S : HasSucc M.SE) (L : HasLtnSucc M.SE M.SE S).
 
   Module GLemmas := FMapLemmas M.
 
@@ -919,7 +919,7 @@ Module MakeElementGenerator (M : SsrFMap) (D : HasDefault M.SE) (S : HasSucc M.S
       forall (m : M.t elt), ~~ M.mem (new_key m) m.
     Proof.
       move=> m. rewrite /new_key. case H: (GLemmas.max_key m).
-      - apply/negP=> Hmem. apply: (GLemmas.max_key_not_lt H Hmem). exact: L.ltb_succ.
+      - apply/negP=> Hmem. apply: (GLemmas.max_key_not_lt H Hmem). exact: L.ltn_succ.
       - move: (GLemmas.max_key_none H) => Hempty.
         exact: (GLemmas.Empty_mem D.default Hempty).
     Qed.
