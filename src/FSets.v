@@ -126,28 +126,14 @@ Module FSetLemmas (S : FSetInterface.S).
     exact: (S.add_2 _ H).
   Qed.
 
-  Lemma mem_add_eq :
-    forall x y s,
-      S.E.eq x y ->
-      S.mem x (S.add y s).
+  Lemma mem_add_eq {x y s} : S.E.eq x y -> S.mem x (S.add y s).
   Proof.
-    move=> x y s Heq.
-    apply: S.mem_1.
-    apply: S.add_1.
-    apply: S.E.eq_sym.
-    assumption.
+    move=> Heq. apply: S.mem_1. apply: S.add_1. apply: S.E.eq_sym. assumption.
   Qed.
 
-  Lemma mem_add_neq :
-    forall x y s,
-      ~ (S.E.eq x y) ->
-      S.mem x (S.add y s) = S.mem x s.
+  Lemma mem_add_neq {x y s} : ~ (S.E.eq x y) -> S.mem x (S.add y s) = S.mem x s.
   Proof.
-    move=> x y s Hne.
-    apply: add_neq_b.
-    move=> Heq.
-    apply: Hne.
-    apply: S.E.eq_sym.
+    move=> Hne. apply: add_neq_b. move=> Heq. apply: Hne. apply: S.E.eq_sym.
     assumption.
   Qed.
 
@@ -170,7 +156,7 @@ Module FSetLemmas (S : FSetInterface.S).
   Proof.
     move=> x y s [] Heq /negP Hmem.
     apply/negP => H; apply: Hmem.
-    rewrite -(mem_add_neq _ Heq).
+    rewrite -(mem_add_neq Heq).
     assumption.
   Qed.
 

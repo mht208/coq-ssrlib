@@ -30,9 +30,9 @@ Module Type SEnv.
   (* Add a variable to an environment *)
   Parameter add : V.t -> t -> t.
   Axiom mem_add_eq :
-    forall (E : t) (x : V.t), mem x (add x E).
+    forall {E : t} {x : V.t}, mem x (add x E).
   Axiom mem_add_neq :
-    forall (E : t) (x y : V.t), x != y -> mem x (add y E) = mem x E.
+    forall {E : t} {x y : V.t}, x != y -> mem x (add y E) = mem x E.
 
   (* Variables in an environment *)
   Parameter pvar : t -> Type.
@@ -70,17 +70,11 @@ Module MakeSEnv (V : SsrOrderedWithDefaultSucc) <: SEnv with Module V := V.
 
   Definition add (v : var) (E : t) : t := VS.add v E.
 
-  Lemma mem_add_eq :
-    forall (E : t) (x : V.t), mem x (add x E).
-  Proof.
-    move=> E x. apply: VS.Lemmas.mem_add_eq. exact: eqxx.
-  Qed.
+  Lemma mem_add_eq {E : t} {x : V.t} : mem x (add x E).
+  Proof. apply: VS.Lemmas.mem_add_eq. exact: eqxx. Qed.
 
-  Lemma mem_add_neq :
-    forall (E : t) (x y : V.t), x != y -> mem x (add y E) = mem x E.
-  Proof.
-    move=> E x y Hne. apply: VS.Lemmas.mem_add_neq. apply/negP. exact: Hne.
-  Qed.
+  Lemma mem_add_neq {E : t} {x y : V.t} : x != y -> mem x (add y E) = mem x E.
+  Proof. move=> Hne. apply: VS.Lemmas.mem_add_neq. apply/negP. exact: Hne. Qed.
 
   Inductive pvar_t (E : t) : Type :=
   | PVar : forall x : V.t, VS.mem x E -> pvar_t E.
@@ -151,14 +145,14 @@ Module Type TEnv.
     (* Add a variable to an environment *)
     Parameter add : V.t -> T -> t T -> t T.
     Axiom mem_add_eq :
-      forall (E : t T) (x : V.t) (ty : T), mem x (add x ty E).
+      forall {E : t T} {x : V.t} {ty : T}, mem x (add x ty E).
     Axiom mem_add_neq :
-      forall (E : t T) (x y : V.t) (ty : T), x != y -> mem x (add y ty E) = mem x E.
+      forall {E : t T} {x y : V.t} {ty : T}, x != y -> mem x (add y ty E) = mem x E.
     Axiom find_add_eq :
-      forall (E : t T) (x : V.t) (ty : T),
+      forall {E : t T} {x : V.t} {ty : T},
         find x (add x ty E) = Some ty.
     Axiom find_add_neq :
-      forall (E : t T) (x y : V.t) (ty : T),
+      forall {E : t T} {x y : V.t} {ty : T},
         x != y -> find x (add y ty E) = find x E.
 
     (* Variables in an environment *)
@@ -242,31 +236,23 @@ Module MakeTEnv (Import V : SsrOrderedWithDefaultSucc) <: TEnv with Module V := 
     (* Add a variable to an environment *)
     Definition add (v : var) (ty : T) (E : t) : t := VM.add v ty E.
 
-    Lemma mem_add_eq :
-      forall (E : t) (x : var) (ty : T), mem x (add x ty E).
-    Proof.
-      move=> E x t. exact: VM.Lemmas.add_eq_b.
-    Qed.
+    Lemma mem_add_eq {E : t} {x : var} {ty : T} : mem x (add x ty E).
+    Proof. exact: VM.Lemmas.add_eq_b. Qed.
 
-    Lemma mem_add_neq :
-      forall (E : t) (x y : var) (ty : T), x != y -> mem x (add y ty E) = mem x E.
+    Lemma mem_add_neq {E : t} {x y : var} {ty : T} :
+      x != y -> mem x (add y ty E) = mem x E.
     Proof.
-      move=> E x y t Hne. apply: VM.Lemmas.add_neq_b. move=> H. move/eq_sym: H.
+      move=> Hne. apply: VM.Lemmas.add_neq_b. move=> H. move/eq_sym: H.
       apply/negP. assumption.
     Qed.
 
-    Lemma find_add_eq :
-      forall (E : t) (x : var) (ty : T),
-        find x (add x ty E) = Some ty.
-    Proof.
-      move=> E x y. exact: VM.Lemmas.add_eq_o.
-    Qed.
+    Lemma find_add_eq {E : t} {x : var} {ty : T} : find x (add x ty E) = Some ty.
+    Proof. exact: VM.Lemmas.add_eq_o. Qed.
 
-    Lemma find_add_neq :
-      forall (E : t) (x y : var) (ty : T),
-        x != y -> find x (add y ty E) = find x E.
+    Lemma find_add_neq {E : t} {x y : var} {ty : T} :
+      x != y -> find x (add y ty E) = find x E.
     Proof.
-      move=> E x y t Hne. apply: VM.Lemmas.add_neq_o. move=> H. move/eq_sym: H.
+      move=> Hne. apply: VM.Lemmas.add_neq_o. move=> H. move/eq_sym: H.
       apply/negP. assumption.
     Qed.
 
@@ -396,9 +382,9 @@ Module Type HEnv.
     (* Add a variable to an environment *)
     Parameter add : V.t -> T -> t T -> t T.
     Axiom mem_add_eq :
-      forall (E : t T) (x : V.t) (ty : T), mem x (add x ty E).
+      forall {E : t T} {x : V.t} {ty : T}, mem x (add x ty E).
     Axiom mem_add_neq :
-      forall (E : t T) (x y : V.t) (ty : T), x != y -> mem x (add y ty E) = mem x E.
+      forall {E : t T} {x y : V.t} {ty : T}, x != y -> mem x (add y ty E) = mem x E.
     Axiom find_add_heq :
       forall (E : t T) (x : V.t) (ty : T),
         (exists e : entry (ty::(vtypes E)),
@@ -412,13 +398,13 @@ Module Type HEnv.
             vty e = ty /\
             (vidx e) ~= (HI0 ty (vtypes E))).
     Axiom find_ty_add_eq :
-      forall (E : t T) (x : V.t) (ty : T),
+      forall {E : t T} {x : V.t} {ty : T},
         find_ty x (add x ty E) = Some ty.
     Axiom find_ty_add_neq :
-      forall (E : t T) (x y : V.t) (ty : T),
+      forall {E : t T} {x y : V.t} {ty : T},
         x != y -> find_ty x (add y ty E) = find_ty x E.
     Axiom find_add_neq :
-      forall (E : t T) (x y : V.t) (ty : T),
+      forall {E : t T} {x y : V.t} {ty : T},
         x != y ->
         find x (add y ty E) ~= match find x E with
                               | None => None
@@ -630,55 +616,47 @@ Module MakeHEnv (V : SsrOrderedWithDefaultSucc) <: HEnv with Module V := V.
           rewrite (eqP Hxv) (eqP Hyv) in H1.
           apply: False_ind; apply: (negP H1); reflexivity.
         + (* y != v *)
-          rewrite (VM.Lemmas.find_add_eq _ _ (Hxv)) in H;
-            rewrite (VM.Lemmas.find_add_neq _ _ Hyv) /prepend_vtype in H0 =>
-          {H1 Hxv Hyv}.
+          rewrite (VM.Lemmas.find_add_eq (Hxv)) in H;
+            rewrite (VM.Lemmas.find_add_neq Hyv) /prepend_vtype in H0 => {H1 Hxv Hyv}.
           case: H => H; rewrite -H /= => {H}.
           move: (VM.Lemmas.find_map_some H0) => {H0} [ey' [He_ey _]].
           rewrite He_ey /prepend_vtype /=.
           move=> Heq; by inversion Heq.
       - (* x != v *)
-        rewrite (VM.Lemmas.find_add_neq _ _ Hxv) /prepend_vtype in H => {Hxv}.
+        rewrite (VM.Lemmas.find_add_neq Hxv) /prepend_vtype in H => {Hxv}.
         move: (VM.Lemmas.find_map_some H) => {H} [ex' [He_ex He_x]].
         rewrite He_ex /prepend_vtype /= => {He_ex}.
         case Hyv: (y == v); move/idP: Hyv => Hyv.
         + (* y == v *)
-          rewrite (VM.Lemmas.find_add_eq _ _ Hyv) in H0 => {Hyv}.
+          rewrite (VM.Lemmas.find_add_eq Hyv) in H0 => {Hyv}.
           case: H0 => H0; rewrite -H0 /= => {H0}.
           move=> Heq; by inversion Heq.
         + (* y != v *)
-          rewrite (VM.Lemmas.find_add_neq _ _ Hyv) /prepend_vtype in H0 => {Hyv}.
+          rewrite (VM.Lemmas.find_add_neq Hyv) /prepend_vtype in H0 => {Hyv}.
           move: (VM.Lemmas.find_map_some H0) => {H0} [ey' [He_ey He_y]].
           rewrite He_ey /prepend_vtype /= => {He_ey}.
           move: (lidx_disjoint He_x He_y H1) => Hne Heq; apply: Hne.
           exact: (his_eq_lidx_eq Heq).
     Qed.
 
-    Lemma mem_add_eq :
-      forall (E : t) (x : var) (ty : T), mem x (add x ty E).
-    Proof.
-      move=> E x t. exact: VM.Lemmas.add_eq_b.
-    Qed.
+    Lemma mem_add_eq {E : t} {x : var} {ty : T} : mem x (add x ty E).
+    Proof. exact: VM.Lemmas.add_eq_b. Qed.
 
     Lemma mem_prepend_vtype E x t :
       VM.mem x (map_prepend_vtype t (vmap E)) = VM.mem x (vmap E).
+    Proof. rewrite /map_prepend_vtype. exact: VM.Lemmas.mem_map. Qed.
+
+    Lemma mem_add_neq {E : t} {x y : var} {ty : T} :
+      x != y -> mem x (add y ty E) = mem x E.
     Proof.
-      rewrite /map_prepend_vtype. exact: VM.Lemmas.mem_map.
+      move=> Hne. rewrite /mem /add /=. move/negP: Hne => Hne.
+      rewrite (VM.Lemmas.mem_add_neq Hne). exact: mem_prepend_vtype.
     Qed.
 
-    Lemma mem_add_neq :
-      forall (E : t) (x y : var) (ty : T), x != y -> mem x (add y ty E) = mem x E.
+    Lemma find_add_eq' {E : t} {x : var} {ty : T} :
+      find x (add x ty E) = Some {| vty := ty; vidx := HI0 ty (vtypes E) |}.
     Proof.
-      move=> E x y t Hne. rewrite /mem /add /=. move/negP: Hne => Hne.
-      rewrite (VM.Lemmas.mem_add_neq _ _ Hne).
-      exact: mem_prepend_vtype.
-    Qed.
-
-    Lemma find_add_eq' :
-      forall (E : t) (x : var) (ty : T),
-        find x (add x ty E) = Some {| vty := ty; vidx := HI0 ty (vtypes E) |}.
-    Proof.
-      rewrite /find /add /= => E x ty. rewrite (VM.Lemmas.find_add_eq _ _ (eqxx x)).
+      rewrite /find /add /=. rewrite (VM.Lemmas.find_add_eq (eqxx x)).
       reflexivity.
     Qed.
 
@@ -704,46 +682,40 @@ Module MakeHEnv (V : SsrOrderedWithDefaultSucc) <: HEnv with Module V := V.
       rewrite find_add_eq'. repeat split; reflexivity.
     Qed.
 
-    Lemma find_add_neq' :
-      forall (E : t) (x y : var) (ty : T),
-        x != y ->
-        find x (add y ty E) = match find x E with
-                              | None => None
-                              | Some e => Some (prepend_vtype ty e)
-                              end.
+    Lemma find_add_neq' {E : t} {x y : var} {ty : T} :
+      x != y ->
+      find x (add y ty E) = match find x E with
+                            | None => None
+                            | Some e => Some (prepend_vtype ty e)
+                            end.
     Proof.
-      move=> E x y ty Hne. rewrite /find /add /=. move/idP/negP: Hne => Hne.
-      rewrite (VM.Lemmas.find_add_neq _ _ Hne). rewrite /map_prepend_vtype.
+      move=> Hne. rewrite /find /add /=. move/idP/negP: Hne => Hne.
+      rewrite (VM.Lemmas.find_add_neq Hne). rewrite /map_prepend_vtype.
       case H: (VM.find x (vmap E)).
-      - exact: (VM.Lemmas.find_some_map (prepend_vtype ty) H).
-      - exact: (VM.Lemmas.find_none_map (prepend_vtype ty) H).
+      - exact: (VM.Lemmas.find_some_map H).
+      - exact: (VM.Lemmas.find_none_map H).
     Qed.
 
-    Lemma find_add_neq :
-      forall (E : t) (x y : var) (ty : T),
-        x != y ->
-        find x (add y ty E) ~= match find x E with
-                               | None => None
-                               | Some e => Some (prepend_vtype ty e)
-                               end.
+    Lemma find_add_neq {E : t} {x y : var} {ty : T} :
+      x != y ->
+      find x (add y ty E) ~= match find x E with
+                             | None => None
+                             | Some e => Some (prepend_vtype ty e)
+                             end.
+    Proof. move=> Hne. rewrite -(find_add_neq' Hne). reflexivity. Qed.
+
+    Lemma find_ty_add_eq {E : t} {x : var} {ty : T} :
+      find_ty x (add x ty E) = Some ty.
     Proof.
-      move=> E x y ty Hne. rewrite -(find_add_neq' _ _ Hne). reflexivity.
+      rewrite /find_ty /find /add /=. rewrite (VM.Lemmas.find_add_eq (eqxx x)) /=.
+      reflexivity.
     Qed.
 
-    Lemma find_ty_add_eq :
-      forall (E : t) (x : var) (ty : T),
-        find_ty x (add x ty E) = Some ty.
+    Lemma find_ty_add_neq {E : t} {x y : var} {ty : T} :
+      x != y -> find_ty x (add y ty E) = find_ty x E.
     Proof.
-      rewrite /find_ty /find /add /= => E x ty.
-      rewrite (VM.Lemmas.find_add_eq _ _ (eqxx x)) /=. reflexivity.
-    Qed.
-
-    Lemma find_ty_add_neq :
-      forall (E : t) (x y : var) (ty : T),
-        x != y -> find_ty x (add y ty E) = find_ty x E.
-    Proof.
-      rewrite /find_ty /find /add /= => E x y ty Hne. move/idP/negP: Hne => Hne.
-      rewrite (VM.Lemmas.find_add_neq _ _ Hne) /=. rewrite /map_prepend_vtype.
+      rewrite /find_ty /find /add /= => Hne. move/idP/negP: Hne => Hne.
+      rewrite (VM.Lemmas.find_add_neq Hne) /=. rewrite /map_prepend_vtype.
       case H: (VM.M.find x (VM.map (prepend_vtype ty) (vmap E))).
       - move: (VM.Lemmas.find_map_some H) => [e [He Hfind]].
         rewrite Hfind. rewrite He prepend_vtype_vty. reflexivity.

@@ -106,40 +106,40 @@ Module FMapLemmas (M : FMapInterface.S).
 
 
 
-    Lemma find_add_eq (m : M.t elt) (x y : M.key) (e : elt) :
+    Lemma find_add_eq {m : M.t elt} {x y : M.key} {e : elt} :
       M.E.eq x y -> M.find x (M.add y e m) = Some e.
     Proof.
       move=> Hxy. apply: F.add_eq_o. apply: M.E.eq_sym. exact: Hxy.
     Qed.
 
-    Lemma find_add_neq (m : M.t elt) (x y : M.key) (e : elt) :
+    Lemma find_add_neq {m : M.t elt} {x y : M.key} {e : elt} :
       ~(M.E.eq x y) -> M.find x (M.add y e m) = M.find x m.
     Proof.
       move=> Hne. apply: F.add_neq_o. move=> Heq; apply: Hne; apply: M.E.eq_sym.
       exact: Heq.
     Qed.
 
-    Lemma mem_add_eq (m : M.t elt) (x y : M.key) (e : elt) :
+    Lemma mem_add_eq {m : M.t elt} {x y : M.key} {e : elt} :
       M.E.eq x y -> M.mem x (M.add y e m).
     Proof.
       move=> Hxy. apply: F.add_eq_b. apply: M.E.eq_sym. exact: Hxy.
     Qed.
 
-    Lemma mem_add_neq (m : M.t elt) (x y : M.key) (e : elt) :
+    Lemma mem_add_neq {m : M.t elt} {x y : M.key} {e : elt} :
       ~(M.E.eq x y) -> M.mem x (M.add y e m) = M.mem x m.
     Proof.
       move=> Hne. apply: F.add_neq_b. move=> Heq; apply: Hne; apply: M.E.eq_sym.
       exact: Heq.
     Qed.
 
-    Lemma find_some_map (f : elt -> elt') (m : M.t elt) (x : M.key) (e : elt) :
+    Lemma find_some_map {f : elt -> elt'} {m : M.t elt} {x : M.key} {e : elt} :
       M.find x m = Some e ->
       M.find x (M.map f m) = Some (f e).
     Proof.
       move=> H. rewrite F.map_o. rewrite /option_map. rewrite H. reflexivity.
     Qed.
 
-    Lemma find_none_map (f : elt -> elt') (m : M.t elt) (x : M.key) :
+    Lemma find_none_map {f : elt -> elt'} {m : M.t elt} {x : M.key} :
       M.find x m = None ->
       M.find x (M.map f m) = None.
     Proof.
@@ -854,10 +854,10 @@ Module MapKeyLemmas (X : SsrOrderedType) (M : SsrFMap with Module SE := X) (S : 
       - move=> {m} m Hempty x Hmem. apply: False_ind.
         exact: (MLemmas.empty_mem Hempty Hmem).
       - move=> x e m' E1 E2 _ _ Hadd Hind y Hmem. case Hyx: (y == x).
-        + exact: (SLemmas.mem_add_eq _ Hyx).
-        + move/negP: Hyx => Hyx. rewrite (SLemmas.mem_add_neq _ Hyx).
+        + exact: (SLemmas.mem_add_eq Hyx).
+        + move/negP: Hyx => Hyx. rewrite (SLemmas.mem_add_neq Hyx).
           apply: Hind. move: (Hadd y) => {Hadd}.
-          rewrite (MLemmas.find_add_neq _ _ Hyx) => {Hyx} Hfind.
+          rewrite (MLemmas.find_add_neq Hyx) => {Hyx} Hfind.
           rewrite -(MLemmas.find_eq_mem_eq Hfind). exact: Hmem.
     Qed.
 

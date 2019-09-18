@@ -155,55 +155,30 @@ Module MakeTStore (X : SsrOrderedType) <: TStore X.
     Definition upd2 x1 v1 x2 v2 (s : t) : t :=
       upd x2 v2 (upd x1 v1 s).
 
-    Lemma acc_upd_eq x y v s :
+    Lemma acc_upd_eq {x y v s} :
       x == y ->
       acc x (upd y v s) = v.
-    Proof.
-      rewrite /acc /upd => Hxy.
-      rewrite Hxy.
-      reflexivity.
-    Qed.
+    Proof. rewrite /acc /upd => Hxy. rewrite Hxy. reflexivity. Qed.
 
-    Lemma acc_upd_neq x y v s :
+    Lemma acc_upd_neq {x y v s} :
       x != y ->
       acc x (upd y v s) = acc x s.
-    Proof.
-      rewrite {1}/acc /upd => Hxy.
-      rewrite (negPf Hxy).
-      reflexivity.
-    Qed.
+    Proof. rewrite {1}/acc /upd => Hxy. rewrite (negPf Hxy). reflexivity. Qed.
 
-    Lemma acc_upd2_eq1 :
-      forall x y1 v1 y2 v2 (s : t),
-        x == y1 ->
-        x != y2 ->
-        acc x (upd2 y1 v1 y2 v2 s) = v1.
-    Proof.
-      move=> x y1 v1 y2 v2 s Hx1 Hx2.
-      rewrite /upd2 (acc_upd_neq _ _ Hx2) (acc_upd_eq _ _ Hx1).
-      reflexivity.
-    Qed.
+    Lemma acc_upd2_eq1 {x y1 v1 y2 v2 s} :
+      x == y1 -> x != y2 ->
+      acc x (upd2 y1 v1 y2 v2 s) = v1.
+    Proof. move=> Hx1 Hx2. by rewrite /upd2 (acc_upd_neq Hx2) (acc_upd_eq Hx1). Qed.
 
-    Lemma acc_upd2_eq2 :
-      forall x y1 v1 y2 v2 (s : t),
-        x == y2 ->
-        acc x (upd2 y1 v1 y2 v2 s) = v2.
-    Proof.
-      move=> x y1 v1 y2 v2 s Hx2.
-      rewrite /upd2 (acc_upd_eq _ _ Hx2).
-      reflexivity.
-    Qed.
+    Lemma acc_upd2_eq2 {x y1 v1 y2 v2 s} :
+      x == y2 ->
+      acc x (upd2 y1 v1 y2 v2 s) = v2.
+    Proof. move=> Hx2. rewrite /upd2 (acc_upd_eq Hx2). reflexivity. Qed.
 
-    Lemma acc_upd2_neq :
-      forall x y1 v1 y2 v2 s,
-        x != y1 ->
-        x != y2 ->
-        acc x (upd2 y1 v1 y2 v2 s) = acc x s.
-    Proof.
-      move=> x y1 v1 y2 v2 s Hx1 Hx2.
-      rewrite /upd2 (acc_upd_neq _ _ Hx2) (acc_upd_neq _ _ Hx1).
-      reflexivity.
-    Qed.
+    Lemma acc_upd2_neq {x y1 v1 y2 v2 s} :
+      x != y1 -> x != y2 ->
+      acc x (upd2 y1 v1 y2 v2 s) = acc x s.
+    Proof. move=> Hx1 Hx2. by rewrite /upd2 (acc_upd_neq Hx2) (acc_upd_neq Hx1). Qed.
 
     Definition Upd x v (s1 s2 : t) : Prop :=
       forall y, acc y s2 = acc y (upd x v s1).
@@ -214,139 +189,82 @@ Module MakeTStore (X : SsrOrderedType) <: TStore X.
     Definition Equal (s1 s2 : t) : Prop :=
       forall v, acc v s1 = acc v s2.
 
-    Lemma Upd_upd :
-      forall x v s,
-        Upd x v s (upd x v s).
+    Lemma Upd_upd x v s : Upd x v s (upd x v s).
+    Proof. move=> y. reflexivity. Qed.
+
+    Lemma Upd2_upd x1 v1 x2 v2 s :
+      Upd2 x1 v1 x2 v2 s (upd x2 v2 (upd x1 v1 s)).
+    Proof. move=> y. reflexivity. Qed.
+
+    Lemma Upd2_upd2 x1 v1 x2 v2 s :
+      Upd2 x1 v1 x2 v2 s (upd2 x1 v1 x2 v2 s).
+    Proof. exact: Upd2_upd. Qed.
+
+    Lemma acc_Upd_eq x y v s1 s2 : x == y -> Upd y v s1 s2 -> acc x s2 = v.
     Proof.
-      move=> x v s y.
-      reflexivity.
+      move=> Hxy Hupd. move: (Hupd x) => Hx.
+      rewrite (acc_upd_eq Hxy) in Hx. assumption.
     Qed.
 
-    Lemma Upd2_upd :
-      forall x1 v1 x2 v2 s,
-        Upd2 x1 v1 x2 v2 s (upd x2 v2 (upd x1 v1 s)).
+    Lemma acc_Upd_neq x y v s1 s2 : x != y -> Upd y v s1 s2 -> acc x s2 = acc x s1.
     Proof.
-      move=> x1 v1 x2 v2 s y.
-      reflexivity.
+      move=> Hxy Hupd. move: (Hupd x) => Hx.
+      rewrite (acc_upd_neq Hxy) in Hx. assumption.
     Qed.
 
-    Lemma Upd2_upd2 :
-      forall x1 v1 x2 v2 s,
-        Upd2 x1 v1 x2 v2 s (upd2 x1 v1 x2 v2 s).
-    Proof.
-      exact: Upd2_upd.
-    Qed.
+    Lemma acc_Upd2_eq1 x y1 v1 y2 v2 s1 s2 :
+      x == y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = v1.
+    Proof. move=> Heq Hne Hupd. rewrite (Hupd x). exact: acc_upd2_eq1. Qed.
 
-    Lemma acc_Upd_eq :
-      forall x y v s1 s2,
-        x == y ->
-        Upd y v s1 s2 ->
-        acc x s2 = v.
-    Proof.
-      move=> x y v s1 s2 Hxy Hupd.
-      move: (Hupd x) => Hx.
-      rewrite (acc_upd_eq _ _ Hxy) in Hx.
-      assumption.
-    Qed.
+    Lemma acc_Upd2_eq2 x y1 v1 y2 v2 s1 s2 :
+      x == y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = v2.
+    Proof. move=> Heq Hupd. rewrite (Hupd x). exact: acc_upd2_eq2. Qed.
 
-    Lemma acc_Upd_neq :
-      forall x y v s1 s2,
-        x != y ->
-        Upd y v s1 s2 ->
-        acc x s2 = acc x s1.
-    Proof.
-      move=> x y v s1 s2 Hxy Hupd.
-      move: (Hupd x) => Hx.
-      rewrite (acc_upd_neq _ _ Hxy) in Hx.
-      assumption.
-    Qed.
-
-    Lemma acc_Upd2_eq1 :
-      forall x y1 v1 y2 v2 s1 s2,
-        x == y1 ->
-        x != y2 ->
-        Upd2 y1 v1 y2 v2 s1 s2 ->
-        acc x s2 = v1.
-    Proof.
-      move=> x y1 v1 y2 v2 s1 s2 Heq Hne Hupd.
-      rewrite (Hupd x).
-      exact: acc_upd2_eq1.
-    Qed.
-
-    Lemma acc_Upd2_eq2 :
-      forall x y1 v1 y2 v2 s1 s2,
-        x == y2 ->
-        Upd2 y1 v1 y2 v2 s1 s2 ->
-        acc x s2 = v2.
-    Proof.
-      move=> x y1 v1 y2 v2 s1 s2 Heq Hupd.
-      rewrite (Hupd x).
-      exact: acc_upd2_eq2.
-    Qed.
-
-    Lemma acc_Upd2_neq :
-      forall x y1 v1 y2 v2 s1 s2,
-        x != y1 ->
-        x != y2 ->
-        Upd2 y1 v1 y2 v2 s1 s2 ->
-        acc x s2 = acc x s1.
-    Proof.
-      move=> x y1 v1 y2 v2 s1 s2 Hne1 Hne2 Hupd.
-      rewrite (Hupd x).
-      exact: acc_upd2_neq.
-    Qed.
+    Lemma acc_Upd2_neq x y1 v1 y2 v2 s1 s2 :
+      x != y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = acc x s1.
+    Proof. move=> Hne1 Hne2 Hupd. rewrite (Hupd x). exact: acc_upd2_neq. Qed.
 
     Lemma Equal_refl s : Equal s s.
-    Proof.
-      done.
-    Qed.
+    Proof. done. Qed.
 
     Lemma Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1.
-    Proof.
-      move=> H v; rewrite (H v); reflexivity.
-    Qed.
+    Proof. move=> H v; rewrite (H v); reflexivity. Qed.
 
     Lemma Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
-    Proof.
-      move=> H1 H2 v. rewrite (H1 v) (H2 v). reflexivity.
-    Qed.
+    Proof. move=> H1 H2 v. rewrite (H1 v) (H2 v). reflexivity. Qed.
 
     Instance Equal_ST : RelationClasses.Equivalence Equal :=
       { Equivalence_Reflexive := Equal_refl;
         Equivalence_Symmetric := Equal_sym;
         Equivalence_Transitive := Equal_trans }.
 
-    Lemma Equal_upd_Equal v e s1 s2 :
-      Equal s1 s2 ->
-      Equal (upd v e s1) (upd v e s2).
+    Lemma Equal_upd_Equal v e s1 s2 : Equal s1 s2 -> Equal (upd v e s1) (upd v e s2).
     Proof.
       move=> H x. case Hxv: (x == v).
-      - rewrite !(acc_upd_eq _ _ Hxv). reflexivity.
-      - move/idP/negP: Hxv => Hxv. rewrite !(acc_upd_neq _ _ Hxv). exact: (H x).
+      - rewrite !(acc_upd_eq Hxv). reflexivity.
+      - move/idP/negP: Hxv => Hxv. rewrite !(acc_upd_neq Hxv). exact: (H x).
     Qed.
 
     Lemma Equal_Upd_Equal v e s1 s2 s3 s4 :
-      Upd v e s1 s2 -> Upd v e s3 s4 ->
-      Equal s1 s3 -> Equal s2 s4.
+      Upd v e s1 s2 -> Upd v e s3 s4 -> Equal s1 s3 -> Equal s2 s4.
     Proof.
-      move=> Hupd1 Hupd2 Heq x. rewrite (Hupd1 x) (Hupd2 x).
-      exact: Equal_upd_Equal.
+      move=> Hupd1 Hupd2 Heq x. rewrite (Hupd1 x) (Hupd2 x). exact: Equal_upd_Equal.
     Qed.
 
     Lemma Upd_pred_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2.
     Proof.
       move=> Hupd Heq x. case Hxv: (x == v).
-      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq _ _ Hxv). reflexivity.
+      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq Hxv). reflexivity.
       - move/idP/negP: Hxv => Hxv.
-        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq _ _ Hxv). exact: (Heq x).
+        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq Hxv). exact: (Heq x).
     Qed.
 
     Lemma Upd_succ_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s.
     Proof.
       move=> Hupd Heq x. rewrite -(Heq x). case Hxv: (x == v).
-      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq _ _ Hxv). reflexivity.
+      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq Hxv). reflexivity.
       - move/idP/negP: Hxv => Hxv.
-        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq _ _ Hxv). reflexivity.
+        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq Hxv). reflexivity.
     Qed.
 
   End TStore.
@@ -364,152 +282,55 @@ Module TStoreAdapter (X : SsrOrderedType) (V : Equalities.Typ).
   Definition acc x (s : t) := S.acc x s.
   Definition upd x v (s : t) := S.upd x v s.
   Definition upd2 x1 v1 x2 v2 (s : t) := S.upd2 x1 v1 x2 v2 s.
-  Lemma acc_upd_eq :
-    forall x y v (s : t),
-      x == y ->
-      acc x (upd y v s) = v.
-  Proof.
-    move=> x y v s.
-    exact: S.acc_upd_eq.
-  Qed.
-  Lemma acc_upd_neq :
-    forall x y v (s : t),
-      x != y ->
-      acc x (upd y v s) = acc x s.
-  Proof.
-    move=> x y v s.
-    exact: S.acc_upd_neq.
-  Qed.
-  Lemma acc_upd2_eq1 :
-    forall x y1 v1 y2 v2 (s : t),
-      x == y1 ->
-      x != y2 ->
-      acc x (upd2 y1 v1 y2 v2 s) = v1.
-  Proof.
-    move=> x y1 v1 y2 v2 s Hx1 Hx2.
-    exact: S.acc_upd2_eq1.
-  Qed.
-  Lemma acc_upd2_eq2 :
-    forall x y1 v1 y2 v2 (s : t),
-      x == y2 ->
-      acc x (upd2 y1 v1 y2 v2 s) = v2.
-  Proof.
-    move=> x y1 v1 y2 v2 s Hx2.
-    exact: S.acc_upd2_eq2.
-  Qed.
-  Lemma acc_upd2_neq :
-    forall x y1 v1 y2 v2 s,
-      x != y1 ->
-      x != y2 ->
-      acc x (upd2 y1 v1 y2 v2 s) = acc x s.
-  Proof.
-    move=> x y1 v1 y2 v2 s Hx1 Hx2.
-    exact: S.acc_upd2_neq.
-  Qed.
+  Definition acc_upd_eq {x y v s} : x == y -> acc x (upd y v s) = v :=
+    @S.acc_upd_eq value x y v s.
+  Definition acc_upd_neq {x y v s} : x != y -> acc x (upd y v s) = acc x s :=
+    @S.acc_upd_neq value x y v s.
+  Definition acc_upd2_eq1 {x y1 v1 y2 v2 s} :
+    x == y1 -> x != y2 -> acc x (upd2 y1 v1 y2 v2 s) = v1 :=
+    @S.acc_upd2_eq1 value x y1 v1 y2 v2 s.
+  Definition acc_upd2_eq2 {x y1 v1 y2 v2 s} :
+    x == y2 -> acc x (upd2 y1 v1 y2 v2 s) = v2 :=
+    @S.acc_upd2_eq2 value x y1 v1 y2 v2 s.
+  Definition acc_upd2_neq {x y1 v1 y2 v2 s} :
+    x != y1 -> x != y2 -> acc x (upd2 y1 v1 y2 v2 s) = acc x s :=
+    @S.acc_upd2_neq value x y1 v1 y2 v2 s.
   Definition Upd x v (s1 s2 : t) := S.Upd x v s1 s2.
   Definition Upd2 x1 v1 x2 v2 (s1 s2 : t) := S.Upd2 x1 v1 x2 v2 s1 s2.
   Definition Equal (s1 s2 : t) := S.Equal s1 s2.
-  Lemma Upd_upd :
-    forall x v s,
-      Upd x v s (upd x v s).
-  Proof.
-    move=> x v s y.
-    exact: S.Upd_upd.
-  Qed.
-  Lemma Upd2_upd :
-    forall x1 v1 x2 v2 s,
-      Upd2 x1 v1 x2 v2 s (upd x2 v2 (upd x1 v1 s)).
-  Proof.
-    move=> x1 v1 x2 v2 s y.
-    exact: S.Upd2_upd.
-  Qed.
-  Lemma Upd2_upd2 :
-    forall x1 v1 x2 v2 s,
-      Upd2 x1 v1 x2 v2 s (upd2 x1 v1 x2 v2 s).
-  Proof.
-    move=> x1 v1 x2 v2 s.
-    exact: S.Upd2_upd2.
-  Qed.
-  Lemma acc_Upd_eq :
-    forall x y v s1 s2,
-      x == y ->
-      Upd y v s1 s2 ->
-      acc x s2 = v.
-  Proof.
-    move=> x y v s1 s2.
-    exact: S.acc_Upd_eq.
-  Qed.
-  Lemma acc_Upd_neq :
-    forall x y v s1 s2,
-      x != y ->
-      Upd y v s1 s2 ->
-      acc x s2 = acc x s1.
-  Proof.
-    move=> x y v s1 s2.
-    exact: S.acc_Upd_neq.
-  Qed.
-  Lemma acc_Upd2_eq1 :
-    forall x y1 v1 y2 v2 s1 s2,
-      x == y1 ->
-      x != y2 ->
-      Upd2 y1 v1 y2 v2 s1 s2 ->
-      acc x s2 = v1.
-  Proof.
-    move=> x y1 v1 y2 v2 s1 s2.
-    exact: S.acc_Upd2_eq1.
-  Qed.
-  Lemma acc_Upd2_eq2 :
-    forall x y1 v1 y2 v2 s1 s2,
-      x == y2 ->
-      Upd2 y1 v1 y2 v2 s1 s2 ->
-      acc x s2 = v2.
-  Proof.
-    move=> x y1 v1 y2 v2 s1 s2.
-    exact: S.acc_Upd2_eq2.
-  Qed.
-  Lemma acc_Upd2_neq :
-    forall x y1 v1 y2 v2 s1 s2,
-      x != y1 ->
-      x != y2 ->
-      Upd2 y1 v1 y2 v2 s1 s2 ->
-      acc x s2 = acc x s1.
-  Proof.
-    move=> x y1 v1 y2 v2 s1 s2.
-    exact: S.acc_Upd2_neq.
-  Qed.
-  Lemma Equal_refl s : Equal s s.
-  Proof.
-    exact: S.Equal_refl.
-  Qed.
-  Lemma Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1.
-  Proof.
-    exact: S.Equal_sym.
-  Qed.
-  Lemma Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
-  Proof.
-    exact: S.Equal_trans.
-  Qed.
+  Definition Upd_upd x v s : Upd x v s (upd x v s) := @S.Upd_upd value x v s.
+  Definition Upd2_upd x1 v1 x2 v2 s : Upd2 x1 v1 x2 v2 s (upd x2 v2 (upd x1 v1 s)) :=
+    @S.Upd2_upd value x1 v1 x2 v2 s.
+  Definition Upd2_upd2 x1 v1 x2 v2 s : Upd2 x1 v1 x2 v2 s (upd2 x1 v1 x2 v2 s) :=
+    @S.Upd2_upd2 value x1 v1 x2 v2 s.
+  Definition acc_Upd_eq x y v s1 s2 : x == y -> Upd y v s1 s2 -> acc x s2 = v :=
+    @S.acc_Upd_eq value x y v s1 s2.
+  Definition acc_Upd_neq x y v s1 s2 :
+    x != y -> Upd y v s1 s2 -> acc x s2 = acc x s1 := @S.acc_Upd_neq value x y v s1 s2.
+  Definition acc_Upd2_eq1 x y1 v1 y2 v2 s1 s2 :
+    x == y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = v1 :=
+    @S.acc_Upd2_eq1 value x y1 v1 y2 v2 s1 s2.
+  Definition acc_Upd2_eq2 x y1 v1 y2 v2 s1 s2 :
+    x == y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = v2 :=
+    @S.acc_Upd2_eq2 value x y1 v1 y2 v2 s1 s2.
+  Definition acc_Upd2_neq x y1 v1 y2 v2 s1 s2 :
+    x != y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = acc x s1 :=
+    @S.acc_Upd2_neq value x y1 v1 y2 v2 s1 s2.
+  Definition Equal_refl s : Equal s s := @S.Equal_refl value s.
+  Definition Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1 := @S.Equal_sym value s1 s2.
+  Definition Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3 :=
+    @S.Equal_trans value s1 s2 s3.
   Instance Equal_ST : RelationClasses.Equivalence Equal := S.Equal_ST value.
-  Lemma Equal_upd_Equal v e s1 s2 :
-    Equal s1 s2 ->
-    Equal (upd v e s1) (upd v e s2).
-  Proof.
-    exact: S.Equal_upd_Equal.
-  Qed.
-  Lemma Equal_Upd_Equal v e s1 s2 s3 s4 :
-    Upd v e s1 s2 -> Upd v e s3 s4 ->
-    Equal s1 s3 -> Equal s2 s4.
-  Proof.
-    exact: S.Equal_Upd_Equal.
-  Qed.
-  Lemma Upd_pred_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2.
-  Proof.
-    exact: S.Upd_pred_Equal.
-  Qed.
-  Lemma Upd_succ_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s.
-  Proof.
-    exact: S.Upd_succ_Equal.
-  Qed.
+  Definition Equal_upd_Equal v e s1 s2 :
+    Equal s1 s2 -> Equal (upd v e s1) (upd v e s2) :=
+    @S.Equal_upd_Equal value v e s1 s2.
+  Definition Equal_Upd_Equal v e s1 s2 s3 s4 :
+    Upd v e s1 s2 -> Upd v e s3 s4 -> Equal s1 s3 -> Equal s2 s4 :=
+    @S.Equal_Upd_Equal value v e s1 s2 s3 s4.
+  Definition Upd_pred_Equal v e s1 s2 s :
+    Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2 := @S.Upd_pred_Equal value v e s1 s2 s.
+  Definition Upd_succ_Equal v e s1 s2 s :
+    Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s := @S.Upd_succ_Equal value v e s1 s2 s.
 End TStoreAdapter.
 
 
@@ -534,55 +355,23 @@ Module MakeRealizableTStore (X : SsrOrderedType) <: TStore X.
     Definition upd2 x1 v1 x2 v2 (s : t) : t :=
       upd x2 v2 (upd x1 v1 s).
 
-    Lemma acc_upd_eq x y v s :
-      x == y ->
-      acc x (upd y v s) = v.
-    Proof.
-      rewrite /acc /upd => Hxy.
-      rewrite Hxy.
-      reflexivity.
-    Qed.
+    Lemma acc_upd_eq {x y v s} : x == y -> acc x (upd y v s) = v.
+    Proof. rewrite /acc /upd => Hxy. rewrite Hxy. reflexivity. Qed.
 
-    Lemma acc_upd_neq x y v s :
-      x != y ->
-      acc x (upd y v s) = acc x s.
-    Proof.
-      rewrite {1}/acc /upd => Hxy.
-      rewrite (negPf Hxy).
-      reflexivity.
-    Qed.
+    Lemma acc_upd_neq {x y v s} : x != y -> acc x (upd y v s) = acc x s.
+    Proof. rewrite {1}/acc /upd => Hxy. by rewrite (negPf Hxy). Qed.
 
-    Lemma acc_upd2_eq1 :
-      forall x y1 v1 y2 v2 (s : t),
-        x == y1 ->
-        x != y2 ->
-        acc x (upd2 y1 v1 y2 v2 s) = v1.
-    Proof.
-      move=> x y1 v1 y2 v2 s Hx1 Hx2.
-      rewrite /upd2 (acc_upd_neq _ _ Hx2) (acc_upd_eq _ _ Hx1).
-      reflexivity.
-    Qed.
+    Lemma acc_upd2_eq1 {x y1 v1 y2 v2 s} :
+      x == y1 -> x != y2 -> acc x (upd2 y1 v1 y2 v2 s) = v1.
+    Proof. move=> Hx1 Hx2. by rewrite /upd2 (acc_upd_neq Hx2) (acc_upd_eq Hx1). Qed.
 
-    Lemma acc_upd2_eq2 :
-      forall x y1 v1 y2 v2 (s : t),
-        x == y2 ->
-        acc x (upd2 y1 v1 y2 v2 s) = v2.
-    Proof.
-      move=> x y1 v1 y2 v2 s Hx2.
-      rewrite /upd2 (acc_upd_eq _ _ Hx2).
-      reflexivity.
-    Qed.
+    Lemma acc_upd2_eq2 {x y1 v1 y2 v2 s} :
+      x == y2 -> acc x (upd2 y1 v1 y2 v2 s) = v2.
+    Proof. move=> Hx2. by rewrite /upd2 (acc_upd_eq Hx2). Qed.
 
-    Lemma acc_upd2_neq :
-      forall x y1 v1 y2 v2 s,
-        x != y1 ->
-        x != y2 ->
-        acc x (upd2 y1 v1 y2 v2 s) = acc x s.
-    Proof.
-      move=> x y1 v1 y2 v2 s Hx1 Hx2.
-      rewrite /upd2 (acc_upd_neq _ _ Hx2) (acc_upd_neq _ _ Hx1).
-      reflexivity.
-    Qed.
+    Lemma acc_upd2_neq {x y1 v1 y2 v2 s} :
+      x != y1 -> x != y2 -> acc x (upd2 y1 v1 y2 v2 s) = acc x s.
+    Proof. move=> Hx1 Hx2. by rewrite /upd2 (acc_upd_neq Hx2) (acc_upd_neq Hx1). Qed.
 
     Definition Upd x v (s1 s2 : t) : Prop :=
       forall y, acc y s2 = acc y (upd x v s1).
@@ -593,139 +382,78 @@ Module MakeRealizableTStore (X : SsrOrderedType) <: TStore X.
     Definition Equal (s1 s2 : t) : Prop :=
       forall v, acc v s1 = acc v s2.
 
-    Lemma Upd_upd :
-      forall x v s,
-        Upd x v s (upd x v s).
+    Lemma Upd_upd x v s : Upd x v s (upd x v s).
+    Proof. move=> y. reflexivity. Qed.
+
+    Lemma Upd2_upd x1 v1 x2 v2 s : Upd2 x1 v1 x2 v2 s (upd x2 v2 (upd x1 v1 s)).
+    Proof. move=> y. reflexivity. Qed.
+
+    Lemma Upd2_upd2 x1 v1 x2 v2 s : Upd2 x1 v1 x2 v2 s (upd2 x1 v1 x2 v2 s).
+    Proof. exact: Upd2_upd. Qed.
+
+    Lemma acc_Upd_eq x y v s1 s2 : x == y -> Upd y v s1 s2 -> acc x s2 = v.
     Proof.
-      move=> x v s y.
-      reflexivity.
+      move=> Hxy Hupd. move: (Hupd x) => Hx. by rewrite (acc_upd_eq Hxy) in Hx.
     Qed.
 
-    Lemma Upd2_upd :
-      forall x1 v1 x2 v2 s,
-        Upd2 x1 v1 x2 v2 s (upd x2 v2 (upd x1 v1 s)).
+    Lemma acc_Upd_neq x y v s1 s2 : x != y -> Upd y v s1 s2 -> acc x s2 = acc x s1.
     Proof.
-      move=> x1 v1 x2 v2 s y.
-      reflexivity.
+      move=> Hxy Hupd. move: (Hupd x) => Hx. by rewrite (acc_upd_neq Hxy) in Hx.
     Qed.
 
-    Lemma Upd2_upd2 :
-      forall x1 v1 x2 v2 s,
-        Upd2 x1 v1 x2 v2 s (upd2 x1 v1 x2 v2 s).
-    Proof.
-      exact: Upd2_upd.
-    Qed.
+    Lemma acc_Upd2_eq1 x y1 v1 y2 v2 s1 s2 :
+      x == y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = v1.
+    Proof. move=> Heq Hne Hupd. rewrite (Hupd x). exact: acc_upd2_eq1. Qed.
 
-    Lemma acc_Upd_eq :
-      forall x y v s1 s2,
-        x == y ->
-        Upd y v s1 s2 ->
-        acc x s2 = v.
-    Proof.
-      move=> x y v s1 s2 Hxy Hupd.
-      move: (Hupd x) => Hx.
-      rewrite (acc_upd_eq _ _ Hxy) in Hx.
-      assumption.
-    Qed.
+    Lemma acc_Upd2_eq2 x y1 v1 y2 v2 s1 s2 :
+      x == y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = v2.
+    Proof. move=> Heq Hupd. rewrite (Hupd x). exact: acc_upd2_eq2. Qed.
 
-    Lemma acc_Upd_neq :
-      forall x y v s1 s2,
-        x != y ->
-        Upd y v s1 s2 ->
-        acc x s2 = acc x s1.
-    Proof.
-      move=> x y v s1 s2 Hxy Hupd.
-      move: (Hupd x) => Hx.
-      rewrite (acc_upd_neq _ _ Hxy) in Hx.
-      assumption.
-    Qed.
-
-    Lemma acc_Upd2_eq1 :
-      forall x y1 v1 y2 v2 s1 s2,
-        x == y1 ->
-        x != y2 ->
-        Upd2 y1 v1 y2 v2 s1 s2 ->
-        acc x s2 = v1.
-    Proof.
-      move=> x y1 v1 y2 v2 s1 s2 Heq Hne Hupd.
-      rewrite (Hupd x).
-      exact: acc_upd2_eq1.
-    Qed.
-
-    Lemma acc_Upd2_eq2 :
-      forall x y1 v1 y2 v2 s1 s2,
-        x == y2 ->
-        Upd2 y1 v1 y2 v2 s1 s2 ->
-        acc x s2 = v2.
-    Proof.
-      move=> x y1 v1 y2 v2 s1 s2 Heq Hupd.
-      rewrite (Hupd x).
-      exact: acc_upd2_eq2.
-    Qed.
-
-    Lemma acc_Upd2_neq :
-      forall x y1 v1 y2 v2 s1 s2,
-        x != y1 ->
-        x != y2 ->
-        Upd2 y1 v1 y2 v2 s1 s2 ->
-        acc x s2 = acc x s1.
-    Proof.
-      move=> x y1 v1 y2 v2 s1 s2 Hne1 Hne2 Hupd.
-      rewrite (Hupd x).
-      exact: acc_upd2_neq.
-    Qed.
+    Lemma acc_Upd2_neq x y1 v1 y2 v2 s1 s2 :
+      x != y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = acc x s1.
+    Proof. move=> Hne1 Hne2 Hupd. rewrite (Hupd x). exact: acc_upd2_neq. Qed.
 
     Lemma Equal_refl s : Equal s s.
-    Proof.
-      done.
-    Qed.
+    Proof. done. Qed.
 
     Lemma Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1.
-    Proof.
-      move=> H v; rewrite (H v); reflexivity.
-    Qed.
+    Proof. move=> H v; rewrite (H v); reflexivity. Qed.
 
     Lemma Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
-    Proof.
-      move=> H1 H2 v. rewrite (H1 v) (H2 v). reflexivity.
-    Qed.
+    Proof. move=> H1 H2 v. rewrite (H1 v) (H2 v). reflexivity. Qed.
 
     Instance Equal_ST : RelationClasses.Equivalence Equal :=
       { Equivalence_Reflexive := Equal_refl;
         Equivalence_Symmetric := Equal_sym;
         Equivalence_Transitive := Equal_trans }.
 
-    Lemma Equal_upd_Equal v e s1 s2 :
-      Equal s1 s2 ->
-      Equal (upd v e s1) (upd v e s2).
+    Lemma Equal_upd_Equal v e s1 s2 : Equal s1 s2 -> Equal (upd v e s1) (upd v e s2).
     Proof.
       move=> H x. case Hxv: (x == v).
-      - rewrite !(acc_upd_eq _ _ Hxv). reflexivity.
-      - move/idP/negP: Hxv => Hxv. rewrite !(acc_upd_neq _ _ Hxv). exact: (H x).
+      - rewrite !(acc_upd_eq Hxv). reflexivity.
+      - move/idP/negP: Hxv => Hxv. rewrite !(acc_upd_neq Hxv). exact: (H x).
     Qed.
 
     Lemma Equal_Upd_Equal v e s1 s2 s3 s4 :
-      Upd v e s1 s2 -> Upd v e s3 s4 ->
-      Equal s1 s3 -> Equal s2 s4.
+      Upd v e s1 s2 -> Upd v e s3 s4 -> Equal s1 s3 -> Equal s2 s4.
     Proof.
-      move=> Hupd1 Hupd2 Heq x. rewrite (Hupd1 x) (Hupd2 x).
-      exact: Equal_upd_Equal.
+      move=> Hupd1 Hupd2 Heq x. rewrite (Hupd1 x) (Hupd2 x). exact: Equal_upd_Equal.
     Qed.
 
     Lemma Upd_pred_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2.
     Proof.
       move=> Hupd Heq x. case Hxv: (x == v).
-      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq _ _ Hxv). reflexivity.
+      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq Hxv). reflexivity.
       - move/idP/negP: Hxv => Hxv.
-        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq _ _ Hxv). exact: (Heq x).
+        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq Hxv). exact: (Heq x).
     Qed.
 
     Lemma Upd_succ_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s.
     Proof.
       move=> Hupd Heq x. rewrite -(Heq x). case Hxv: (x == v).
-      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq _ _ Hxv). reflexivity.
+      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq Hxv). reflexivity.
       - move/idP/negP: Hxv => Hxv.
-        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq _ _ Hxv). reflexivity.
+        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq Hxv). reflexivity.
     Qed.
 
   End TStore.
@@ -743,152 +471,58 @@ Module RealizableTStoreAdapter (X : SsrOrderedType) (V : HasDefaultTyp).
   Definition acc x (s : t) := S.acc x s.
   Definition upd x v (s : t) := S.upd x v s.
   Definition upd2 x1 v1 x2 v2 (s : t) := S.upd2 x1 v1 x2 v2 s.
-  Lemma acc_upd_eq :
-    forall x y v (s : t),
-      x == y ->
-      acc x (upd y v s) = v.
-  Proof.
-    move=> x y v s.
-    exact: S.acc_upd_eq.
-  Qed.
-  Lemma acc_upd_neq :
-    forall x y v (s : t),
-      x != y ->
-      acc x (upd y v s) = acc x s.
-  Proof.
-    move=> x y v s.
-    exact: S.acc_upd_neq.
-  Qed.
-  Lemma acc_upd2_eq1 :
-    forall x y1 v1 y2 v2 (s : t),
-      x == y1 ->
-      x != y2 ->
-      acc x (upd2 y1 v1 y2 v2 s) = v1.
-  Proof.
-    move=> x y1 v1 y2 v2 s Hx1 Hx2.
-    exact: S.acc_upd2_eq1.
-  Qed.
-  Lemma acc_upd2_eq2 :
-    forall x y1 v1 y2 v2 (s : t),
-      x == y2 ->
-      acc x (upd2 y1 v1 y2 v2 s) = v2.
-  Proof.
-    move=> x y1 v1 y2 v2 s Hx2.
-    exact: S.acc_upd2_eq2.
-  Qed.
-  Lemma acc_upd2_neq :
-    forall x y1 v1 y2 v2 s,
-      x != y1 ->
-      x != y2 ->
-      acc x (upd2 y1 v1 y2 v2 s) = acc x s.
-  Proof.
-    move=> x y1 v1 y2 v2 s Hx1 Hx2.
-    exact: S.acc_upd2_neq.
-  Qed.
+  Definition acc_upd_eq {x y v s} : x == y -> acc x (upd y v s) = v :=
+    @S.acc_upd_eq value x y v s.
+  Definition acc_upd_neq {x y v s} : x != y -> acc x (upd y v s) = acc x s :=
+    @S.acc_upd_neq value x y v s.
+  Definition acc_upd2_eq1 {x y1 v1 y2 v2 s} :
+    x == y1 -> x != y2 -> acc x (upd2 y1 v1 y2 v2 s) = v1 :=
+    @S.acc_upd2_eq1 value x y1 v1 y2 v2 s.
+  Definition acc_upd2_eq2 {x y1 v1 y2 v2 s} :
+    x == y2 -> acc x (upd2 y1 v1 y2 v2 s) = v2 :=
+    @S.acc_upd2_eq2 value x y1 v1 y2 v2 s.
+  Definition acc_upd2_neq {x y1 v1 y2 v2 s} :
+    x != y1 -> x != y2 -> acc x (upd2 y1 v1 y2 v2 s) = acc x s :=
+    @S.acc_upd2_neq value x y1 v1 y2 v2 s.
   Definition Upd x v (s1 s2 : t) := S.Upd x v s1 s2.
   Definition Upd2 x1 v1 x2 v2 (s1 s2 : t) := S.Upd2 x1 v1 x2 v2 s1 s2.
   Definition Equal (s1 s2 : t) := S.Equal s1 s2.
-  Lemma Upd_upd :
-    forall x v s,
-      Upd x v s (upd x v s).
-  Proof.
-    move=> x v s y.
-    exact: S.Upd_upd.
-  Qed.
-  Lemma Upd2_upd :
-    forall x1 v1 x2 v2 s,
-      Upd2 x1 v1 x2 v2 s (upd x2 v2 (upd x1 v1 s)).
-  Proof.
-    move=> x1 v1 x2 v2 s y.
-    exact: S.Upd2_upd.
-  Qed.
-  Lemma Upd2_upd2 :
-    forall x1 v1 x2 v2 s,
-      Upd2 x1 v1 x2 v2 s (upd2 x1 v1 x2 v2 s).
-  Proof.
-    move=> x1 v1 x2 v2 s.
-    exact: S.Upd2_upd2.
-  Qed.
-  Lemma acc_Upd_eq :
-    forall x y v s1 s2,
-      x == y ->
-      Upd y v s1 s2 ->
-      acc x s2 = v.
-  Proof.
-    move=> x y v s1 s2.
-    exact: S.acc_Upd_eq.
-  Qed.
-  Lemma acc_Upd_neq :
-    forall x y v s1 s2,
-      x != y ->
-      Upd y v s1 s2 ->
-      acc x s2 = acc x s1.
-  Proof.
-    move=> x y v s1 s2.
-    exact: S.acc_Upd_neq.
-  Qed.
-  Lemma acc_Upd2_eq1 :
-    forall x y1 v1 y2 v2 s1 s2,
-      x == y1 ->
-      x != y2 ->
-      Upd2 y1 v1 y2 v2 s1 s2 ->
-      acc x s2 = v1.
-  Proof.
-    move=> x y1 v1 y2 v2 s1 s2.
-    exact: S.acc_Upd2_eq1.
-  Qed.
-  Lemma acc_Upd2_eq2 :
-    forall x y1 v1 y2 v2 s1 s2,
-      x == y2 ->
-      Upd2 y1 v1 y2 v2 s1 s2 ->
-      acc x s2 = v2.
-  Proof.
-    move=> x y1 v1 y2 v2 s1 s2.
-    exact: S.acc_Upd2_eq2.
-  Qed.
-  Lemma acc_Upd2_neq :
-    forall x y1 v1 y2 v2 s1 s2,
-      x != y1 ->
-      x != y2 ->
-      Upd2 y1 v1 y2 v2 s1 s2 ->
-      acc x s2 = acc x s1.
-  Proof.
-    move=> x y1 v1 y2 v2 s1 s2.
-    exact: S.acc_Upd2_neq.
-  Qed.
-  Lemma Equal_refl s : Equal s s.
-  Proof.
-    exact: S.Equal_refl.
-  Qed.
-  Lemma Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1.
-  Proof.
-    exact: S.Equal_sym.
-  Qed.
-  Lemma Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
-  Proof.
-    exact: S.Equal_trans.
-  Qed.
+  Definition Upd_upd x v s : Upd x v s (upd x v s) := @S.Upd_upd value x v s.
+  Definition Upd2_upd x1 v1 x2 v2 s : Upd2 x1 v1 x2 v2 s (upd x2 v2 (upd x1 v1 s)) :=
+    @S.Upd2_upd value x1 v1 x2 v2 s.
+  Definition Upd2_upd2 x1 v1 x2 v2 s : Upd2 x1 v1 x2 v2 s (upd2 x1 v1 x2 v2 s) :=
+    @S.Upd2_upd2 value x1 v1 x2 v2 s.
+  Definition acc_Upd_eq x y v s1 s2 :
+    x == y -> Upd y v s1 s2 -> acc x s2 = v := @S.acc_Upd_eq value x y v s1 s2.
+  Definition acc_Upd_neq x y v s1 s2 :
+    x != y -> Upd y v s1 s2 -> acc x s2 = acc x s1 :=
+    @S.acc_Upd_neq value x y v s1 s2.
+  Definition acc_Upd2_eq1 x y1 v1 y2 v2 s1 s2 :
+    x == y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = v1 :=
+    @S.acc_Upd2_eq1 value x y1 v1 y2 v2 s1 s2.
+  Definition acc_Upd2_eq2 x y1 v1 y2 v2 s1 s2 :
+    x == y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = v2 :=
+    @S.acc_Upd2_eq2 value x y1 v1 y2 v2 s1 s2.
+  Definition acc_Upd2_neq x y1 v1 y2 v2 s1 s2 :
+    x != y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = acc x s1 :=
+    @S.acc_Upd2_neq value x y1 v1 y2 v2 s1 s2.
+  Definition Equal_refl s : Equal s s := @S.Equal_refl value s.
+  Definition Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1 := @S.Equal_sym value s1 s2.
+  Definition Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3 :=
+    @S.Equal_trans value s1 s2 s3.
   Instance Equal_ST : RelationClasses.Equivalence Equal := S.Equal_ST value.
-  Lemma Equal_upd_Equal v e s1 s2 :
-    Equal s1 s2 ->
-    Equal (upd v e s1) (upd v e s2).
-  Proof.
-    exact: S.Equal_upd_Equal.
-  Qed.
-  Lemma Equal_Upd_Equal v e s1 s2 s3 s4 :
-    Upd v e s1 s2 -> Upd v e s3 s4 ->
-    Equal s1 s3 -> Equal s2 s4.
-  Proof.
-    exact: S.Equal_Upd_Equal.
-  Qed.
-  Lemma Upd_pred_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2.
-  Proof.
-    exact: S.Upd_pred_Equal.
-  Qed.
-  Lemma Upd_succ_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s.
-  Proof.
-    exact: S.Upd_succ_Equal.
-  Qed.
+  Definition Equal_upd_Equal v e s1 s2 :
+    Equal s1 s2 -> Equal (upd v e s1) (upd v e s2) :=
+    @S.Equal_upd_Equal value v e s1 s2.
+  Definition Equal_Upd_Equal v e s1 s2 s3 s4 :
+    Upd v e s1 s2 -> Upd v e s3 s4 -> Equal s1 s3 -> Equal s2 s4 :=
+    @S.Equal_Upd_Equal value v e s1 s2 s3 s4.
+  Definition Upd_pred_Equal v e s1 s2 s :
+    Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2 :=
+    @S.Upd_pred_Equal value v e s1 s2 s.
+  Definition Upd_succ_Equal v e s1 s2 s :
+    Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s :=
+    @S.Upd_succ_Equal value v e s1 s2 s.
 End RealizableTStoreAdapter.
 
 
@@ -1030,52 +664,25 @@ Module MakePStore (X : SsrOrderedType) <: PStore X.
 
     Definition unset (x : var) (s : t) := M.remove x s.
 
-    Lemma acc_upd_eq x y v s :
-      x == y ->
-      acc x (upd y v s) = Some v.
+    Lemma acc_upd_eq {x y v s} : x == y -> acc x (upd y v s) = Some v.
     Proof.
-      rewrite /acc /upd => Hxy.
-      rewrite (eqP Hxy) => {Hxy x}.
-      apply: L.find_add_eq.
-      reflexivity.
+      rewrite /acc /upd => Hxy. rewrite (eqP Hxy) => {Hxy x}.
+      apply: L.find_add_eq. reflexivity.
     Qed.
 
-    Lemma acc_upd_neq x y v s :
-      x != y ->
-      acc x (upd y v s) = acc x s.
-    Proof.
-      rewrite /acc /upd => Hxy.
-      apply: L.find_add_neq.
-      exact: (negP Hxy).
-    Qed.
+    Lemma acc_upd_neq {x y v s} : x != y -> acc x (upd y v s) = acc x s.
+    Proof. rewrite /acc /upd => Hxy. apply: L.find_add_neq. exact: (negP Hxy). Qed.
 
-    Lemma acc_empty :
-      forall x, acc x empty = None.
-    Proof.
-      exact: L.empty_o.
-    Qed.
+    Lemma acc_empty {x} : acc x empty = None.
+    Proof. exact: L.empty_o. Qed.
 
-    Lemma acc_unset_eq :
-      forall x y s,
-        x == y ->
-        acc x (unset y s) = None.
-    Proof.
-      move=> x y s Heq.
-      apply: L.remove_eq_o.
-      rewrite eq_sym.
-      exact: Heq.
-    Qed.
+    Lemma acc_unset_eq {x y s} : x == y -> acc x (unset y s) = None.
+    Proof. move=> Heq. apply: L.remove_eq_o. rewrite eq_sym. exact: Heq. Qed.
 
-    Lemma acc_unset_neq :
-      forall x y s,
-        x != y ->
-        acc x (unset y s) = acc x s.
+    Lemma acc_unset_neq {x y s} : x != y -> acc x (unset y s) = acc x s.
     Proof.
-      move=> x y s Hne.
-      apply: L.remove_neq_o.
-      move=> Heq.
-      move/eqP: Hne; apply.
-      by rewrite (eqP Heq).
+      move=> Hne. apply: L.remove_neq_o. move=> Heq.
+      move/eqP: Hne; apply. by rewrite (eqP Heq).
     Qed.
 
     Definition Empty (s : t) : Prop := M.Empty s.
@@ -1089,130 +696,76 @@ Module MakePStore (X : SsrOrderedType) <: PStore X.
     Definition Equal (s1 s2 : t) : Prop :=
       forall v, acc v s1 = acc v s2.
 
-    Lemma Empty_acc :
-      forall x s,
-        Empty s ->
-        acc x s = None.
+    Lemma Empty_acc {x s} : Empty s -> acc x s = None.
+    Proof. move=> Hemp. exact: (L.Empty_find _ Hemp). Qed.
+
+    Lemma Upd_upd x v s : Upd x v s (upd x v s).
+    Proof. move=> y. reflexivity. Qed.
+
+    Lemma Unset_unset x s : Unset x s (unset x s).
+    Proof. move=> y. reflexivity. Qed.
+
+    Lemma acc_Upd_eq x y v s1 s2 : x == y -> Upd y v s1 s2 -> acc x s2 = Some v.
     Proof.
-      move=> x s Hemp.
-      exact: (L.Empty_find _ Hemp).
+      move=> Hxy Hupd. move: (Hupd x). rewrite (acc_upd_eq Hxy). by apply.
     Qed.
 
-    Lemma Upd_upd :
-      forall x v s,
-        Upd x v s (upd x v s).
+    Lemma acc_Upd_neq x y v s1 s2 : x != y -> Upd y v s1 s2 -> acc x s2 = acc x s1.
     Proof.
-      move=> x v s y.
-      reflexivity.
+      move=> Hxy Hupd. move: (Hupd x). rewrite (acc_upd_neq Hxy). by apply.
     Qed.
 
-    Lemma Unset_unset :
-      forall x s,
-        Unset x s (unset x s).
+    Lemma acc_Unset_eq x y s1 s2 : x == y -> Unset y s1 s2 -> acc x s2 = None.
     Proof.
-      move=> x s y.
-      reflexivity.
+      move=> Hxy Hunset. move: (Hunset x). rewrite (acc_unset_eq Hxy). by apply.
     Qed.
 
-    Lemma acc_Upd_eq :
-      forall x y v s1 s2,
-        x == y ->
-        Upd y v s1 s2 ->
-        acc x s2 = Some v.
+    Lemma acc_Unset_neq x y s1 s2 : x != y -> Unset y s1 s2 -> acc x s2 = acc x s1.
     Proof.
-      move=> x y v s1 s2 Hxy Hupd.
-      move: (Hupd x).
-      rewrite (acc_upd_eq _ _ Hxy).
-      by apply.
-    Qed.
-
-    Lemma acc_Upd_neq :
-      forall x y v s1 s2,
-        x != y ->
-        Upd y v s1 s2 ->
-        acc x s2 = acc x s1.
-    Proof.
-      move=> x y v s1 s2 Hxy Hupd.
-      move: (Hupd x).
-      rewrite (acc_upd_neq _ _ Hxy).
-      by apply.
-    Qed.
-
-    Lemma acc_Unset_eq :
-      forall x y s1 s2,
-        x == y ->
-        Unset y s1 s2 ->
-        acc x s2 = None.
-    Proof.
-      move=> x y s1 s2 Hxy Hunset.
-      move: (Hunset x).
-      rewrite (acc_unset_eq _ Hxy).
-      by apply.
-    Qed.
-
-    Lemma acc_Unset_neq :
-      forall x y s1 s2,
-        x != y ->
-        Unset y s1 s2 ->
-        acc x s2 = acc x s1.
-    Proof.
-      move=> x y s1 s2 Hxy Hunset.
-      move: (Hunset x).
-      rewrite (acc_unset_neq _ Hxy).
-      by apply.
+      move=> Hxy Hunset. move: (Hunset x). rewrite (acc_unset_neq Hxy). by apply.
     Qed.
 
     Lemma Equal_refl s : Equal s s.
-    Proof.
-      done.
-    Qed.
+    Proof. done. Qed.
 
     Lemma Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1.
-    Proof.
-      move=> H v; rewrite (H v); reflexivity.
-    Qed.
+    Proof. move=> H v; rewrite (H v); reflexivity. Qed.
 
     Lemma Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
-    Proof.
-      move=> H1 H2 v. rewrite (H1 v) (H2 v). reflexivity.
-    Qed.
+    Proof. move=> H1 H2 v. rewrite (H1 v) (H2 v). reflexivity. Qed.
 
     Instance Equal_ST : RelationClasses.Equivalence Equal :=
       { Equivalence_Reflexive := Equal_refl;
         Equivalence_Symmetric := Equal_sym;
         Equivalence_Transitive := Equal_trans }.
 
-    Lemma Equal_upd_Equal v e s1 s2 :
-      Equal s1 s2 ->
-      Equal (upd v e s1) (upd v e s2).
+    Lemma Equal_upd_Equal v e s1 s2 : Equal s1 s2 -> Equal (upd v e s1) (upd v e s2).
     Proof.
       move=> H x. case Hxv: (x == v).
-      - rewrite !(acc_upd_eq _ _ Hxv). reflexivity.
-      - move/idP/negP: Hxv => Hxv. rewrite !(acc_upd_neq _ _ Hxv). exact: (H x).
+      - rewrite !(acc_upd_eq Hxv). reflexivity.
+      - move/idP/negP: Hxv => Hxv. rewrite !(acc_upd_neq Hxv). exact: (H x).
     Qed.
 
     Lemma Equal_Upd_Equal v e s1 s2 s3 s4 :
-      Upd v e s1 s2 -> Upd v e s3 s4 ->
-      Equal s1 s3 -> Equal s2 s4.
+      Upd v e s1 s2 -> Upd v e s3 s4 -> Equal s1 s3 -> Equal s2 s4.
     Proof.
-      move=> Hupd1 Hupd2 Heq x. rewrite (Hupd1 x) (Hupd2 x).
-      exact: Equal_upd_Equal.
+      move=> Hupd1 Hupd2 Heq x. rewrite (Hupd1 x) (Hupd2 x). exact: Equal_upd_Equal.
     Qed.
 
     Lemma Upd_pred_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2.
     Proof.
       move=> Hupd Heq x. case Hxv: (x == v).
-      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq _ _ Hxv). reflexivity.
+      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq Hxv). reflexivity.
       - move/idP/negP: Hxv => Hxv.
-        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq _ _ Hxv). exact: (Heq x).
+        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq Hxv). exact: (Heq x).
     Qed.
 
     Lemma Upd_succ_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s.
     Proof.
       move=> Hupd Heq x. rewrite -(Heq x). case Hxv: (x == v).
-      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq _ _ Hxv). reflexivity.
+      - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq Hxv). reflexivity.
       - move/idP/negP: Hxv => Hxv.
-        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq _ _ Hxv). reflexivity.
+        rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq Hxv). reflexivity.
     Qed.
 
   End PStore.
@@ -1230,129 +783,49 @@ Module PStoreAdapter (X : SsrOrderedType) (V : Equalities.Typ).
   Definition acc x (s : t) := S.acc x s.
   Definition upd x v (s : t) := S.upd x v s.
   Definition unset x (s : t) := S.unset x s.
-  Lemma acc_upd_eq :
-    forall x y v s,
-      x == y ->
-      acc x (upd y v s) = Some v.
-  Proof.
-    move=> x y v s.
-    exact: S.acc_upd_eq.
-  Qed.
-  Lemma acc_upd_neq :
-    forall x y v s,
-      x != y ->
-      acc x (upd y v s) = acc x s.
-  Proof.
-    move=> x y v s.
-    exact: S.acc_upd_neq.
-  Qed.
-  Lemma acc_empty :
-    forall x, acc x empty = None.
-  Proof.
-    exact: S.acc_empty.
-  Qed.
-  Lemma acc_unset_eq :
-    forall x y s,
-      x == y ->
-      acc x (unset y s) = None.
-  Proof.
-    exact: S.acc_unset_eq.
-  Qed.
-  Lemma acc_unset_neq :
-    forall x y s,
-      x != y ->
-      acc x (unset y s) = acc x s.
-  Proof.
-    exact: S.acc_unset_neq.
-  Qed.
+  Definition acc_upd_eq {x y v s} : x == y -> acc x (upd y v s) = Some v :=
+    @S.acc_upd_eq value x y v s.
+  Definition acc_upd_neq {x y v s} : x != y -> acc x (upd y v s) = acc x s :=
+    @S.acc_upd_neq value x y v s.
+  Definition acc_empty x : acc x empty = None := @S.acc_empty value x.
+  Definition acc_unset_eq {x y s} : x == y -> acc x (unset y s) = None :=
+    @S.acc_unset_eq value x y s.
+  Definition acc_unset_neq {x y s} : x != y -> acc x (unset y s) = acc x s :=
+    @S.acc_unset_neq value x y s.
   Definition Empty (s : t) : Prop := S.Empty s.
   Definition Upd x v (s1 s2 : t) : Prop := S.Upd x v s1 s2.
   Definition Unset x (s1 s2 : t) : Prop := S.Unset x s1 s2.
   Definition Equal (s1 s2 : t) := S.Equal s1 s2.
-  Lemma Empty_acc :
-    forall x s,
-      Empty s ->
-      acc x s = None.
-  Proof.
-    exact: S.Empty_acc.
-  Qed.
-  Lemma Upd_upd :
-    forall x v s,
-      Upd x v s (upd x v s).
-  Proof.
-    exact: S.Upd_upd.
-  Qed.
-  Lemma Unset_unset :
-    forall x s,
-      Unset x s (unset x s).
-  Proof.
-    exact: S.Unset_unset.
-  Qed.
-  Lemma acc_Upd_eq :
-    forall x y v s1 s2,
-      x == y ->
-      Upd y v s1 s2 ->
-      acc x s2 = Some v.
-  Proof.
-    exact: S.acc_Upd_eq.
-  Qed.
-  Lemma acc_Upd_neq :
-    forall x y v s1 s2,
-      x != y ->
-      Upd y v s1 s2 ->
-      acc x s2 = acc x s1.
-  Proof.
-    exact: S.acc_Upd_neq.
-  Qed.
-  Lemma acc_Unset_eq :
-    forall x y s1 s2,
-      x == y ->
-      Unset y s1 s2 ->
-      acc x s2 = None.
-  Proof.
-    exact: S.acc_Unset_eq.
-  Qed.
-  Lemma acc_Unset_neq :
-    forall x y s1 s2,
-      x != y ->
-      Unset y s1 s2 ->
-      acc x s2 = acc x s1.
-  Proof.
-    exact: S.acc_Unset_neq.
-  Qed.
-  Lemma Equal_refl s : Equal s s.
-  Proof.
-    exact: S.Equal_refl.
-  Qed.
-  Lemma Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1.
-  Proof.
-    exact: S.Equal_sym.
-  Qed.
-  Lemma Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
-  Proof.
-    exact: S.Equal_trans.
-  Qed.
+  Definition Empty_acc {x s} : Empty s -> acc x s = None := @S.Empty_acc value x s.
+  Definition Upd_upd x v s : Upd x v s (upd x v s) := @S.Upd_upd value x v s.
+  Definition Unset_unset x s : Unset x s (unset x s) := @S.Unset_unset value x s.
+  Definition acc_Upd_eq x y v s1 s2 : x == y -> Upd y v s1 s2 -> acc x s2 = Some v :=
+    @S.acc_Upd_eq value x y v s1 s2.
+  Definition acc_Upd_neq x y v s1 s2 :
+    x != y -> Upd y v s1 s2 -> acc x s2 = acc x s1 :=
+    @S.acc_Upd_neq value x y v s1 s2.
+  Definition acc_Unset_eq x y s1 s2 : x == y -> Unset y s1 s2 -> acc x s2 = None :=
+    @S.acc_Unset_eq value x y s1 s2.
+  Definition acc_Unset_neq x y s1 s2 :
+    x != y -> Unset y s1 s2 -> acc x s2 = acc x s1 :=
+    @S.acc_Unset_neq value x y s1 s2.
+  Definition Equal_refl s : Equal s s := @S.Equal_refl value s.
+  Definition Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1 := @S.Equal_sym value s1 s2.
+  Definition Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3 :=
+    @S.Equal_trans value s1 s2 s3.
   Instance Equal_ST : RelationClasses.Equivalence Equal := S.Equal_ST value.
-  Lemma Equal_upd_Equal v e s1 s2 :
-    Equal s1 s2 ->
-    Equal (upd v e s1) (upd v e s2).
-  Proof.
-    exact: S.Equal_upd_Equal.
-  Qed.
-  Lemma Equal_Upd_Equal v e s1 s2 s3 s4 :
-    Upd v e s1 s2 -> Upd v e s3 s4 ->
-    Equal s1 s3 -> Equal s2 s4.
-  Proof.
-    exact: S.Equal_Upd_Equal.
-  Qed.
-  Lemma Upd_pred_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2.
-  Proof.
-    exact: S.Upd_pred_Equal.
-  Qed.
-  Lemma Upd_succ_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s.
-  Proof.
-    exact: S.Upd_succ_Equal.
-  Qed.
+  Definition Equal_upd_Equal v e s1 s2 :
+    Equal s1 s2 -> Equal (upd v e s1) (upd v e s2) :=
+    @S.Equal_upd_Equal value v e s1 s2.
+  Definition Equal_Upd_Equal v e s1 s2 s3 s4 :
+    Upd v e s1 s2 -> Upd v e s3 s4 -> Equal s1 s3 -> Equal s2 s4 :=
+    @S.Equal_Upd_Equal value v e s1 s2 s3 s4.
+  Definition Upd_pred_Equal v e s1 s2 s :
+    Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2 :=
+    @S.Upd_pred_Equal value v e s1 s2 s.
+  Definition Upd_succ_Equal v e s1 s2 s :
+    Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s :=
+    @S.Upd_succ_Equal value v e s1 s2 s.
 End PStoreAdapter.
 
 
