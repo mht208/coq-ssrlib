@@ -832,9 +832,9 @@ End FMapLemmas.
 
 
 
-(* Functors for making finite maps *)
+(* Keys as a set *)
 
-Module MapKeyLemmas (X : SsrOrderedType) (M : SsrFMap with Module SE := X) (S : SsrFSet with Module SE := X).
+Module MapKeySet (X : SsrOrderedType) (M : SsrFMap with Module SE := X) (S : SsrFSet with Module SE := X).
 
   Module MLemmas := FMapLemmas M.
   Module SLemmas := FSetLemmas S.
@@ -863,7 +863,11 @@ Module MapKeyLemmas (X : SsrOrderedType) (M : SsrFMap with Module SE := X) (S : 
 
   End Aux.
 
-End MapKeyLemmas.
+End MapKeySet.
+
+
+
+(* Functors for making finite maps *)
 
 Module MakeListMap' (X : SsrOrderedType) <: SsrFMap with Module SE := X.
   Module SE := X.
@@ -872,10 +876,7 @@ End MakeListMap'.
 
 Module MakeListMap (X : SsrOrderedType) <: SsrFMap with Module SE := X.
   Module M := MakeListMap' X.
-  Module S := MakeListSet X.
-  Module KeyLemmas := MapKeyLemmas X M S.
-  Module Lemmas := KeyLemmas.MLemmas.
-  Include KeyLemmas.
+  Module Lemmas := FMapLemmas M.
   Include M.
 End MakeListMap.
 
@@ -886,13 +887,9 @@ End MakeTreeMap'.
 
 Module MakeTreeMap (X : SsrOrderedType) <: SsrFMap with Module SE := X.
   Module M := MakeTreeMap' X.
-  Module S := MakeTreeSet X.
-  Module KeyLemmas := MapKeyLemmas X M S.
-  Module Lemmas := KeyLemmas.MLemmas.
-  Include KeyLemmas.
+  Module Lemmas := FMapLemmas M.
   Include M.
 End MakeTreeMap.
-
 
 Module Make (X : SsrOrderedType) <: SsrFMap with Module SE := X := MakeListMap X.
 
@@ -902,7 +899,7 @@ Module Make (X : SsrOrderedType) <: SsrFMap with Module SE := X := MakeListMap X
 
 Module MakeElementGenerator (M : SsrFMap) (D : HasDefault M.SE) (S : HasSucc M.SE) (L : HasLtnSucc M.SE M.SE S).
 
-  Module GLemmas := FMapLemmas M.
+  Module Lemmas := FMapLemmas M.
 
   Section Gen.
 
@@ -910,7 +907,7 @@ Module MakeElementGenerator (M : SsrFMap) (D : HasDefault M.SE) (S : HasSucc M.S
 
     (* Generate a new key *)
     Definition new_key (m : M.t elt) : M.key :=
-      match GLemmas.max_key m with
+      match Lemmas.max_key m with
       | Some k => S.succ k
       | None => D.default
       end.
@@ -918,10 +915,10 @@ Module MakeElementGenerator (M : SsrFMap) (D : HasDefault M.SE) (S : HasSucc M.S
     Lemma new_key_is_new :
       forall (m : M.t elt), ~~ M.mem (new_key m) m.
     Proof.
-      move=> m. rewrite /new_key. case H: (GLemmas.max_key m).
-      - apply/negP=> Hmem. apply: (GLemmas.max_key_not_lt H Hmem). exact: L.ltn_succ.
-      - move: (GLemmas.max_key_none H) => Hempty.
-        exact: (GLemmas.Empty_mem D.default Hempty).
+      move=> m. rewrite /new_key. case H: (Lemmas.max_key m).
+      - apply/negP=> Hmem. apply: (Lemmas.max_key_not_lt H Hmem). exact: L.ltn_succ.
+      - move: (Lemmas.max_key_none H) => Hempty.
+        exact: (Lemmas.Empty_mem D.default Hempty).
     Qed.
 
   End Gen.
@@ -938,15 +935,15 @@ Module Type SsrFMapWithNew <: SsrFMap.
 End SsrFMapWithNew.
 
 Module MakeListMapWithNew (X : SsrOrderedWithDefaultSucc) <: SsrFMapWithNew.
-  Module LM := MakeListMap X.
-  Include LM.
-  Include MakeElementGenerator LM X X X.
+  Module M := MakeListMap' X.
+  Include M.
+  Include MakeElementGenerator M X X X.
 End MakeListMapWithNew.
 
 Module MakeTreeMapWithNew (X : SsrOrderedWithDefaultSucc) <: SsrFMapWithNew.
-  Module TM := MakeTreeMap X.
-  Include TM.
-  Include MakeElementGenerator TM X X X.
+  Module M := MakeTreeMap' X.
+  Include M.
+  Include MakeElementGenerator M X X X.
 End MakeTreeMapWithNew.
 
 
