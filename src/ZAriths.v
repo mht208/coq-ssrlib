@@ -886,7 +886,7 @@ Module PositiveOrderMinimal <: SsrOrderMinimal.
 
 End PositiveOrderMinimal.
 
-Module PositiveOrder <: SsrOrderWithFacts := MakeSsrOrder PositiveOrderMinimal.
+Module PositiveOrder <: SsrOrder := MakeSsrOrder PositiveOrderMinimal.
 
 
 
@@ -931,7 +931,7 @@ Module NOrderMinimal <: SsrOrderMinimal.
 
 End NOrderMinimal.
 
-Module NOrder <: SsrOrderWithFacts := MakeSsrOrder NOrderMinimal.
+Module NOrder <: SsrOrder := MakeSsrOrder NOrderMinimal.
 
 
 
@@ -976,7 +976,7 @@ Module ZOrderMinimal <: SsrOrderMinimal.
 
 End ZOrderMinimal.
 
-Module ZOrder <: SsrOrderWithFacts := MakeSsrOrder ZOrderMinimal.
+Module ZOrder <: SsrOrder := MakeSsrOrder ZOrderMinimal.
 
 
 

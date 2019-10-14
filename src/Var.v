@@ -27,8 +27,8 @@ End VarOrder.
 
 (* Variable sets and maps. *)
 
-Module VS := FSets.MakeTreeSetWithNew VarOrder.
-Module VM := FMaps.MakeTreeMapWithNew VarOrder.
+Module VS <: SsrFSetWithNew := FSets.MakeTreeSetWithNew VarOrder.
+Module VM <: SsrFMapWithNew := FMaps.MakeTreeMapWithNew VarOrder.
 
 
 
@@ -36,18 +36,12 @@ Module VM := FMaps.MakeTreeMapWithNew VarOrder.
 
 From ssrlib Require Import SsrOrder.
 
-Module NOrderWithDefaultSucc <: SsrOrderWithDefaultSucc.
-  Include NOrder.
-  Definition default : t := 0%N.
-  Definition succ (x : t) : t := (x + 1)%N.
-  Lemma ltn_succ (x : t) : ltn x (succ x).
-  Proof. apply/N_ltP. exact: NltSn. Qed.
-End NOrderWithDefaultSucc.
+Module SSAVarOrder := MakeProdOrderWithDefaultSucc VarOrder VarOrder.
 
-Module SSAVarOrder := MakeProdOrderWithDefaultSucc VarOrder NOrderWithDefaultSucc.
+Definition ssavar := SSAVarOrder.t.
 
-Module SSAVS := FSets.MakeTreeSet SSAVarOrder.
-Module SSAVM := FMaps.MakeTreeMap SSAVarOrder.
+Module SSAVS <: SsrFSetWithNew := FSets.MakeTreeSetWithNew SSAVarOrder.
+Module SSAVM <: SsrFMapWithNew := FMaps.MakeTreeMapWithNew SSAVarOrder.
 
 Definition svar (x : SSAVarOrder.t) := fst x.
 Definition sidx (x : SSAVarOrder.t) := snd x.

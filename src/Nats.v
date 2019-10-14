@@ -516,4 +516,4 @@ Module NatOrderMinimal <: SsrOrderMinimal.
 
 End NatOrderMinimal.
 
-Module NatOrder <: SsrOrderWithFacts := MakeSsrOrder NatOrderMinimal.
+Module NatOrder <: SsrOrder := MakeSsrOrder NatOrderMinimal.

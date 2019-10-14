@@ -33,20 +33,17 @@ Module Type SsrOrder <: OrderedType.
   Axiom lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
   Parameter compare : forall x y : t, Compare lt eq x y.
   Parameter eq_dec : forall x y : t, { eq x y } + { ~ eq x y }.
-End SsrOrder.
 
-Module Type SsrOrderFacts (Import O : SsrOrder).
+  (* Derived facts *)
   Axiom ltn_trans : forall x y z : t, ltn x y -> ltn y z -> ltn x z.
   Axiom ltn_eqF : forall (x y : t), ltn x y -> (x == y) = false.
   Axiom ltnn : forall (x : t), ltn x x = false.
   Axiom nltn_eqVlt : forall (x y : t), (~~ ltn x y) = ((x == y) || ltn y x).
   Axiom ltn_neqAlt : forall (x y : t), ltn x y = (x != y) && ~~ (ltn y x).
   Axiom neq_ltn : forall (x y : t), (x != y) = (ltn x y) || (ltn y x).
-End SsrOrderFacts.
+End SsrOrder.
 
-Module Type SsrOrderWithFacts := SsrOrder <+ SsrOrderFacts.
-
-Module MakeSsrOrder (M : SsrOrderMinimal) <: SsrOrderWithFacts.
+Module MakeSsrOrder (M : SsrOrderMinimal) <: SsrOrder.
 
   Definition T : eqType := M.t.
 
@@ -139,11 +136,8 @@ Module Type HasLtnSucc (Import T : SsrOrder) (Import L : HasLtn T) (Import S : H
   Parameter ltn_succ : forall (x : t), ltn x (succ x).
 End HasLtnSucc.
 
-Module Type SsrOrderWithDefaultSucc :=
+Module Type SsrOrderWithDefaultSucc <: SsrOrder :=
   SsrOrder <+ HasDefault <+ HasSucc <+ HasLtnSucc.
-
-Module Type SsrOrderWithDefaultSuccFacts :=
-  SsrOrder <+ HasDefault <+ HasSucc <+ HasLtnSucc <+ SsrOrderFacts.
 
 
 
@@ -190,14 +184,14 @@ Module MakeProdOrderMinimal (O1 O2 : SsrOrder) <: SsrOrderMinimal with Definitio
 
 End MakeProdOrderMinimal.
 
-Module MakeProdOrder (O1 O2 : SsrOrder) <: SsrOrderWithFacts
+Module MakeProdOrder (O1 O2 : SsrOrder) <: SsrOrder
     with Definition T := prod_eqType O1.T O2.T.
   Module M := MakeProdOrderMinimal O1 O2.
   Module P := MakeSsrOrder M.
   Include P.
 End MakeProdOrder.
 
-Module MakeProdOrderWithDefaultSucc (O1 O2 : SsrOrderWithDefaultSucc) <: SsrOrderWithDefaultSuccFacts
+Module MakeProdOrderWithDefaultSucc (O1 O2 : SsrOrderWithDefaultSucc) <: SsrOrderWithDefaultSucc
     with Definition T := prod_eqType O1.T O2.T.
   Module M := MakeProdOrderMinimal O1 O2.
   Module P := MakeSsrOrder M.
@@ -302,7 +296,7 @@ Module MakeUnionOrderMinimal
 End MakeUnionOrderMinimal.
 
 Module MakeUnionOrder
-       (V1 : SsrOrder) (V2 : SsrOrder) <: SsrOrderWithFacts.
+       (V1 : SsrOrder) (V2 : SsrOrder) <: SsrOrder.
   Module M := MakeUnionOrderMinimal V1 V2.
   Module O := MakeSsrOrder M.
   Include O.
@@ -333,7 +327,7 @@ Module UnitOrderMinimal <: SsrOrderMinimal.
 
 End UnitOrderMinimal.
 
-Module UnitOrder <: SsrOrderWithFacts.
+Module UnitOrder <: SsrOrder.
   Module O := MakeSsrOrder UnitOrderMinimal.
   Include O.
 End UnitOrder.

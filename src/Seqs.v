@@ -119,7 +119,7 @@ Module SeqOrderMinimal (X : SsrOrder) <: SsrOrderMinimal.
   Defined.
 End SeqOrderMinimal.
 
-Module SeqOrder (X : SsrOrder) <: SsrOrderWithFacts.
+Module SeqOrder (X : SsrOrder) <: SsrOrder.
   Module Y := SeqOrderMinimal X.
   Module M := MakeSsrOrder Y.
   Include M.
