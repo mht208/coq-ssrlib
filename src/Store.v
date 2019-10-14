@@ -3,7 +3,7 @@
 
 From Coq Require Import Program Program.Tactics FMaps ZArith.
 From mathcomp Require Import ssreflect ssrbool eqtype seq.
-From ssrlib Require Import Types SsrOrdered HList FMaps ZAriths Env Tactics.
+From ssrlib Require Import Types SsrOrder HList FMaps ZAriths Env Tactics.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -13,7 +13,7 @@ Import Prenex Implicits.
 
 (** Stores as total maps from variables to values of a single type. *)
 
-Module Type TStore (V : SsrOrderedType).
+Module Type TStore (V : SsrOrder).
 
   Local Notation var := V.t.
 
@@ -135,7 +135,7 @@ End TStore.
 
 
 
-Module MakeTStore (X : SsrOrderedType) <: TStore X.
+Module MakeTStore (X : SsrOrder) <: TStore X.
 
   Section TStore.
 
@@ -273,7 +273,7 @@ End MakeTStore.
 
 
 
-Module TStoreAdapter (X : SsrOrderedType) (V : Equalities.Typ).
+Module TStoreAdapter (X : SsrOrder) (V : Equalities.Typ).
   Module S := MakeTStore X.
   Definition value := V.t.
   Definition var := S.var.
@@ -335,7 +335,7 @@ End TStoreAdapter.
 
 
 
-Module MakeRealizableTStore (X : SsrOrderedType) <: TStore X.
+Module MakeRealizableTStore (X : SsrOrder) <: TStore X.
 
   Section TStore.
 
@@ -462,7 +462,7 @@ End MakeRealizableTStore.
 
 
 
-Module RealizableTStoreAdapter (X : SsrOrderedType) (V : HasDefaultTyp).
+Module RealizableTStoreAdapter (X : SsrOrder) (V : HasDefaultTyp).
   Module S := MakeRealizableTStore X.
   Definition value := V.t.
   Definition var := S.var.
@@ -529,7 +529,7 @@ End RealizableTStoreAdapter.
 
 (** Stores as partial maps from variables to values of a single type. *)
 
-Module Type PStore (V : SsrOrderedType).
+Module Type PStore (V : SsrOrder).
 
   Local Notation var := V.t.
 
@@ -643,7 +643,7 @@ End PStore.
 
 
 
-Module MakePStore (X : SsrOrderedType) <: PStore X.
+Module MakePStore (X : SsrOrder) <: PStore X.
 
   Module M := FMapList.Make(X).
   Module L := FMapLemmas(M).
@@ -774,7 +774,7 @@ End MakePStore.
 
 
 
-Module PStoreAdapter (X : SsrOrderedType) (V : Equalities.Typ).
+Module PStoreAdapter (X : SsrOrder) (V : Equalities.Typ).
   Module S := MakePStore X.
   Definition var := S.var.
   Definition value := V.t.
@@ -834,7 +834,7 @@ End PStoreAdapter.
 
 Module Type HStorePreDefined.
 
-  Declare Module V : SsrOrderedType.
+  Declare Module V : SsrOrder.
   Declare Module HE : HEnv with Module V := V.
 
   Local Open Scope hlist_scope.
@@ -892,7 +892,7 @@ Module Type HETEROGENEOUS.
   Axiom ty_dec : forall (x y : T), {x = y} + {x <> y}.
 End HETEROGENEOUS.
 
-Module MakeHStorePreDefined (V : SsrOrderedType) (H : HETEROGENEOUS) (HE : HEnv with Module V := V) <: HStorePreDefined with Module V := V with Module HE := HE.
+Module MakeHStorePreDefined (V : SsrOrder) (H : HETEROGENEOUS) (HE : HEnv with Module V := V) <: HStorePreDefined with Module V := V with Module HE := HE.
 
   Module V := V.
   Module HE := HE.
@@ -976,7 +976,7 @@ End MakeHStorePreDefined.
 
 Module Type HStore.
 
-  Declare Module V : SsrOrderedType.
+  Declare Module V : SsrOrder.
   Declare Module HE : HEnv with Module V := V.
 
   Local Open Scope hlist_scope.
@@ -1036,7 +1036,7 @@ End HStore.
 
 
 
-Module MakeHStore (V : SsrOrderedType) (H : HETEROGENEOUS) (HE : HEnv with Module V := V) <: HStore with Module V := V with Module HE := HE.
+Module MakeHStore (V : SsrOrder) (H : HETEROGENEOUS) (HE : HEnv with Module V := V) <: HStore with Module V := V with Module HE := HE.
 
   Module V := V.
   Module HE := HE.
@@ -1153,7 +1153,7 @@ End MakeHStore.
 From ssrlib Require Import FSets.
 
 Module TStateEqmod
-       (X : SsrOrderedType)
+       (X : SsrOrder)
        (Store : TStore X) (VS : SsrFSet with Module SE := X).
 
   Section SEQM1.

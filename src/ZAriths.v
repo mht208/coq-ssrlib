@@ -2,7 +2,7 @@
 From Coq Require Import Arith ZArith OrderedType.
 From mathcomp Require Import ssreflect ssrbool ssralg ssrfun choice eqtype.
 From mathcomp Require ssrnat.
-From ssrlib Require Import Types SsrOrdered Nats.
+From ssrlib Require Import Types SsrOrder Nats.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -847,7 +847,7 @@ End ZLemmas.
 
 (** An ordered type for positive with a Boolean equality in mathcomp. *)
 
-Module PositiveOrderMinimal <: SsrOrderedTypeMinimal.
+Module PositiveOrderMinimal <: SsrOrderMinimal.
 
   Local Open Scope positive_scope.
 
@@ -886,13 +886,13 @@ Module PositiveOrderMinimal <: SsrOrderedTypeMinimal.
 
 End PositiveOrderMinimal.
 
-Module PositiveOrder <: SsrOrderedTypeWithFacts := MakeSsrOrderedType PositiveOrderMinimal.
+Module PositiveOrder <: SsrOrderWithFacts := MakeSsrOrder PositiveOrderMinimal.
 
 
 
 (** An ordered type for N with a Boolean equality in mathcomp. *)
 
-Module NOrderMinimal <: SsrOrderedTypeMinimal.
+Module NOrderMinimal <: SsrOrderMinimal.
 
   Local Open Scope N_scope.
 
@@ -931,13 +931,13 @@ Module NOrderMinimal <: SsrOrderedTypeMinimal.
 
 End NOrderMinimal.
 
-Module NOrder <: SsrOrderedTypeWithFacts := MakeSsrOrderedType NOrderMinimal.
+Module NOrder <: SsrOrderWithFacts := MakeSsrOrder NOrderMinimal.
 
 
 
 (** An ordered type for Z with a Boolean equality in mathcomp. *)
 
-Module ZOrderMinimal <: SsrOrderedTypeMinimal.
+Module ZOrderMinimal <: SsrOrderMinimal.
 
   Local Open Scope Z_scope.
 
@@ -976,7 +976,7 @@ Module ZOrderMinimal <: SsrOrderedTypeMinimal.
 
 End ZOrderMinimal.
 
-Module ZOrder <: SsrOrderedTypeWithFacts := MakeSsrOrderedType ZOrderMinimal.
+Module ZOrder <: SsrOrderWithFacts := MakeSsrOrder ZOrderMinimal.
 
 
 

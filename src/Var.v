@@ -3,7 +3,7 @@
 
 From Coq Require Import FMaps FSets ZArith.
 From mathcomp Require Import ssreflect ssrbool eqtype.
-From ssrlib Require Import SsrOrdered FMaps FSets ZAriths.
+From ssrlib Require Import SsrOrder FMaps FSets ZAriths.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -13,7 +13,7 @@ Import Prenex Implicits.
 
 Definition var : Set := N.
 
-Module VarOrder <: SsrOrderedWithDefaultSucc.
+Module VarOrder <: SsrOrderWithDefaultSucc.
   Include NOrder.
   Definition succ := N.succ.
   Lemma ltn_succ : forall (x : t), ltn x (succ x).
@@ -28,21 +28,28 @@ End VarOrder.
 (* Variable sets and maps. *)
 
 Module VS := FSets.MakeTreeSetWithNew VarOrder.
-
 Module VM := FMaps.MakeTreeMapWithNew VarOrder.
 
 
 
 (** Variables for SSA *)
 
-From ssrlib Require Import SsrOrdered.
+From ssrlib Require Import SsrOrder.
 
-Module SSAVarOrder := MakeProdOrdered VarOrder NOrder.
+Module NOrderWithDefaultSucc <: SsrOrderWithDefaultSucc.
+  Include NOrder.
+  Definition default : t := 0%N.
+  Definition succ (x : t) : t := (x + 1)%N.
+  Lemma ltn_succ (x : t) : ltn x (succ x).
+  Proof. apply/N_ltP. exact: NltSn. Qed.
+End NOrderWithDefaultSucc.
+
+Module SSAVarOrder := MakeProdOrderWithDefaultSucc VarOrder NOrderWithDefaultSucc.
 
 Module SSAVS := FSets.MakeTreeSet SSAVarOrder.
+Module SSAVM := FMaps.MakeTreeMap SSAVarOrder.
 
 Definition svar (x : SSAVarOrder.t) := fst x.
-
 Definition sidx (x : SSAVarOrder.t) := snd x.
 
 Hint Unfold svar sidx.

@@ -11,16 +11,16 @@ Import Prenex Implicits.
 
 (** Coq OrderedType with Boolean equality. *)
 
-Module Type SsrOrderedTypeMinimal.
+Module Type SsrOrderMinimal.
   Parameter t : eqType.
   Definition eqn : t -> t -> bool := fun x y => x == y.
   Parameter ltn : t -> t -> bool.
   Axiom ltn_trans : forall x y z : t, ltn x y -> ltn y z -> ltn x z.
   Axiom ltn_not_eqn : forall x y : t, ltn x y -> x != y.
   Parameter compare : forall x y : t, Compare ltn eqn x y.
-End SsrOrderedTypeMinimal.
+End SsrOrderMinimal.
 
-Module Type SsrOrderedType <: OrderedType.
+Module Type SsrOrder <: OrderedType.
   Parameter T : eqType.
   Definition t : Type := T.
   Definition eq : t -> t -> Prop := fun x y => x == y.
@@ -33,20 +33,20 @@ Module Type SsrOrderedType <: OrderedType.
   Axiom lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
   Parameter compare : forall x y : t, Compare lt eq x y.
   Parameter eq_dec : forall x y : t, { eq x y } + { ~ eq x y }.
-End SsrOrderedType.
+End SsrOrder.
 
-Module Type SsrOrderedTypeFacts (Import O : SsrOrderedType).
+Module Type SsrOrderFacts (Import O : SsrOrder).
   Axiom ltn_trans : forall x y z : t, ltn x y -> ltn y z -> ltn x z.
   Axiom ltn_eqF : forall (x y : t), ltn x y -> (x == y) = false.
   Axiom ltnn : forall (x : t), ltn x x = false.
   Axiom nltn_eqVlt : forall (x y : t), (~~ ltn x y) = ((x == y) || ltn y x).
   Axiom ltn_neqAlt : forall (x y : t), ltn x y = (x != y) && ~~ (ltn y x).
   Axiom neq_ltn : forall (x y : t), (x != y) = (ltn x y) || (ltn y x).
-End SsrOrderedTypeFacts.
+End SsrOrderFacts.
 
-Module Type SsrOrderedTypeWithFacts := SsrOrderedType <+ SsrOrderedTypeFacts.
+Module Type SsrOrderWithFacts := SsrOrder <+ SsrOrderFacts.
 
-Module MakeSsrOrderedType (M : SsrOrderedTypeMinimal) <: SsrOrderedTypeWithFacts.
+Module MakeSsrOrder (M : SsrOrderMinimal) <: SsrOrderWithFacts.
 
   Definition T : eqType := M.t.
 
@@ -120,13 +120,36 @@ Module MakeSsrOrderedType (M : SsrOrderedTypeMinimal) <: SsrOrderedTypeWithFacts
     - by rewrite H eqtype.eq_sym (ltn_eqF H) orbT.
   Qed.
 
-End MakeSsrOrderedType.
+End MakeSsrOrder.
+
+
+
+(* OrderedType with a default value and a successor function,
+   useful for generating new values *)
+
+Module Type HasSucc (Import T : SsrOrder).
+  Parameter succ : t -> t.
+End HasSucc.
+
+Module Type HasLtn (Import T : SsrOrder).
+  Parameter ltn : t -> t -> bool.
+End HasLtn.
+
+Module Type HasLtnSucc (Import T : SsrOrder) (Import L : HasLtn T) (Import S : HasSucc T).
+  Parameter ltn_succ : forall (x : t), ltn x (succ x).
+End HasLtnSucc.
+
+Module Type SsrOrderWithDefaultSucc :=
+  SsrOrder <+ HasDefault <+ HasSucc <+ HasLtnSucc.
+
+Module Type SsrOrderWithDefaultSuccFacts :=
+  SsrOrder <+ HasDefault <+ HasSucc <+ HasLtnSucc <+ SsrOrderFacts.
 
 
 
 (** Product of ordered types. *)
 
-Module MakeProdOrderedMinimal (O1 O2 : SsrOrderedType) <: SsrOrderedTypeMinimal with Definition t := prod_eqType O1.T O2.T.
+Module MakeProdOrderMinimal (O1 O2 : SsrOrder) <: SsrOrderMinimal with Definition t := prod_eqType O1.T O2.T.
 
   Definition t : eqType := prod_eqType O1.T O2.T.
 
@@ -165,21 +188,35 @@ Module MakeProdOrderedMinimal (O1 O2 : SsrOrderedType) <: SsrOrderedTypeMinimal 
     - apply: GT => /=. by rewrite H1.
   Defined.
 
-End MakeProdOrderedMinimal.
+End MakeProdOrderMinimal.
 
-Module MakeProdOrdered (O1 O2 : SsrOrderedType) <: SsrOrderedTypeWithFacts
+Module MakeProdOrder (O1 O2 : SsrOrder) <: SsrOrderWithFacts
     with Definition T := prod_eqType O1.T O2.T.
-  Module M := MakeProdOrderedMinimal O1 O2.
-  Module P := MakeSsrOrderedType M.
+  Module M := MakeProdOrderMinimal O1 O2.
+  Module P := MakeSsrOrder M.
   Include P.
-End MakeProdOrdered.
+End MakeProdOrder.
+
+Module MakeProdOrderWithDefaultSucc (O1 O2 : SsrOrderWithDefaultSucc) <: SsrOrderWithDefaultSuccFacts
+    with Definition T := prod_eqType O1.T O2.T.
+  Module M := MakeProdOrderMinimal O1 O2.
+  Module P := MakeSsrOrder M.
+  Include P.
+  Definition default := (O1.default, O2.default).
+  Definition succ (x : t) : t := (O1.succ (fst x), O2.default).
+  Lemma ltn_succ (x : t) : ltn x (succ x).
+  Proof.
+    case: x => x y. rewrite /ltn /succ /=. rewrite /M.ltn /=.
+    by rewrite O1.ltn_succ /=.
+  Qed.
+End MakeProdOrderWithDefaultSucc.
 
 
 
 (** Union of ordered types. *)
 
-Module MakeUnionOrderedMinimal
-       (V1 : SsrOrderedType) (V2 : SsrOrderedType) <: SsrOrderedTypeMinimal.
+Module MakeUnionOrderMinimal
+       (V1 : SsrOrder) (V2 : SsrOrder) <: SsrOrderMinimal.
 
   Inductive ut : Type :=
   | C1 : V1.t -> ut
@@ -262,22 +299,22 @@ Module MakeUnionOrderedMinimal
       + apply: GT; assumption.
   Defined.
 
-End MakeUnionOrderedMinimal.
+End MakeUnionOrderMinimal.
 
-Module MakeUnionOrdered
-       (V1 : SsrOrderedType) (V2 : SsrOrderedType) <: SsrOrderedTypeWithFacts.
-  Module M := MakeUnionOrderedMinimal V1 V2.
-  Module O := MakeSsrOrderedType M.
+Module MakeUnionOrder
+       (V1 : SsrOrder) (V2 : SsrOrder) <: SsrOrderWithFacts.
+  Module M := MakeUnionOrderMinimal V1 V2.
+  Module O := MakeSsrOrder M.
   Include O.
   Definition c1 (x : V1.t) : t := M.C1 x.
   Definition c2 (x : V2.t) : t := M.C2 x.
-End MakeUnionOrdered.
+End MakeUnionOrder.
 
 
 
 (** A singleton ordered type. *)
 
-Module UnitOrderedMinimal <: SsrOrderedTypeMinimal.
+Module UnitOrderMinimal <: SsrOrderMinimal.
 
   Definition t : eqType := unit_eqType.
 
@@ -294,30 +331,10 @@ Module UnitOrderedMinimal <: SsrOrderedTypeMinimal.
   Definition compare (x y : t) : Compare ltn eqn x y.
   Proof. by apply: EQ. Defined.
 
-End UnitOrderedMinimal.
+End UnitOrderMinimal.
 
-Module UnitOrdered <: SsrOrderedTypeWithFacts.
-  Module O := MakeSsrOrderedType UnitOrderedMinimal.
+Module UnitOrder <: SsrOrderWithFacts.
+  Module O := MakeSsrOrder UnitOrderMinimal.
   Include O.
-End UnitOrdered.
-
-
-
-(* OrderedType with a default value and a successor function,
-   useful for generating new values *)
-
-Module Type HasSucc (Import T : SsrOrderedType).
-  Parameter succ : t -> t.
-End HasSucc.
-
-Module Type HasLtn (Import T : SsrOrderedType).
-  Parameter ltn : t -> t -> bool.
-End HasLtn.
-
-Module Type HasLtnSucc (Import T : SsrOrderedType) (Import L : HasLtn T) (Import S : HasSucc T).
-  Parameter ltn_succ : forall (x : t), ltn x (succ x).
-End HasLtnSucc.
-
-Module Type SsrOrderedWithDefaultSucc :=
-  SsrOrderedType <+ HasDefault <+ HasSucc <+ HasLtnSucc.
+End UnitOrder.
 

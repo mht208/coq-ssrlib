@@ -3,7 +3,7 @@
 
 From Coq Require Import Program Program.Tactics ZArith.
 From mathcomp Require Import ssreflect ssrbool eqtype seq.
-From ssrlib Require Import Types SsrOrdered FSets FMaps HList Var ZAriths.
+From ssrlib Require Import Types SsrOrder FSets FMaps HList Var ZAriths.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -15,7 +15,7 @@ Import Prenex Implicits.
 
 Module Type SEnv.
 
-  Declare Module V : SsrOrderedType.
+  Declare Module V : SsrOrder.
 
   (* The type of environments *)
   Parameter t : Type.
@@ -49,7 +49,7 @@ End SEnv.
 
 
 
-Module MakeSEnv (V : SsrOrderedWithDefaultSucc) <: SEnv with Module V := V.
+Module MakeSEnv (V : SsrOrderWithDefaultSucc) <: SEnv with Module V := V.
 
   Module V := V.
 
@@ -110,7 +110,7 @@ End MakeSEnv.
 
 Module Type TEnv.
 
-  Declare Module V : SsrOrderedType.
+  Declare Module V : SsrOrder.
 
   Section Env.
 
@@ -177,7 +177,7 @@ End TEnv.
 
 
 
-Module MakeTEnv (Import V : SsrOrderedWithDefaultSucc) <: TEnv with Module V := V.
+Module MakeTEnv (Import V : SsrOrderWithDefaultSucc) <: TEnv with Module V := V.
 
   Module V := V.
 
@@ -306,7 +306,7 @@ End MakeTEnv.
 
 Module Type HEnv.
 
-  Declare Module V : SsrOrderedType.
+  Declare Module V : SsrOrder.
 
   Section Env.
 
@@ -445,7 +445,7 @@ Module Type HEnv.
 End HEnv.
 
 
-Module MakeHEnv (V : SsrOrderedWithDefaultSucc) <: HEnv with Module V := V.
+Module MakeHEnv (V : SsrOrderWithDefaultSucc) <: HEnv with Module V := V.
 
   Module V := V.
   Module VM := MakeTreeMapWithNew V.

@@ -1,6 +1,6 @@
 -R src ssrlib
 src/Types.v
-src/SsrOrdered.v
+src/SsrOrder.v
 src/Tactics.v
 src/Lists.v
 src/Tuples.v

@@ -3,7 +3,7 @@
 
 From Coq Require Import FSets OrderedType.
 From mathcomp Require Import ssreflect ssrbool eqtype seq.
-From ssrlib Require Import SsrOrdered Lists.
+From ssrlib Require Import SsrOrder Lists.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -14,7 +14,7 @@ Import Prenex Implicits.
 (* Finite sets of elements with decidable equality. *)
 
 Module Type SsrFSet <: FSetInterface.S.
-  Declare Module SE : SsrOrderedType.
+  Declare Module SE : SsrOrder.
   Module E : OrderedType.OrderedType
       with Definition t := SE.t
       with Definition eq := SE.eq
@@ -1037,29 +1037,29 @@ End SsrFSetLemmas.
 
 (* Functors for making SsrFSet *)
 
-Module MakeListSet' (X : SsrOrderedType) <: SsrFSet with Module SE := X.
+Module MakeListSet' (X : SsrOrder) <: SsrFSet with Module SE := X.
   Module SE := X.
   Include FSetList.Make X.
 End MakeListSet'.
 
-Module MakeListSet (X : SsrOrderedType) <: SsrFSet with Module SE := X.
+Module MakeListSet (X : SsrOrder) <: SsrFSet with Module SE := X.
   Module LS := MakeListSet' X.
   Module Lemmas := SsrFSetLemmas LS.
   Include LS.
 End MakeListSet.
 
-Module MakeTreeSet' (X : SsrOrderedType) <: SsrFSet with Module SE := X.
+Module MakeTreeSet' (X : SsrOrder) <: SsrFSet with Module SE := X.
   Module SE := X.
   Include FSetAVL.Make X.
 End MakeTreeSet'.
 
-Module MakeTreeSet (X : SsrOrderedType) <: SsrFSet with Module SE := X.
+Module MakeTreeSet (X : SsrOrder) <: SsrFSet with Module SE := X.
   Module TS := MakeTreeSet' X.
   Module Lemmas := SsrFSetLemmas TS.
   Include TS.
 End MakeTreeSet.
 
-Module Make (X : SsrOrderedType) <: SsrFSet with Module SE := X := MakeListSet X.
+Module Make (X : SsrOrder) <: SsrFSet with Module SE := X := MakeListSet X.
 
 
 
@@ -1090,14 +1090,14 @@ Module Type SsrFSetWithNew <: SsrFSet.
   Parameter new_elt_is_new : forall (s : t), ~~ mem (new_elt s) s.
 End SsrFSetWithNew.
 
-Module MakeListSetWithNew (X : SsrOrderedWithDefaultSucc) <: SsrFSetWithNew.
+Module MakeListSetWithNew (X : SsrOrderWithDefaultSucc) <: SsrFSetWithNew.
   Module S := MakeListSet X.
   Include S.
   Module G := MakeElementGenerator S X X X.
   Include G.
 End MakeListSetWithNew.
 
-Module MakeTreeSetWithNew (X : SsrOrderedWithDefaultSucc) <: SsrFSetWithNew.
+Module MakeTreeSetWithNew (X : SsrOrderWithDefaultSucc) <: SsrFSetWithNew.
   Module S := MakeTreeSet X.
   Include S.
   Module G := MakeElementGenerator S X X X.

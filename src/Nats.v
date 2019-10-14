@@ -1,7 +1,7 @@
 
 From Coq Require Import Arith OrderedType.
 From mathcomp Require Import ssreflect ssrbool ssrnat div eqtype.
-From ssrlib Require Import Types SsrOrdered.
+From ssrlib Require Import Types SsrOrder.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -487,7 +487,7 @@ End OptionNatEqtype.
 
 (** An ordered type for nat with a Boolean equality in mathcomp. *)
 
-Module NatOrderMinimal <: SsrOrderedTypeMinimal.
+Module NatOrderMinimal <: SsrOrderMinimal.
 
   Definition t : eqType := nat_eqType.
 
@@ -516,4 +516,4 @@ Module NatOrderMinimal <: SsrOrderedTypeMinimal.
 
 End NatOrderMinimal.
 
-Module NatOrder <: SsrOrderedTypeWithFacts := MakeSsrOrderedType NatOrderMinimal.
+Module NatOrder <: SsrOrderWithFacts := MakeSsrOrder NatOrderMinimal.

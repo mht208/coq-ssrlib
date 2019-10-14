@@ -1,7 +1,7 @@
 
 From Coq Require Import OrderedType.
 From mathcomp Require Import ssreflect ssrbool ssrnat seq eqtype.
-From ssrlib Require Import SsrOrdered.
+From ssrlib Require Import SsrOrder.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -69,7 +69,7 @@ Proof.
   rewrite andbT (Bool.andb_comm (all p tl)). reflexivity.
 Qed.
 
-Module SeqOrderedMinimal (X : SsrOrderedType) <: SsrOrderedTypeMinimal.
+Module SeqOrderMinimal (X : SsrOrder) <: SsrOrderMinimal.
   Definition t := seq_eqType X.T.
   Definition eqn (x y : t) : bool := x == y.
   Fixpoint ltn (x y : t) : bool :=
@@ -117,10 +117,10 @@ Module SeqOrderedMinimal (X : SsrOrderedType) <: SsrOrderedTypeMinimal.
           -- apply: GT. by rewrite /= eq_sym Hhd Htl orbT.
         * apply: GT. by rewrite /= Hhd.
   Defined.
-End SeqOrderedMinimal.
+End SeqOrderMinimal.
 
-Module SeqOrdered (X : SsrOrderedType) <: SsrOrderedTypeWithFacts.
-  Module Y := SeqOrderedMinimal X.
-  Module M := MakeSsrOrderedType Y.
+Module SeqOrder (X : SsrOrder) <: SsrOrderWithFacts.
+  Module Y := SeqOrderMinimal X.
+  Module M := MakeSsrOrder Y.
   Include M.
-End SeqOrdered.
+End SeqOrder.
