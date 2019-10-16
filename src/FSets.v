@@ -873,6 +873,52 @@ Module FSetLemmas (S : FSetInterface.S).
     rewrite -OP.P.union_add. reflexivity.
   Qed.
 
+  Section FoldUnion.
+
+    Variable T : Type.
+
+    Variable f : T -> S.t.
+
+    Lemma mem_foldl_union t r ts :
+      S.mem t (foldl (fun res a => S.union (f a) res) r ts) =
+      S.mem t r || S.mem t (foldl (fun res a => S.union (f a) res) S.empty ts).
+    Proof.
+      elim: ts r => /=.
+      - move=> r. rewrite mem_empty orbF. reflexivity.
+      - move=> ts_hd tl_tl IH r. rewrite (IH (S.union (f ts_hd) r)).
+        rewrite mem_union. rewrite (orb_comm (S.mem t (f ts_hd))). rewrite -orb_assoc.
+        rewrite -{1}(union_emptyr (f ts_hd)). rewrite -IH. reflexivity.
+    Qed.
+
+    Lemma foldl_union_swap (r1 r2 : S.t) (ts : seq T) :
+      S.Equal r1 r2 ->
+      S.Equal (foldl (fun res a => S.union (f a) res) r1 ts)
+              (foldl (fun res a => S.union (f a) res) r2 ts).
+    Proof.
+      move=> Hr t. move: (Hr t) => [H1 H2]. split => /memP Hf.
+      - apply/memP. rewrite mem_foldl_union. rewrite mem_foldl_union in Hf.
+        case/orP: Hf => H.
+        + by move/memP: H => H; move: (H1 H) => {H} /memP ->.
+        + by rewrite H orbT.
+      - apply/memP. rewrite mem_foldl_union. rewrite mem_foldl_union in Hf.
+        case/orP: Hf => H.
+        + by move/memP: H => H; move: (H2 H) => {H} /memP ->.
+        + by rewrite H orbT.
+    Qed.
+
+    Lemma foldl_union_cons (hd : T) (tl : seq T) (r : S.t) :
+      S.Equal
+        (foldl (fun res a => S.union (f a) res) r (hd::tl))
+        (S.union (f hd) (foldl (fun res a => S.union (f a) res) r tl)).
+    Proof.
+      apply: (foldl_cons (R := S.Equal)).
+      - move=> a1 a2 b. rewrite -OP.P.union_assoc. rewrite (OP.P.union_sym (f a2)).
+        rewrite OP.P.union_assoc. reflexivity.
+      - exact: foldl_union_swap.
+    Qed.
+
+  End FoldUnion.
+
   Ltac dp_mem :=
     match goal with
     | |- S.mem _ _ = true => apply/idP; dp_mem
@@ -1012,52 +1058,6 @@ Module SsrFSetLemmas (S : SsrFSet).
   Proof.
     move=> H. apply: mem_of_list2. apply: Lists.in_inA. exact: H.
   Qed.
-
-  Section FoldUnion.
-
-    Variable T : Type.
-
-    Variable f : T -> S.t.
-
-    Lemma mem_foldl_union t r ts :
-      S.mem t (foldl (fun res a => S.union (f a) res) r ts) =
-      S.mem t r || S.mem t (foldl (fun res a => S.union (f a) res) S.empty ts).
-    Proof.
-      elim: ts r => /=.
-      - move=> r. rewrite mem_empty orbF. reflexivity.
-      - move=> ts_hd tl_tl IH r. rewrite (IH (S.union (f ts_hd) r)).
-        rewrite mem_union. rewrite (orb_comm (S.mem t (f ts_hd))). rewrite -orb_assoc.
-        rewrite -{1}(union_emptyr (f ts_hd)). rewrite -IH. reflexivity.
-    Qed.
-
-    Lemma foldl_union_swap (r1 r2 : S.t) (ts : seq T) :
-      S.Equal r1 r2 ->
-      S.Equal (foldl (fun res a => S.union (f a) res) r1 ts)
-              (foldl (fun res a => S.union (f a) res) r2 ts).
-    Proof.
-      move=> Hr t. move: (Hr t) => [H1 H2]. split => /memP Hf.
-      - apply/memP. rewrite mem_foldl_union. rewrite mem_foldl_union in Hf.
-        case/orP: Hf => H.
-        + by move/memP: H => H; move: (H1 H) => {H} /memP ->.
-        + by rewrite H orbT.
-      - apply/memP. rewrite mem_foldl_union. rewrite mem_foldl_union in Hf.
-        case/orP: Hf => H.
-        + by move/memP: H => H; move: (H2 H) => {H} /memP ->.
-        + by rewrite H orbT.
-    Qed.
-
-    Lemma foldl_union_cons (hd : T) (tl : seq T) (r : S.t) :
-      S.Equal
-        (foldl (fun res a => S.union (f a) res) r (hd::tl))
-        (S.union (f hd) (foldl (fun res a => S.union (f a) res) r tl)).
-    Proof.
-      apply: (foldl_cons (R := S.Equal)).
-      - move=> a1 a2 b. rewrite -OP.P.union_assoc. rewrite (OP.P.union_sym (f a2)).
-        rewrite OP.P.union_assoc. reflexivity.
-      - exact: foldl_union_swap.
-    Qed.
-
-  End FoldUnion.
 
 End SsrFSetLemmas.
 
