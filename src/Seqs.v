@@ -69,6 +69,29 @@ Proof.
   rewrite andbT (Bool.andb_comm (all p tl)). reflexivity.
 Qed.
 
+Section Fold.
+
+  Context {A : Type} {B : Type} {R : relation B} {E : Equivalence R}.
+
+  Context {f : B -> A -> B}.
+
+  Context {Rf_swap : forall (a1 a2 : A) (b : B),
+              R (f (f b a1) a2) (f (f b a2) a1)}.
+
+  Context {R_foldl : forall (b1 b2 : B) (ls : seq A),
+              R b1 b2 -> R (foldl f b1 ls) (foldl f b2 ls)}.
+
+  Lemma foldl_cons (hd : A) (tl : seq A) (r : B) :
+    R (foldl f r (hd::tl)) (f (foldl f r tl) hd).
+  Proof.
+    elim: tl hd r => /=.
+    - move=> hd r. reflexivity.
+    - move=> tl_hd tl_tl IH hd r. rewrite -(IH hd (f r tl_hd)).
+      move: (Rf_swap tl_hd hd r) => H. rewrite (R_foldl _ H). reflexivity.
+  Qed.
+
+End Fold.
+
 Module SeqOrderMinimal (X : SsrOrder) <: SsrOrderMinimal.
   Definition t := seq_eqType X.T.
   Definition eqn (x y : t) : bool := x == y.
