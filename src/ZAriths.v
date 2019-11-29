@@ -1,7 +1,6 @@
 
 From Coq Require Import Arith ZArith OrderedType.
-From mathcomp Require Import ssreflect ssrbool ssralg ssrfun choice eqtype.
-From mathcomp Require ssrnat.
+From mathcomp Require Import ssreflect ssrbool ssrnat ssralg ssrfun choice eqtype.
 From ssrlib Require Import Types SsrOrder Nats.
 
 Set Implicit Arguments.
@@ -137,6 +136,9 @@ Section PositiveLemmas.
   Proof.
     move=> x y /pos_ltP Hxy. apply/pos_leP. exact: Pos.lt_le_incl.
   Qed.
+
+  Lemma pos_to_nat_is_pos (p : positive) : (0 < Pos.to_nat p)%nat.
+  Proof. apply/ltP. exact: Pos2Nat.is_pos. Qed.
 
 End PositiveLemmas.
 

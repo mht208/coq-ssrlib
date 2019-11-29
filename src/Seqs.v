@@ -7,67 +7,104 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Lemma singleton_seq A (l : seq A) :
-  size l = 1%N -> exists x : A, l = x :: nil.
-Proof.
-  elim: l => //=.
-  move=> hd tl; elim tl => //=.
-  move=> _ _; exists hd.
-  reflexivity.
-Qed.
+Section SeqLemmas.
 
-Lemma singleton_eq (A : eqType) (x y : A) : ([::x] == [::y]) = (x == y).
-Proof.
-  case H: (x == y).
-  - by rewrite (eqP H) eqxx.
-  - apply/negP => /eqP [] Heq. by rewrite Heq eqxx in H.
-Qed.
+  Variable A : Type.
 
-Lemma map_l_nil (A B : eqType) (f : A -> B) (l : seq A) :
-  (map f l == [::]) = (l == [::]).
-Proof. by case: l. Qed.
+  Variable default : A.
 
-Lemma unzip1_l_nil (A B : eqType) (pairs : seq (A * B)) :
-  (unzip1 pairs == [::]) = (pairs == [::]).
-Proof. by rewrite /unzip1 map_l_nil. Qed.
+  Lemma singleton_seq (l : seq A) :
+    size l = 1%N -> exists x : A, l = x :: nil.
+  Proof.
+    elim: l => //=.
+    move=> hd tl; elim tl => //=.
+    move=> _ _; exists hd.
+    reflexivity.
+  Qed.
 
-Lemma unzip2_l_nil (A B : eqType) (pairs : seq (A * B)) :
-  (unzip2 pairs == [::]) = (pairs == [::]).
-Proof. by rewrite /unzip2 map_l_nil. Qed.
+  Lemma last_decomp (l : seq A) (n : nat) :
+    size l = (n + 1)%N -> exists s x, l = rcons s x.
+  Proof.
+    move: l n. apply: last_ind => /=.
+    - by case.
+    - move=> l x IH n H. exists l; exists x; reflexivity.
+  Qed.
 
-Lemma last_decomp A (l : seq A) (n : nat) :
-  size l = (n + 1)%N -> exists s x, l = rcons s x.
-Proof.
-  move: l n. apply: last_ind => /=.
-  - by case.
-  - move=> l x IH n H. exists l; exists x; reflexivity.
-Qed.
+  Lemma last_default_irrelevant (l : seq A) (n : nat) b1 b2 :
+    size l = (n + 1)%N -> last b1 l = last b2 l.
+  Proof.
+    move: l n b1 b2. apply: last_ind => /=.
+    - move=> n b1 b2; by case n.
+    - move=> l lst IH n b1 b2 H. rewrite !last_rcons. reflexivity.
+  Qed.
 
-Lemma last_default_irrelevant A (l : seq A) (n : nat) b1 b2 :
-  size l = (n + 1)%N -> last b1 l = last b2 l.
-Proof.
-  move: l n b1 b2. apply: last_ind => /=.
-  - move=> n b1 b2; by case n.
-  - move=> l lst IH n b1 b2 H. rewrite !last_rcons. reflexivity.
-Qed.
+  Lemma nth_cons (x : A) (l : list A) (n : nat) :
+    0 < n -> nth default (x::l) n = nth default l (n - 1).
+  Proof. case: n => //=. move=> n _. by rewrite subn1 -pred_Sn. Qed.
 
-Lemma seq_neq_split (A : eqType) (x y : A) (xs ys : seq A) :
-  (x::xs != y::ys) = ((x != y) || (xs != ys)).
-Proof.
-  rewrite negb_and -/eqseq. case Hxy: (x == y) => /=; by trivial.
-Qed.
+  Lemma nth_tl (l : list A) (n : nat) : nth default (tl l) n = nth default l (n + 1).
+  Proof.
+    case: l => [| x l] //=.
+    - by rewrite 2!nth_nil.
+    - rewrite nth_cons; last by rewrite addn_gt0 orbT. by rewrite addn1 subn1 -pred_Sn.
+  Qed.
 
-Lemma has_catrev A p (l1 l2 : seq A) : has p (catrev l1 l2) = has p l1 || has p l2.
-Proof.
-  elim: l1 l2 => [| hd tl IH] l2 //=. rewrite -cat1s catrev_catr has_cat IH /=.
-  rewrite orbF (Bool.orb_comm (has p tl)). reflexivity.
-Qed.
+End SeqLemmas.
 
-Lemma all_catrev A p (l1 l2 : seq A) : all p (catrev l1 l2) = all p l1 && all p l2.
-Proof.
-  elim: l1 l2 => [| hd tl IH] l2 //=. rewrite -cat1s catrev_catr all_cat IH /=.
-  rewrite andbT (Bool.andb_comm (all p tl)). reflexivity.
-Qed.
+Section EqSeqLemmas.
+
+  Variable A : eqType.
+
+  Variable B : eqType.
+
+  Lemma singleton_eq (x y : A) : ([::x] == [::y]) = (x == y).
+  Proof.
+    case H: (x == y).
+    - by rewrite (eqP H) eqxx.
+    - apply/negP => /eqP [] Heq. by rewrite Heq eqxx in H.
+  Qed.
+
+  Lemma map_l_nil (f : A -> B) (l : seq A) :
+    (map f l == [::]) = (l == [::]).
+  Proof. by case: l. Qed.
+
+  Lemma seq_neq_split (x y : A) (xs ys : seq A) :
+    (x::xs != y::ys) = ((x != y) || (xs != ys)).
+  Proof.
+    rewrite negb_and -/eqseq. case Hxy: (x == y) => /=; by trivial.
+  Qed.
+
+  Lemma has_catrev p (l1 l2 : seq A) : has p (catrev l1 l2) = has p l1 || has p l2.
+  Proof.
+    elim: l1 l2 => [| hd tl IH] l2 //=. rewrite -cat1s catrev_catr has_cat IH /=.
+    rewrite orbF (Bool.orb_comm (has p tl)). reflexivity.
+  Qed.
+
+  Lemma all_catrev p (l1 l2 : seq A) : all p (catrev l1 l2) = all p l1 && all p l2.
+  Proof.
+    elim: l1 l2 => [| hd tl IH] l2 //=. rewrite -cat1s catrev_catr all_cat IH /=.
+    rewrite andbT (Bool.andb_comm (all p tl)). reflexivity.
+  Qed.
+
+End EqSeqLemmas.
+
+
+Section UnzipLemmas.
+
+  Variable A : eqType.
+
+  Variable B : eqType.
+
+  Lemma unzip1_l_nil (pairs : seq (A * B)) :
+    (unzip1 pairs == [::]) = (pairs == [::]).
+  Proof. by rewrite /unzip1 map_l_nil. Qed.
+
+  Lemma unzip2_l_nil (pairs : seq (A * B)) :
+    (unzip2 pairs == [::]) = (pairs == [::]).
+  Proof. by rewrite /unzip2 map_l_nil. Qed.
+
+End UnzipLemmas.
+
 
 Section Fold.
 

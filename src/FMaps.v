@@ -267,7 +267,7 @@ Module FMapLemmas (M : FMapInterface.S).
 
     Variable f : elt -> elt'.
 
-    Lemma add_f_proper :
+    Instance add_f_proper :
       Proper (M.E.eq ==> eq ==> M.Equal ==> M.Equal)
              (fun (k : M.key) (e : elt) (m : M.t elt') => M.add k (f e) m).
     Proof.
@@ -843,9 +843,28 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
 
     Variable elt : Type.
 
+    Definition add_to_set x (e : elt) s := S.add x s.
+
     (* Return the keys as a set *)
-    Definition key_set (m : M.t elt) : S.t :=
-      M.fold (fun x _ s => S.add x s) m S.empty.
+    Definition key_set (m : M.t elt) : S.t := M.fold add_to_set m S.empty.
+
+    Instance add_to_set_proper :
+      Proper (M.SE.eq ==> eq ==> S.Equal ==> S.Equal) add_to_set.
+    Proof.
+      move=> x y Hxy a b -> s1 s2 Heq. rewrite /add_to_set Hxy Heq. reflexivity.
+    Qed.
+
+    Lemma add_to_set_transpose_neqkey :
+      MLemmas.OP.P.transpose_neqkey S.Equal add_to_set.
+    Proof.
+      move=> x y a b s Hxy. rewrite /add_to_set. exact: SLemmas.OP.P.add_add.
+    Qed.
+
+    Lemma key_set_Empty m : M.Empty m -> S.Empty (key_set m).
+    Proof.
+      rewrite /key_set => Hempty. rewrite (MLemmas.OP.P.fold_Empty _ _ _ Hempty).
+      exact: S.empty_1.
+    Qed.
 
     Lemma mem_key_set m :
       forall x, M.mem x m -> S.mem x (key_set m).
@@ -859,6 +878,24 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
           apply: Hind. move: (Hadd y) => {Hadd}.
           rewrite (MLemmas.find_add_neq Hyx) => {Hyx} Hfind.
           rewrite -(MLemmas.find_eq_mem_eq Hfind). exact: Hmem.
+    Qed.
+
+    Lemma key_set_mem m x : S.mem x (key_set m) -> M.mem x m.
+    Proof.
+      move: m x. apply: MLemmas.OP.P.map_induction.
+      - move=> m Hempty x Hmem. move: (key_set_Empty Hempty) => {Hempty} Hempty.
+        apply: False_ind. apply: (Hempty x). apply/SLemmas.memP. assumption.
+      - move=> m m' IH x e Hin HAdd y Hmem. rewrite (MLemmas.Add_mem_add _ HAdd).
+        case Hyx: (y == x).
+        + rewrite (eqP Hyx) in Hmem *. apply: MLemmas.mem_add_eq. reflexivity.
+        + move/idP: Hyx => Hyx. rewrite (MLemmas.mem_add_neq Hyx).
+          rewrite /key_set in Hmem. move: (MLemmas.OP.P.fold_Add
+                                             SLemmas.Equal_ST add_to_set_proper
+                                             add_to_set_transpose_neqkey
+                                             S.empty Hin HAdd) => Heq.
+          move/SLemmas.memP: Hmem => Hiny. move: (Heq y) => {Heq} [H _].
+          move: (H Hiny) => {H Hiny}. rewrite /add_to_set. move/SLemmas.memP.
+          rewrite (SLemmas.mem_add_neq Hyx). exact: IH.
     Qed.
 
   End Aux.
