@@ -89,6 +89,11 @@ Section PositiveLemmas.
     move=> x y. apply: Pos.lt_le_incl. exact: Pos.lt_add_diag_r.
   Qed.
 
+  Lemma pos_le_add_r (x y z : positive) : (x <= y)%positive -> (x <= y + z)%positive.
+  Proof.
+    move=> Hxy. apply: (Pos.le_trans _ _ _ Hxy). exact: pos_le_add_diag_r.
+  Qed.
+
   Lemma pos_lt_add_r : forall x y z : positive, x < y -> x < y + z.
   Proof.
     move=> x y z Hxy. apply: (Pos.lt_le_trans _ _ _ Hxy).
@@ -139,6 +144,12 @@ Section PositiveLemmas.
 
   Lemma pos_to_nat_is_pos (p : positive) : (0 < Pos.to_nat p)%nat.
   Proof. apply/ltP. exact: Pos2Nat.is_pos. Qed.
+
+  Lemma pos2nat_is_nonzero n : (Pos.to_nat n <> 0)%N.
+  Proof.
+    move: (Pos2Nat.is_pos n) => H1 H2. rewrite H2 in H1. move: (lt_ltn H1).
+    by rewrite ltnn.
+  Qed.
 
 End PositiveLemmas.
 

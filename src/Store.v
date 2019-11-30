@@ -892,10 +892,10 @@ Module Type HETEROGENEOUS.
   Axiom ty_dec : forall (x y : T), {x = y} + {x <> y}.
 End HETEROGENEOUS.
 
-Module MakeHStorePreDefined (V : SsrOrder) (H : HETEROGENEOUS) (HE : HEnv with Module V := V) <: HStorePreDefined with Module V := V with Module HE := HE.
+Module MakeHStorePreDefined (IV : SsrOrder) (H : HETEROGENEOUS) (IHE : HEnv with Module V := IV) <: HStorePreDefined with Module V := IV with Module HE := IHE.
 
-  Module V := V.
-  Module HE := HE.
+  Module V := IV.
+  Module HE := IHE.
 
   Local Open Scope hlist_scope.
 
@@ -1036,10 +1036,10 @@ End HStore.
 
 
 
-Module MakeHStore (V : SsrOrder) (H : HETEROGENEOUS) (HE : HEnv with Module V := V) <: HStore with Module V := V with Module HE := HE.
+Module MakeHStore (IV : SsrOrder) (H : HETEROGENEOUS) (IHE : HEnv with Module V := IV) <: HStore with Module V := IV with Module HE := IHE.
 
-  Module V := V.
-  Module HE := HE.
+  Module V := IV.
+  Module HE := IHE.
 
   Local Open Scope hlist_scope.
   Local Notation var := V.t.

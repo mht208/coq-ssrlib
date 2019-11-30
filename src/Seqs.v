@@ -88,7 +88,6 @@ Section EqSeqLemmas.
 
 End EqSeqLemmas.
 
-
 Section UnzipLemmas.
 
   Variable A : eqType.
@@ -105,6 +104,102 @@ Section UnzipLemmas.
 
 End UnzipLemmas.
 
+Section PrefixOf.
+
+  Variable A : eqType.
+
+  Implicit Type s : seq A.
+
+  Fixpoint prefix_of (s1 s2 : seq A) : bool :=
+    match s1 with
+    | [::] => true
+    | x1::s1 => match s2 with
+                | [::] => false
+                | x2::s2 => (x1 == x2) && (prefix_of s1 s2)
+                end
+    end.
+
+  Lemma prefix_of_nil s : prefix_of nil s.
+  Proof. done. Qed.
+
+  Lemma prefix_of_is_nil s : prefix_of s nil = (s == nil).
+  Proof. by case: s. Qed.
+
+  Lemma prefix_of_take s1 s2 :
+    prefix_of s1 s2 = (s1 == take (size s1) s2).
+  Proof.
+    elim: s1 s2 => [|x1 s1 IH1] /=.
+    - by move=> ?; rewrite take0 eqxx.
+    - case => //=. move=> x2 s2. rewrite eqseq_cons IH1. reflexivity.
+  Qed.
+
+  Lemma prefix_of_size s1 s2 : prefix_of s1 s2 -> size s1 <= size s2.
+  Proof.
+    rewrite prefix_of_take. move=> /eqP ->. rewrite size_take.
+    case H: (size s1 < size s2) => //=. by apply: ltnW.
+  Qed.
+
+  Lemma prefix_of_cons x1 s1 x2 s2 :
+    prefix_of (x1::s1) (x2::s2) = ((x1 == x2) && prefix_of s1 s2).
+  Proof. reflexivity. Qed.
+
+  Lemma prefix_of_rcons s1 s2 x :
+    prefix_of s1 s2 -> prefix_of s1 (rcons s2 x).
+  Proof.
+    elim: s1 s2 x => [| hd1 tl1 IH1] [| hd2 tl2] x //=.
+    move=> /andP [/eqP -> Htl]. by rewrite eqxx (IH1 _ _ Htl).
+  Qed.
+
+  Lemma prefix_of_belast x s1 s2 :
+    prefix_of (x::s1) s2 -> prefix_of (belast x s1) s2.
+  Proof.
+    elim: s1 s2 x => [| hd1 tl1 IH1] [| hd2 [| tl2_hd tl2_tl]] x //=.
+    - by rewrite andbF.
+    - move=> /andP [/eqP -> /andP [/eqP -> H]]. rewrite eqxx andTb. apply: IH1.
+      by rewrite prefix_of_cons eqxx H.
+  Qed.
+
+  Lemma prefix_of_refl s : prefix_of s s.
+  Proof. elim: s => //=. move=> ? ? ->; by rewrite eqxx. Qed.
+
+  Lemma prefix_of_antisym s1 s2 : (prefix_of s1 s2 && prefix_of s2 s1) = (s1 == s2).
+  Proof.
+    elim: s1 s2 => [| hd1 tl1 IH1] /=.
+    - move=> s2. rewrite prefix_of_is_nil eq_sym. reflexivity.
+    - case=> [|hd2 tl2] => //=. rewrite (andbA ((hd1 == hd2) && prefix_of tl1 tl2)).
+      rewrite -(andbA (hd1 == hd2)). rewrite (andbC (prefix_of tl1 tl2)).
+      rewrite andbA. rewrite (eq_sym hd2). rewrite Bool.andb_diag. rewrite -andbA.
+      rewrite IH1. reflexivity.
+  Qed.
+
+  Lemma prefix_of_trans s1 s2 s3 :
+    prefix_of s1 s2 -> prefix_of s2 s3 -> prefix_of s1 s3.
+  Proof.
+    elim: s1 s2 s3 => [| hd1 tl1 IH1] [| hd2 tl2] [| hd3 tl3] //=.
+    move=> /andP [/eqP -> H12] /andP [/eqP -> H23].
+      by rewrite eqxx (IH1 _ _ H12 H23).
+  Qed.
+
+  Lemma prefix_of_cons_ident x s1 s2 :
+    prefix_of (x::s1) s2 -> prefix_of s1 s2 -> constant (x::s1).
+  Proof.
+    elim: s1 s2 x => [| hd1 tl1 IH1] [| hd2 [| tl2_hd tl2_tl]] x //=.
+    - by rewrite andbF.
+    - move=> /andP [/eqP <- /andP [/eqP <- H1]]. move=> /andP [/eqP -> H2].
+      rewrite eqxx andTb. apply: (IH1 _ _ _ H2).
+      by rewrite prefix_of_cons eqxx andTb H1.
+  Qed.
+
+  Variable default : A.
+
+  Lemma prefix_of_nth s1 s2 i :
+    prefix_of s1 s2 -> i < size s1 -> nth default s1 i = nth default s2 i.
+  Proof.
+    rewrite prefix_of_take. move=> /eqP Hs Hi. rewrite Hs (nth_take _ Hi).
+    reflexivity.
+  Qed.
+
+End PrefixOf.
 
 Section Fold.
 
