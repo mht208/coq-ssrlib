@@ -123,11 +123,32 @@ Module Type TStore (V : SsrOrder).
         Upd v e s1 s2 -> Upd v e s3 s4 ->
         Equal s1 s3 -> Equal s2 s4.
 
+    Parameter Equal_upd2_Equal : forall v1 e1 v2 e2 s1 s2,
+        Equal s1 s2 ->
+        Equal (upd2 v1 e1 v2 e2 s1) (upd2 v1 e1 v2 e2 s2).
+
+    Parameter Equal_Upd2_Equal : forall v1 e1 v2 e2 s1 s2 s3 s4,
+        Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s3 s4 ->
+        Equal s1 s3 -> Equal s2 s4.
+
     Parameter Upd_pred_Equal : forall v e s1 s2 s,
         Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2.
 
     Parameter Upd_succ_Equal : forall v e s1 s2 s,
         Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s.
+
+    Parameter upd_acc_idem : forall v s, Equal (upd v (acc v s) s) s.
+
+    Parameter upd_idem : forall v e s, Equal (upd v e (upd v e s)) (upd v e s).
+
+    Parameter Upd_idem : forall v e s1 s2 s3,
+        Upd v e s1 s2 -> Upd v e s2 s3 -> Equal s2 s3.
+
+    Parameter upd2_idem : forall v1 e1 v2 e2 s,
+        Equal (upd2 v1 e1 v2 e2 (upd2 v1 e1 v2 e2 s)) (upd2 v1 e1 v2 e2 s).
+
+    Parameter Upd2_idem : forall v1 e1 v2 e2 s1 s2 s3,
+        Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s2 s3 -> Equal s2 s3.
 
   End TStore.
 
@@ -251,6 +272,20 @@ Module MakeTStore (X : SsrOrder) <: TStore X.
       move=> Hupd1 Hupd2 Heq x. rewrite (Hupd1 x) (Hupd2 x). exact: Equal_upd_Equal.
     Qed.
 
+    Lemma Equal_upd2_Equal v1 e1 v2 e2 s1 s2 :
+      Equal s1 s2 -> Equal (upd2 v1 e1 v2 e2 s1) (upd2 v1 e1 v2 e2 s2).
+    Proof.
+      move=> Heq. rewrite /upd2. move: (Equal_upd_Equal v1 e1 Heq) => {Heq} Heq.
+      exact: (Equal_upd_Equal v2 e2 Heq).
+    Qed.
+
+    Lemma Equal_Upd2_Equal v1 e1 v2 e2 s1 s2 s3 s4 :
+      Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s3 s4 -> Equal s1 s3 -> Equal s2 s4.
+    Proof.
+      move=> Hup12 Hup34 Heq13 x. rewrite (Hup12 x) (Hup34 x).
+      exact: (Equal_upd2_Equal _ _ _ _ Heq13).
+    Qed.
+
     Lemma Upd_pred_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2.
     Proof.
       move=> Hupd Heq x. case Hxv: (x == v).
@@ -265,6 +300,51 @@ Module MakeTStore (X : SsrOrder) <: TStore X.
       - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq Hxv). reflexivity.
       - move/idP/negP: Hxv => Hxv.
         rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
+    Lemma upd_acc_idem v s : Equal (upd v (acc v s) s) s.
+    Proof.
+      move=> x. case Hxv: (x == v).
+      - rewrite (acc_upd_eq Hxv). by rewrite (eqP Hxv).
+      - move/idP/negP: Hxv => Hxv. rewrite (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
+    Lemma upd_idem v e s : Equal (upd v e (upd v e s)) (upd v e s).
+    Proof.
+      move=> x. case Hxv: (x == v).
+      - rewrite !(acc_upd_eq Hxv). reflexivity.
+      - move/idP/negP: Hxv => Hxv. rewrite (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
+    Lemma Upd_idem v e s1 s2 s3 : Upd v e s1 s2 -> Upd v e s2 s3 -> Equal s2 s3.
+    Proof.
+      move=> H12 H23 x. rewrite (H23 x). case Hxv: (x == v).
+      - rewrite (acc_upd_eq Hxv). rewrite (H12 x)  (acc_upd_eq Hxv). reflexivity.
+      - move/idP/negP: Hxv => Hxv. rewrite (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
+    Lemma upd2_idem v1 e1 v2 e2 s :
+      Equal (upd2 v1 e1 v2 e2 (upd2 v1 e1 v2 e2 s)) (upd2 v1 e1 v2 e2 s).
+    Proof.
+      rewrite /upd2 => x. case Hxv2: (x == v2).
+      - rewrite !(acc_upd_eq Hxv2). reflexivity.
+      - move/idP/negP: Hxv2 => Hxv2. rewrite !(acc_upd_neq Hxv2).
+        case Hxv1: (x == v1).
+        + rewrite !(acc_upd_eq Hxv1). reflexivity.
+        + move/idP/negP: Hxv1 => Hxv1. rewrite !(acc_upd_neq Hxv1).
+          rewrite (acc_upd_neq Hxv2) (acc_upd_neq Hxv1). reflexivity.
+    Qed.
+
+    Lemma Upd2_idem v1 e1 v2 e2 s1 s2 s3 :
+      Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s2 s3 -> Equal s2 s3.
+    Proof.
+      move=> H12 H23 x. rewrite (H23 x) (H12 x). case Hxv2: (x == v2).
+      - rewrite !(acc_upd_eq Hxv2). reflexivity.
+      - move/idP/negP: Hxv2 => Hxv2. rewrite !(acc_upd_neq Hxv2).
+        case Hxv1: (x == v1).
+        + rewrite !(acc_upd_eq Hxv1). reflexivity.
+        + move/idP/negP: Hxv1 => Hxv1. rewrite !(acc_upd_neq Hxv1). rewrite (H12 x).
+          rewrite (acc_upd_neq Hxv2) (acc_upd_neq Hxv1). reflexivity.
     Qed.
 
   End TStore.
@@ -327,10 +407,29 @@ Module TStoreAdapter (X : SsrOrder) (V : Equalities.Typ).
   Definition Equal_Upd_Equal v e s1 s2 s3 s4 :
     Upd v e s1 s2 -> Upd v e s3 s4 -> Equal s1 s3 -> Equal s2 s4 :=
     @S.Equal_Upd_Equal value v e s1 s2 s3 s4.
+  Definition Equal_upd2_Equal v1 e1 v2 e2 s1 s2 :
+    Equal s1 s2 -> Equal (upd2 v1 e1 v2 e2 s1) (upd2 v1 e1 v2 e2 s2) :=
+    @S.Equal_upd2_Equal value v1 e1 v2 e2 s1 s2.
+  Definition Equal_Upd2_Equal v1 e1 v2 e2 s1 s2 s3 s4 :
+    Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s3 s4 -> Equal s1 s3 -> Equal s2 s4 :=
+    @S.Equal_Upd2_Equal value v1 e1 v2 e2 s1 s2 s3 s4.
   Definition Upd_pred_Equal v e s1 s2 s :
     Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2 := @S.Upd_pred_Equal value v e s1 s2 s.
   Definition Upd_succ_Equal v e s1 s2 s :
     Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s := @S.Upd_succ_Equal value v e s1 s2 s.
+  Definition upd_acc_idem v s : Equal (upd v (acc v s) s) s :=
+    @S.upd_acc_idem value v s.
+  Definition upd_idem v e s : Equal (upd v e (upd v e s)) (upd v e s) :=
+    @S.upd_idem value v e s.
+  Definition Upd_idem v e s1 s2 s3 : Upd v e s1 s2 -> Upd v e s2 s3 -> Equal s2 s3 :=
+    @S.Upd_idem value v e s1 s2 s3.
+  Definition upd2_idem v1 e1 v2 e2 s :
+    Equal (upd2 v1 e1 v2 e2 (upd2 v1 e1 v2 e2 s)) (upd2 v1 e1 v2 e2 s) :=
+    @S.upd2_idem value v1 e1 v2 e2 s.
+  Definition Upd2_idem v1 e1 v2 e2 s1 s2 s3 :
+    Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s2 s3 -> Equal s2 s3 :=
+    @S.Upd2_idem value v1 e1 v2 e2 s1 s2 s3.
+
 End TStoreAdapter.
 
 
@@ -440,6 +539,20 @@ Module MakeRealizableTStore (X : SsrOrder) <: TStore X.
       move=> Hupd1 Hupd2 Heq x. rewrite (Hupd1 x) (Hupd2 x). exact: Equal_upd_Equal.
     Qed.
 
+    Lemma Equal_upd2_Equal v1 e1 v2 e2 s1 s2 :
+      Equal s1 s2 -> Equal (upd2 v1 e1 v2 e2 s1) (upd2 v1 e1 v2 e2 s2).
+    Proof.
+      move=> Heq. rewrite /upd2. move: (Equal_upd_Equal v1 e1 Heq) => {Heq} Heq.
+      exact: (Equal_upd_Equal v2 e2 Heq).
+    Qed.
+
+    Lemma Equal_Upd2_Equal v1 e1 v2 e2 s1 s2 s3 s4 :
+      Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s3 s4 -> Equal s1 s3 -> Equal s2 s4.
+    Proof.
+      move=> Hup12 Hup34 Heq13 x. rewrite (Hup12 x) (Hup34 x).
+      exact: (Equal_upd2_Equal _ _ _ _ Heq13).
+    Qed.
+
     Lemma Upd_pred_Equal v e s1 s2 s : Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2.
     Proof.
       move=> Hupd Heq x. case Hxv: (x == v).
@@ -454,6 +567,51 @@ Module MakeRealizableTStore (X : SsrOrder) <: TStore X.
       - rewrite (acc_Upd_eq Hxv Hupd) (acc_upd_eq Hxv). reflexivity.
       - move/idP/negP: Hxv => Hxv.
         rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
+    Lemma upd_acc_idem v s : Equal (upd v (acc v s) s) s.
+    Proof.
+      move=> x. case Hxv: (x == v).
+      - rewrite (acc_upd_eq Hxv). by rewrite (eqP Hxv).
+      - move/idP/negP: Hxv => Hxv. rewrite (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
+    Lemma upd_idem v e s : Equal (upd v e (upd v e s)) (upd v e s).
+    Proof.
+      move=> x. case Hxv: (x == v).
+      - rewrite !(acc_upd_eq Hxv). reflexivity.
+      - move/idP/negP: Hxv => Hxv. rewrite (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
+    Lemma Upd_idem v e s1 s2 s3 : Upd v e s1 s2 -> Upd v e s2 s3 -> Equal s2 s3.
+    Proof.
+      move=> H12 H23 x. rewrite (H23 x). case Hxv: (x == v).
+      - rewrite (acc_upd_eq Hxv). rewrite (H12 x)  (acc_upd_eq Hxv). reflexivity.
+      - move/idP/negP: Hxv => Hxv. rewrite (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
+    Lemma upd2_idem v1 e1 v2 e2 s :
+      Equal (upd2 v1 e1 v2 e2 (upd2 v1 e1 v2 e2 s)) (upd2 v1 e1 v2 e2 s).
+    Proof.
+      rewrite /upd2 => x. case Hxv2: (x == v2).
+      - rewrite !(acc_upd_eq Hxv2). reflexivity.
+      - move/idP/negP: Hxv2 => Hxv2. rewrite !(acc_upd_neq Hxv2).
+        case Hxv1: (x == v1).
+        + rewrite !(acc_upd_eq Hxv1). reflexivity.
+        + move/idP/negP: Hxv1 => Hxv1. rewrite !(acc_upd_neq Hxv1).
+          rewrite (acc_upd_neq Hxv2) (acc_upd_neq Hxv1). reflexivity.
+    Qed.
+
+    Lemma Upd2_idem v1 e1 v2 e2 s1 s2 s3 :
+      Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s2 s3 -> Equal s2 s3.
+    Proof.
+      move=> H12 H23 x. rewrite (H23 x) (H12 x). case Hxv2: (x == v2).
+      - rewrite !(acc_upd_eq Hxv2). reflexivity.
+      - move/idP/negP: Hxv2 => Hxv2. rewrite !(acc_upd_neq Hxv2).
+        case Hxv1: (x == v1).
+        + rewrite !(acc_upd_eq Hxv1). reflexivity.
+        + move/idP/negP: Hxv1 => Hxv1. rewrite !(acc_upd_neq Hxv1). rewrite (H12 x).
+          rewrite (acc_upd_neq Hxv2) (acc_upd_neq Hxv1). reflexivity.
     Qed.
 
   End TStore.
@@ -517,12 +675,30 @@ Module RealizableTStoreAdapter (X : SsrOrder) (V : HasDefaultTyp).
   Definition Equal_Upd_Equal v e s1 s2 s3 s4 :
     Upd v e s1 s2 -> Upd v e s3 s4 -> Equal s1 s3 -> Equal s2 s4 :=
     @S.Equal_Upd_Equal value v e s1 s2 s3 s4.
+  Definition Equal_upd2_Equal v1 e1 v2 e2 s1 s2 :
+    Equal s1 s2 -> Equal (upd2 v1 e1 v2 e2 s1) (upd2 v1 e1 v2 e2 s2) :=
+    @S.Equal_upd2_Equal value v1 e1 v2 e2 s1 s2.
+  Definition Equal_Upd2_Equal v1 e1 v2 e2 s1 s2 s3 s4 :
+    Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s3 s4 -> Equal s1 s3 -> Equal s2 s4 :=
+    @S.Equal_Upd2_Equal value v1 e1 v2 e2 s1 s2 s3 s4.
   Definition Upd_pred_Equal v e s1 s2 s :
     Upd v e s1 s2 -> Equal s1 s -> Upd v e s s2 :=
     @S.Upd_pred_Equal value v e s1 s2 s.
   Definition Upd_succ_Equal v e s1 s2 s :
     Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s :=
     @S.Upd_succ_Equal value v e s1 s2 s.
+  Definition upd_acc_idem v s : Equal (upd v (acc v s) s) s :=
+    @S.upd_acc_idem value v s.
+  Definition upd_idem v e s : Equal (upd v e (upd v e s)) (upd v e s) :=
+    @S.upd_idem value v e s.
+  Definition Upd_idem v e s1 s2 s3 : Upd v e s1 s2 -> Upd v e s2 s3 -> Equal s2 s3 :=
+    @S.Upd_idem value v e s1 s2 s3.
+  Definition upd2_idem v1 e1 v2 e2 s :
+    Equal (upd2 v1 e1 v2 e2 (upd2 v1 e1 v2 e2 s)) (upd2 v1 e1 v2 e2 s) :=
+    @S.upd2_idem value v1 e1 v2 e2 s.
+  Definition Upd2_idem v1 e1 v2 e2 s1 s2 s3 :
+    Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s2 s3 -> Equal s2 s3 :=
+    @S.Upd2_idem value v1 e1 v2 e2 s1 s2 s3.
 End RealizableTStoreAdapter.
 
 
@@ -636,6 +812,13 @@ Module Type PStore (V : SsrOrder).
 
     Parameter Upd_succ_Equal : forall v e s1 s2 s,
         Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s.
+
+    Parameter upd_acc_idem : forall v e s, acc v s = Some e -> Equal (upd v e s) s.
+
+    Parameter upd_idem : forall v e s, Equal (upd v e (upd v e s)) (upd v e s).
+
+    Parameter Upd_idem : forall v e s1 s2 s3,
+        Upd v e s1 s2 -> Upd v e s2 s3 -> Equal s2 s3.
 
   End PStore.
 
@@ -768,6 +951,27 @@ Module MakePStore (X : SsrOrder) <: PStore X.
         rewrite (acc_Upd_neq Hxv Hupd) (acc_upd_neq Hxv). reflexivity.
     Qed.
 
+    Lemma upd_acc_idem v e s : acc v s = Some e -> Equal (upd v e s) s.
+    Proof.
+      move=> Hacc x. case Hxv: (x == v).
+      - rewrite (acc_upd_eq Hxv) (eqP Hxv) Hacc. reflexivity.
+      - move/idP/negP: Hxv=> Hxv. rewrite (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
+    Lemma upd_idem v e s : Equal (upd v e (upd v e s)) (upd v e s).
+    Proof.
+      move=> x. case Hxv: (x == v).
+      - rewrite !(acc_upd_eq Hxv). reflexivity.
+      - move/idP/negP: Hxv => Hxv. rewrite (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
+    Lemma Upd_idem v e s1 s2 s3 : Upd v e s1 s2 -> Upd v e s2 s3 -> Equal s2 s3.
+    Proof.
+      move=> H12 H23 x. rewrite (H23 x). case Hxv: (x == v).
+      - rewrite (acc_upd_eq Hxv). rewrite (H12 x)  (acc_upd_eq Hxv). reflexivity.
+      - move/idP/negP: Hxv => Hxv. rewrite (acc_upd_neq Hxv). reflexivity.
+    Qed.
+
   End PStore.
 
 End MakePStore.
@@ -826,6 +1030,10 @@ Module PStoreAdapter (X : SsrOrder) (V : Equalities.Typ).
   Definition Upd_succ_Equal v e s1 s2 s :
     Upd v e s1 s2 -> Equal s2 s -> Upd v e s1 s :=
     @S.Upd_succ_Equal value v e s1 s2 s.
+  Definition upd_idem v e s : Equal (upd v e (upd v e s)) (upd v e s) :=
+    @S.upd_idem value v e s.
+  Definition Upd_idem v e s1 s2 s3 : Upd v e s1 s2 -> Upd v e s2 s3 -> Equal s2 s3 :=
+    @S.Upd_idem value v e s1 s2 s3.
 End PStoreAdapter.
 
 
