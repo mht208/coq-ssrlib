@@ -15,12 +15,12 @@ Definition var : Set := N.
 
 Module VarOrder <: SsrOrderWithDefaultSucc.
   Include NOrder.
-  Definition succ := N.succ.
+  Definition succ : t -> t := N.succ.
   Lemma ltn_succ : forall (x : t), ltn x (succ x).
   Proof.
     move=> x. apply/N.ltb_lt. exact: N.lt_succ_diag_r.
   Qed.
-  Definition default := N0.
+  Definition default : t := N0.
 End VarOrder.
 
 

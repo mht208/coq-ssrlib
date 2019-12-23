@@ -7,6 +7,11 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+Reserved Notation "m <=? n <=? p" (at level 70, n at next level).
+Reserved Notation "m <? n <=? p" (at level 70, n at next level).
+Reserved Notation "m <=? n <? p" (at level 70, n at next level).
+Reserved Notation "m <? n <? p" (at level 70, n at next level).
+
 
 
 (** Positive is an eqType, a choiceType, and a countType. *)
@@ -53,6 +58,17 @@ Section PositiveEqType.
   Canonical pos_countType := Eval hnf in CountType positive pos_countMixin.
 
 End PositiveEqType.
+
+Notation "m <=? n <=? p" :=
+  ((m <=? n) && (n <=? p))%positive (at level 70, n at next level) : positive_scope.
+Notation "m <? n <=? p" :=
+  ((m <? n) && (n <=? p))%positive (at level 70, n at next level) : positive_scope.
+Notation "m <=? n <? p" :=
+  ((m <=? n) && (n <? p))%positive (at level 70, n at next level) : positive_scope.
+Notation "m <? n <? p" :=
+  ((m <? n) && (n <? p))%positive (at level 70, n at next level) : positive_scope.
+
+
 
 Section PositiveLemmas.
 
@@ -195,17 +211,18 @@ Section NEqType.
 
 End NEqType.
 
-Reserved Notation "m <=? n <=? p" (at level 70, n at next level).
-Reserved Notation "m <? n <=? p" (at level 70, n at next level).
-Reserved Notation "m <=? n <? p" (at level 70, n at next level).
-Reserved Notation "m <? n <? p" (at level 70, n at next level).
+Notation "m <=? n <=? p" :=
+  ((m <=? n) && (n <=? p))%num (at level 70, n at next level) : N_scope.
+Notation "m <? n <=? p" :=
+  ((m <? n) && (n <=? p))%num (at level 70, n at next level) : N_scope.
+Notation "m <=? n <? p" :=
+  ((m <=? n) && (n <? p))%num (at level 70, n at next level) : N_scope.
+Notation "m <? n <? p" :=
+  ((m <? n) && (n <? p))%num (at level 70, n at next level) : N_scope.
+
+
 
 Section NLemmas.
-
-  Notation "m <=? n <=? p" := ((m <=? n) && (n <=? p)) (at level 70, n at next level) : N_scope.
-  Notation "m <? n <=? p" := ((m <? n) && (n <=? p)) (at level 70, n at next level) : N_scope.
-  Notation "m <=? n <? p" := ((m <=? n) && (n <? p)) (at level 70, n at next level) : N_scope.
-  Notation "m <? n <? p" := ((m <? n) && (n <? p)) (at level 70, n at next level) : N_scope.
 
   Local Open Scope N_scope.
 
@@ -345,11 +362,6 @@ Section NLemmas.
 
 End NLemmas.
 
-Notation "m <=? n <=? p" := ((m <=? n) && (n <=? p))%N (at level 70, n at next level) : N_scope.
-Notation "m <? n <=? p" := ((m <? n) && (n <=? p))%N (at level 70, n at next level) : N_scope.
-Notation "m <=? n <? p" := ((m <=? n) && (n <? p))%N (at level 70, n at next level) : N_scope.
-Notation "m <? n <? p" := ((m <? n) && (n <? p))%N (at level 70, n at next level) : N_scope.
-
 
 
 (** Z is an eqType, a choiceType, and a countType. *)
@@ -410,6 +422,15 @@ Section ZEqType.
   Canonical Z_countType := Eval hnf in CountType Z Z_countMixin.
 
 End ZEqType.
+
+Notation "m <=? n <=? p" :=
+  ((m <=? n) && (n <=? p))%Z (at level 70, n at next level) : Z_scope.
+Notation "m <? n <=? p" :=
+  ((m <? n) && (n <=? p))%Z (at level 70, n at next level) : Z_scope.
+Notation "m <=? n <? p" :=
+  ((m <=? n) && (n <? p))%Z (at level 70, n at next level) : Z_scope.
+Notation "m <? n <? p" :=
+  ((m <? n) && (n <? p))%Z (at level 70, n at next level) : Z_scope.
 
 
 

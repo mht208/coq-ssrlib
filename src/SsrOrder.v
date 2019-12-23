@@ -196,7 +196,7 @@ Module MakeProdOrderWithDefaultSucc (O1 O2 : SsrOrderWithDefaultSucc) <: SsrOrde
   Module M := MakeProdOrderMinimal O1 O2.
   Module P := MakeSsrOrder M.
   Include P.
-  Definition default := (O1.default, O2.default).
+  Definition default : t := (O1.default, O2.default).
   Definition succ (x : t) : t := (O1.succ (fst x), O2.default).
   Lemma ltn_succ (x : t) : ltn x (succ x).
   Proof.
