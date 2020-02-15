@@ -873,6 +873,9 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
       exact: S.empty_1.
     Qed.
 
+    Lemma key_set_empty : key_set (M.empty elt) = S.empty.
+    Proof. rewrite /key_set. apply: MLemmas.OP.P.fold_Empty. exact: M.empty_1. Qed.
+
     Lemma mem_key_set1 m :
       forall x, M.mem x m -> S.mem x (key_set m).
     Proof.
@@ -905,19 +908,45 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
           rewrite (SLemmas.mem_add_neq Hyx). exact: IH.
     Qed.
 
-    Lemma mem_key_set m x : M.mem x m = S.mem x (key_set m).
+    Lemma mem_key_set m x : S.mem x (key_set m) = M.mem x m.
     Proof.
-      case H: (S.mem x (key_set m)).
-      - exact: (mem_key_set2 H).
-      - apply/negP=> Hmem. move/negP: H. apply. exact: (mem_key_set1 Hmem).
+      case H: (M.mem x m).
+      - exact: (mem_key_set1 H).
+      - apply/negP=> Hmem. move/negP: H. apply. exact: (mem_key_set2 Hmem).
     Qed.
 
     Lemma submap_key_set m1 m2 :
       MLemmas.submap m1 m2 -> S.subset (key_set m1) (key_set m2).
     Proof.
       move=> Hsub. apply: S.subset_1 => x Hin1. apply/SLemmas.memP.
-      move/SLemmas.memP: Hin1 => Hmem1.  rewrite -!mem_key_set in Hmem1 *.
+      move/SLemmas.memP: Hin1 => Hmem1.  rewrite !mem_key_set in Hmem1 *.
       exact: (MLemmas.submap_mem Hsub Hmem1).
+    Qed.
+
+    Lemma mem_key_set_add x v e m :
+      S.mem x (key_set (M.add v e m)) = (x == v) || S.mem x (key_set m).
+    Proof.
+      rewrite !mem_key_set. rewrite MLemmas.add_b. case H: (x == v).
+      - rewrite (eqP H). rewrite MLemmas.eqb_key_refl. reflexivity.
+      - rewrite /=. case Hmem: (M.mem x m).
+        + by rewrite orbT.
+        + rewrite orbF. apply/negP => Heqb. move: (MLemmas.eqb_eq Heqb) => Heq.
+          move/negP: H; apply. rewrite eq_sym. exact: Heq.
+    Qed.
+
+    Lemma key_set_add v e m :
+      S.Equal (key_set (M.add v e m)) (S.add v (key_set m)).
+    Proof.
+      move=> x; split => Hin.
+      - move/SLemmas.memP: Hin=> Hmem. rewrite mem_key_set_add in Hmem.
+        apply/SLemmas.memP. rewrite SLemmas.add_b. case/orP: Hmem => Hmem.
+        + rewrite eq_sym in Hmem. by rewrite (SLemmas.eq_eqb Hmem).
+        + by rewrite Hmem orbT.
+      - move/SLemmas.memP: Hin=> Hmem. apply/SLemmas.memP.
+        rewrite mem_key_set_add. rewrite SLemmas.add_b in Hmem.
+        case/orP: Hmem => Hmem.
+        + move: (SLemmas.eqb_eq Hmem). move=> /eqP ->. by rewrite eqxx.
+        + by rewrite Hmem orbT.
     Qed.
 
   End Aux.

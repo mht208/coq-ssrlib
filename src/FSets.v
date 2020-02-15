@@ -41,6 +41,16 @@ Module FSetLemmas (S : FSetInterface.S).
   Include F.
   Include OP.
 
+  Lemma eqb_eq x y : eqb x y -> S.E.eq x y.
+  Proof.
+    rewrite /eqb. by case: (S.E.eq_dec x y).
+  Qed.
+
+  Lemma eq_eqb x y : S.E.eq x y -> eqb x y.
+  Proof.
+    rewrite /eqb. by case: (S.E.eq_dec x y).
+  Qed.
+
   Lemma memP x (s : S.t) : reflect (S.In x s) (S.mem x s).
   Proof.
     case H: (S.mem x s).
