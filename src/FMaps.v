@@ -866,7 +866,7 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
       exact: S.empty_1.
     Qed.
 
-    Lemma mem_key_set m :
+    Lemma mem_key_set1 m :
       forall x, M.mem x m -> S.mem x (key_set m).
     Proof.
       rewrite /key_set. eapply MLemmas.P.fold_rec.
@@ -880,7 +880,7 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
           rewrite -(MLemmas.find_eq_mem_eq Hfind). exact: Hmem.
     Qed.
 
-    Lemma key_set_mem m x : S.mem x (key_set m) -> M.mem x m.
+    Lemma mem_key_set2 m x : S.mem x (key_set m) -> M.mem x m.
     Proof.
       move: m x. apply: MLemmas.OP.P.map_induction.
       - move=> m Hempty x Hmem. move: (key_set_Empty Hempty) => {Hempty} Hempty.
@@ -896,6 +896,13 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
           move/SLemmas.memP: Hmem => Hiny. move: (Heq y) => {Heq} [H _].
           move: (H Hiny) => {H Hiny}. rewrite /add_to_set. move/SLemmas.memP.
           rewrite (SLemmas.mem_add_neq Hyx). exact: IH.
+    Qed.
+
+    Lemma mem_key_set_mem m x : M.mem x m = S.mem x (key_set m).
+    Proof.
+      case H: (S.mem x (key_set m)).
+      - exact: (mem_key_set2 H).
+      - apply/negP=> Hmem. move/negP: H. apply. exact: (mem_key_set1 Hmem).
     Qed.
 
   End Aux.
