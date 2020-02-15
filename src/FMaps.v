@@ -512,6 +512,13 @@ Module FMapLemmas (M : FMapInterface.S).
       - move=> Hneq. exact: (Hsub k' v' Hfind').
     Qed.
 
+    Lemma submap_mem (m1 m2 : M.t elt) (k : M.key) :
+      submap m1 m2 -> M.mem k m1 -> M.mem k m2.
+    Proof.
+      move=> Hsub Hmem1. move: (mem_find_some Hmem1) => {Hmem1} [e Hfind1].
+      move: (Hsub k e Hfind1) => Hfind2. exact: (find_some_mem Hfind2).
+    Qed.
+
   End Submap.
 
   Module EFacts := OrderedType.OrderedTypeFacts M.E.
@@ -903,6 +910,14 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
       case H: (S.mem x (key_set m)).
       - exact: (mem_key_set2 H).
       - apply/negP=> Hmem. move/negP: H. apply. exact: (mem_key_set1 Hmem).
+    Qed.
+
+    Lemma submap_key_set m1 m2 :
+      MLemmas.submap m1 m2 -> S.subset (key_set m1) (key_set m2).
+    Proof.
+      move=> Hsub. apply: S.subset_1 => x Hin1. apply/SLemmas.memP.
+      move/SLemmas.memP: Hin1 => Hmem1.  rewrite -!mem_key_set in Hmem1 *.
+      exact: (MLemmas.submap_mem Hsub Hmem1).
     Qed.
 
   End Aux.
