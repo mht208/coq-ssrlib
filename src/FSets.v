@@ -873,6 +873,58 @@ Module FSetLemmas (S : FSetInterface.S).
     rewrite -OP.P.union_add. reflexivity.
   Qed.
 
+
+  Section ForAll.
+
+    Variable f : S.elt -> bool.
+    Variable compat : compat_bool S.E.eq f.
+
+    Lemma for_all_union vs1 vs2 :
+      S.for_all f (S.union vs1 vs2) = (S.for_all f vs1 && S.for_all f vs2).
+    Proof.
+      case Hall1: (S.for_all f vs1) => /=.
+      - move: (S.for_all_2 compat Hall1) => {Hall1} Hall1.
+        case Hall2: (S.for_all f vs2).
+        + apply: (S.for_all_1 compat).
+          move=> x Hin. case: (S.union_1 Hin) => {Hin} Hin.
+          * exact: (Hall1 x Hin).
+          * move: (S.for_all_2 compat Hall2) => {Hall2} Hall2. exact: (Hall2 x Hin).
+        + apply/negP => Hunion. move/negP: Hall2. apply.
+          move: (S.for_all_2 compat Hunion) => {Hunion} Hunion.
+          apply: (S.for_all_1 compat). move=> x Hin2.
+          exact: (Hunion x (S.union_3 vs1 Hin2)).
+      - apply/negP=> Hunion. move/negP: Hall1. apply.
+        move: (S.for_all_2 compat Hunion) => {Hunion} Hunion.
+        apply: (S.for_all_1 compat). move=> x Hin1.
+        exact: (Hunion x (S.union_2 vs2 Hin1)).
+    Qed.
+
+    Lemma for_all_subset vs1 vs2 :
+      S.subset vs1 vs2 -> S.for_all f vs2 -> S.for_all f vs1.
+    Proof.
+      move=> Hsub Hall2. move: (S.for_all_2 compat Hall2) => {Hall2} Hall2.
+      apply: (S.for_all_1 compat). move=> x Hin1.
+      move: (S.subset_2 Hsub) => {Hsub} Hsub. move: (Hsub x Hin1) => Hin2.
+      exact: (Hall2 x Hin2).
+    Qed.
+
+    Lemma for_all_singleton v : S.for_all f (S.singleton v) -> f v.
+    Proof.
+      move=> H. move: (S.for_all_2 compat H) => {H} H. apply: H.
+      apply: S.singleton_2. reflexivity.
+    Qed.
+
+    Lemma for_all_inter vs1 vs2 :
+      S.for_all f vs1 -> S.for_all f vs2 -> S.for_all f (S.inter vs1 vs2).
+    Proof.
+      move=> H1 H2. move: (S.for_all_2 compat H1) (S.for_all_2 compat H2) =>
+                    {H1 H2} H1 H2. apply: (S.for_all_1 compat) => x Hin.
+      exact: (H1 x (S.inter_1 Hin)).
+    Qed.
+
+  End ForAll.
+
+
   Section FoldUnion.
 
     Variable T : Type.
