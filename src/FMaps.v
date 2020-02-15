@@ -898,7 +898,7 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
           rewrite (SLemmas.mem_add_neq Hyx). exact: IH.
     Qed.
 
-    Lemma mem_key_set_mem m x : M.mem x m = S.mem x (key_set m).
+    Lemma mem_key_set m x : M.mem x m = S.mem x (key_set m).
     Proof.
       case H: (S.mem x (key_set m)).
       - exact: (mem_key_set2 H).
