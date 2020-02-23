@@ -86,6 +86,14 @@ Proof.
   exact: (SSAVS.Lemmas.not_mem_union2 H1 H2).
 Qed.
 
+Lemma svar_notin_union v vs1 vs2 :
+  svar_notin v (SSAVS.union vs1 vs2) <-> (svar_notin v vs1 /\ svar_notin v vs2).
+Proof.
+  split=> H.
+  - exact: (conj (svar_notin_union1 H) (svar_notin_union2 H)).
+  - case: H => H1 H2. exact: (svar_notin_union3 H1 H2).
+Qed.
+
 Lemma svar_notin_add1 v x vs :
   svar_notin v (SSAVS.add x vs) -> v != svar x.
 Proof.
