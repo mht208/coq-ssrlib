@@ -221,6 +221,13 @@ Module FSetLemmas (S : FSetInterface.S).
     exact: (Hsub _ Hin).
   Qed.
 
+  Lemma not_mem_subset v s1 s2 :
+    ~~ S.mem v s2 -> S.subset s1 s2 -> ~~ S.mem v s1.
+  Proof.
+    move=> Hmem2 Hsub. apply/negP=> Hmem1. move/negP: Hmem2; apply.
+    exact: (mem_subset Hmem1 Hsub).
+  Qed.
+
   Lemma add_equal x s : S.mem x s -> S.Equal (S.add x s) s.
   Proof.
     move/memP=> Hin. exact: (OP.P.add_equal Hin).
@@ -395,6 +402,20 @@ Module FSetLemmas (S : FSetInterface.S).
       move/negP: H; apply.
       move: (subset_union4 H123) (subset_union5 H123) => {H123} H13 H23.
       by rewrite H13 H23.
+  Qed.
+
+  Lemma elements_singleton x : eqlistA S.E.eq (S.elements (S.singleton x)) [:: x].
+  Proof.
+    rewrite (@OP.elements_Add_Above (S.empty) (S.singleton x) x).
+    - rewrite P.elements_empty /=. apply: eqlistA_cons.
+      + exact: S.E.eq_refl.
+      + exact: eqlistA_nil.
+    - move=> y Hin. apply: False_ind. move/F.empty_iff: Hin. by apply.
+    - move=> y. split.
+      + move=> Hin. left. exact: (S.singleton_1 Hin).
+      + case=> Hin.
+        * apply: S.singleton_2. assumption.
+        * apply: False_ind. move/F.empty_iff: Hin. by apply.
   Qed.
 
   Lemma mem_inA_elements :
@@ -918,11 +939,34 @@ Module FSetLemmas (S : FSetInterface.S).
       exact: (Hall2 x Hin2).
     Qed.
 
-    Lemma for_all_singleton v : S.for_all f (S.singleton v) -> f v.
+    Lemma for_all_singleton v : S.for_all f (S.singleton v) = f v.
     Proof.
-      move=> H. move: (S.for_all_2 compat H) => {H} H. apply: H.
-      apply: S.singleton_2. reflexivity.
+      case H: (f v).
+      - apply: (S.for_all_1 compat). move=> y /memP Hiny.
+        move: (mem_singleton1 Hiny) => Heqy. rewrite (compat Heqy). assumption.
+      - apply/negP=> Hall. move/negP: H; apply.
+        move: (S.for_all_2 compat Hall) => {Hall} Hall.
+        move: (mem_singleton2 (S.E.eq_refl v)) => /memP Hin. exact: (Hall v Hin).
     Qed.
+
+    Lemma for_all_Add v vs1 vs2 :
+      P.Add v vs1 vs2 ->
+      S.for_all f vs2 = f v && S.for_all f vs1.
+    Proof.
+      move=> Hadd. case H: (f v && S.for_all f vs1).
+      - move/andP: H => [Hfv Hall]. move: (S.for_all_2 compat Hall) => {Hall} Hall.
+        apply: (S.for_all_1 compat) => y /(Hadd y) Hiny. case: Hiny => Hiny.
+        + rewrite -(compat Hiny). assumption.
+        + exact: (Hall y Hiny).
+      - apply/negP=> Hall. move/negP: H; apply.
+        move: (S.for_all_2 compat Hall) => {Hall} Hall. apply/andP; split.
+        + move: (Hadd v) => [H1 H2]. exact: (Hall v (H2 (or_introl (S.E.eq_refl v)))).
+        + apply: (S.for_all_1 compat) => y Hiny. move: (Hadd y) => [H1 H2].
+          exact: (Hall y (H2 (or_intror Hiny))).
+    Qed.
+
+    Lemma for_all_add v vs : S.for_all f (S.add v vs) = f v && S.for_all f vs.
+    Proof. exact: (for_all_Add (P.Add_add _ _)). Qed.
 
     Lemma for_all_inter vs1 vs2 :
       S.for_all f vs1 -> S.for_all f vs2 -> S.for_all f (S.inter vs1 vs2).
@@ -930,6 +974,11 @@ Module FSetLemmas (S : FSetInterface.S).
       move=> H1 H2. move: (S.for_all_2 compat H1) (S.for_all_2 compat H2) =>
                     {H1 H2} H1 H2. apply: (S.for_all_1 compat) => x Hin.
       exact: (H1 x (S.inter_1 Hin)).
+    Qed.
+
+    Lemma for_all_mem v vs : S.for_all f vs -> S.mem v vs -> f v.
+    Proof.
+      move/(S.for_all_2 compat)=> Hall /memP Hin. exact: (Hall v Hin).
     Qed.
 
   End ForAll.

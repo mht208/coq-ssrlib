@@ -478,23 +478,23 @@ Module FMapLemmas (M : FMapInterface.S).
 
   Section Submap.
 
-    Variable elt : Type.
+    Unset Implicit Arguments.
+
+    Context {elt : Type}.
 
     Definition submap (m m' : M.t elt) :=
-      forall k v, M.find k m = Some v -> M.find k m' = Some v.
+      forall {k v}, M.find k m = Some v -> M.find k m' = Some v.
 
     Lemma submap_refl (m : M.t elt) : submap m m.
-    Proof.
-      move=> k v Hfind. exact: Hfind.
-    Qed.
+    Proof. move=> k v Hfind. exact: Hfind. Qed.
 
-    Lemma submap_trans (m1 m2 m3 : M.t elt) :
+    Lemma submap_trans {m2 m1 m3 : M.t elt} :
       submap m1 m2 -> submap m2 m3 -> submap m1 m3.
     Proof.
       move=> H12 H23 k v Hf1. apply: H23. apply: H12. exact: Hf1.
     Qed.
 
-    Lemma submap_none_add (m1 m2 : M.t elt) (k : M.key) (e : elt) :
+    Lemma submap_none_add {m1 m2 : M.t elt} {k : M.key} (e : elt) :
       submap m1 m2 -> M.find k m1 = None -> submap m1 (M.add k e m2).
     Proof.
       move=> Hsub Hfind k' v' Hfind'. rewrite add_o. case: (P.F.eq_dec k k').
@@ -503,7 +503,13 @@ Module FMapLemmas (M : FMapInterface.S).
       - move=> Hneq. exact: (Hsub k' v' Hfind').
     Qed.
 
-    Lemma submap_some_add (m1 m2 : M.t elt) (k : M.key) (e : elt) :
+    Lemma submap_not_mem_add {m1 m2 : M.t elt} {k : M.key} (e : elt) :
+      submap m1 m2 -> ~~ M.mem k m1 -> submap m1 (M.add k e m2).
+    Proof.
+      move=> Hsub Hmem. exact: (submap_none_add _ Hsub (not_mem_find_none Hmem)).
+    Qed.
+
+    Lemma submap_some_add {m1 m2 : M.t elt} {k : M.key} {e : elt} :
       submap m1 m2 -> M.find k m1 = Some e -> submap m1 (M.add k e m2).
     Proof.
       move=> Hsub Hfind k' v' Hfind'. rewrite add_o. case: (P.F.eq_dec k k').
@@ -512,12 +518,42 @@ Module FMapLemmas (M : FMapInterface.S).
       - move=> Hneq. exact: (Hsub k' v' Hfind').
     Qed.
 
-    Lemma submap_mem (m1 m2 : M.t elt) (k : M.key) :
+    Lemma submap_add_diag {m : M.t elt} {k : M.key} (e : elt) :
+      ~~ M.mem k m -> submap m (M.add k e m).
+    Proof.
+      move=> Hmem. apply: (submap_not_mem_add _ _ Hmem). exact: submap_refl.
+    Qed.
+
+    Lemma submap_mem {m1 m2 : M.t elt} {k : M.key} :
       submap m1 m2 -> M.mem k m1 -> M.mem k m2.
     Proof.
       move=> Hsub Hmem1. move: (mem_find_some Hmem1) => {Hmem1} [e Hfind1].
       move: (Hsub k e Hfind1) => Hfind2. exact: (find_some_mem Hfind2).
     Qed.
+
+    Lemma submap_add_find {m1 m2 : M.t elt} {k : M.key} {e : elt} :
+      submap (M.add k e m1) m2 -> M.find k m2 = Some e.
+    Proof.
+      move=> H. apply: (H k e). rewrite (find_add_eq (M.E.eq_refl k)). reflexivity.
+    Qed.
+
+    Lemma submap_add_find_none {m1 m2 : M.t elt} {k : M.key} {e : elt} :
+      submap (M.add k e m1) m2 -> M.find k m1 = None -> submap m1 m2.
+    Proof.
+      move=> H Hfindk1 x ex Hfindx1. apply: H. case: (M.E.eq_dec x k).
+      - move=> Heq. apply: False_ind. rewrite (F.find_o _ Heq) Hfindk1 in Hfindx1.
+        discriminate.
+      - move=> Hne. rewrite (find_add_neq Hne). assumption.
+    Qed.
+
+    Lemma submap_add_not_mem {m1 m2 : M.t elt} {k : M.key} {e : elt} :
+      submap (M.add k e m1) m2 -> ~~ M.mem k m1 -> submap m1 m2.
+    Proof.
+      move=> H Hmem. move: (not_mem_find_none Hmem) => Hfind.
+      exact: (submap_add_find_none H Hfind).
+    Qed.
+
+    Set Implicit Arguments.
 
   End Submap.
 
