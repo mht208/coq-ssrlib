@@ -66,6 +66,10 @@ Proof.
   move/eqP => [Hv Hi]. by rewrite Hv.
 Qed.
 
+Lemma svar_notin_singleton v x :
+  svar_notin v (SSAVS.singleton x) <-> v != svar x.
+Proof. split; [exact: svar_notin_singleton1 | exact: svar_notin_singleton2]. Qed.
+
 Lemma svar_notin_union1 v vs1 vs2 :
   svar_notin v (SSAVS.union vs1 vs2) -> svar_notin v vs1.
 Proof.
@@ -107,6 +111,17 @@ Lemma svar_notin_add2 v x vs :
 Proof.
   move=> H i. move: (H i) => {H} H. move: (SSAVS.Lemmas.not_mem_add1 H) => {H}.
   move=> [_ H]; exact: H.
+Qed.
+
+Lemma svar_notin_add v x vs :
+  svar_notin v (SSAVS.add x vs) <-> (v != svar x /\ svar_notin v vs).
+Proof.
+  split.
+  - move=> H; exact: (conj (svar_notin_add1 H) (svar_notin_add2 H)).
+  - move=> [H1 H2]. move=> i. apply/negP=> H. case/SSAVS.Lemmas.mem_add1: H.
+    + case: x H1 => /= xn vi H1 /eqP [] Hv Hi. subst. rewrite eqxx in H1.
+      discriminate.
+    + apply/negP. exact: (H2 i).
 Qed.
 
 Lemma svar_notin_replace v vs1 vs2 :

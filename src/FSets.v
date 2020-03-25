@@ -228,6 +228,9 @@ Module FSetLemmas (S : FSetInterface.S).
     exact: (mem_subset Hmem1 Hsub).
   Qed.
 
+  Lemma mem_equal v s1 s2 : S.mem v s1 -> S.Equal s1 s2 -> S.mem v s2.
+  Proof. move/memP=> Hin Heq. move: (Heq v) => H. apply/memP. tauto. Qed.
+
   Lemma add_equal x s : S.mem x s -> S.Equal (S.add x s) s.
   Proof.
     move/memP=> Hin. exact: (OP.P.add_equal Hin).
