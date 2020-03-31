@@ -360,6 +360,26 @@ Section NLemmas.
       exact: (H2 H).
   Qed.
 
+  Lemma N2Nat_inj_lt x y : (N.to_nat x < N.to_nat y)%N <-> (x < y)%num.
+  Proof.
+    case: x; case: y => //=.
+    - move=> y. split=> H //=. move: (Pos2Nat.is_pos y) => {H} H. exact: (lt_ltn H).
+    - move=> x y. split=> H.
+      + move/ltn_lt: H => H. move/Pos2Nat.inj_lt: H. done.
+      + apply/lt_ltn/Pos2Nat.inj_lt. done.
+  Qed.
+
+  Lemma N2Nat_inj_le x y : (N.to_nat x <= N.to_nat y)%N <-> (x <= y)%num.
+  Proof.
+    split=> H.
+    - rewrite leq_eqVlt in H. apply/N.lt_eq_cases. case/orP: H => H.
+      + right; move/eqP: H => H. exact: (Nnat.N2Nat.inj _ _ H).
+      + left; move/N2Nat_inj_lt: H; by apply.
+    - rewrite leq_eqVlt. case/N.lt_eq_cases: H => H.
+      + move/N2Nat_inj_lt: H => ->. by rewrite orbT.
+      + by rewrite H eqxx orTb.
+  Qed.
+
 End NLemmas.
 
 
