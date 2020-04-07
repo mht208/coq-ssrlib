@@ -167,6 +167,12 @@ Section NatLemmas.
     exact: (lt_subr_addl n m 1).
   Qed.
 
+  Lemma lt_sub1l_le (n m : nat) : (n.-1 < m) -> (n <= m).
+  Proof.
+    move=> H. move: (ltn_lt H) => {H} H.
+    move: (Nat.lt_pred_le _ _ H) => {H} /le_leq H. exact: H.
+  Qed.
+
   Lemma gt0_sub1F :
     forall n : nat, n > 0 -> n = n - 1 -> False.
   Proof.
@@ -517,3 +523,36 @@ Module NatOrderMinimal <: SsrOrderMinimal.
 End NatOrderMinimal.
 
 Module NatOrder <: SsrOrder := MakeSsrOrder NatOrderMinimal.
+
+
+
+Ltac deduce_compare_cases H :=
+  match type of H with
+  | is_true (_ < _)%N =>
+    let H1 := fresh in
+    let H2 := fresh in
+    let H3 := fresh in
+    let H4 := fresh in
+    let H5 := fresh in
+    (move: (H) => H1; rewrite ltnNge in H1);
+    (move: (H1) => H2; rewrite leq_eqVlt negb_or in H2; case/andP: H2=> H2 H3);
+    (move/negPf: H3; move/negPf: H2; move/negPf: H1; move=> H1 H2 H3);
+    (move: (ltnW H) => H4);
+    (move: (ltnW H) => /eqP H5)
+  | is_true (_ <= _)%N =>
+    let H1 := fresh in
+    let H2 := fresh in
+    let H3 := fresh in
+    (move: (H) => H1; rewrite leqNgt in H1; move/negPf: H1 => H1);
+    (move: (H); move/eqP=> H2);
+    (move: (H) => H3; rewrite leq_eqVlt in H3)
+  | (?n = ?m)%N =>
+    let H1 := fresh in
+    let H2 := fresh in
+    let H3 := fresh in
+    let H4 := fresh in
+    (move: (ltnn n) => H1; rewrite {2}H in H1);
+    (move: (ltnn m) => H2; rewrite -{2}H in H2);
+    (move: (leqnn n) => H3; rewrite {2}H in H3);
+    (move: (leqnn m) => H4; rewrite -{2}H in H4)
+  end.
