@@ -138,6 +138,17 @@ Section SeqLemmas.
     move/minn_idPl: (Hns) => {2}<-. exact: (take_nseq_less_minn Hmn).
   Qed.
 
+  Lemma catsl_inj (s1 s2 s3 : seq A) : s1 ++ s2 = s1 ++ s3 -> s2 = s3.
+  Proof. elim: s1 s2 s3 => [| hd tl IH] s2 s3 //=. case. exact: IH. Qed.
+
+  Lemma catsr_inj (s1 s2 s3 : seq A) : s2 ++ s1 = s3 ++ s1 -> s2 = s3.
+  Proof.
+    elim: s1 s2 s3 => [| hd tl IH] s2 s3 /=.
+    - rewrite !cats0. by apply.
+    - rewrite -!cat_rcons. move=> H. move: (IH _ _ H) => {H} H.
+      move: (rcons_inj H). case. by apply.
+  Qed.
+
 End SeqLemmas.
 
 Section EqSeqLemmas.
