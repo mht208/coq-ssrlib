@@ -259,6 +259,37 @@ Module FMapLemmas (M : FMapInterface.S).
           * move=> H. apply: InA_cons_tl. exact: (IH _ H).
     Qed.
 
+    Lemma add_diag (x : M.key) (e : elt) (m : M.t elt) :
+      M.Equal (M.add x e (M.add x e m)) (M.add x e m).
+    Proof.
+      move=> y. case: (M.E.eq_dec y x).
+      - move=> Hyx. rewrite !(find_add_eq Hyx). reflexivity.
+      - move=> Hyx. rewrite !(find_add_neq Hyx). reflexivity.
+    Qed.
+
+    Lemma add_same (x : M.key) (e : elt) (m : M.t elt) :
+      M.find x m = Some e -> M.Equal (M.add x e m) m.
+    Proof.
+      move=> Hfind y. case: (M.E.eq_dec y x) => Hyx.
+      - rewrite (find_add_eq Hyx). rewrite -Hfind Hyx. reflexivity.
+      - rewrite (find_add_neq Hyx). reflexivity.
+    Qed.
+
+    Lemma add_comm (x1 x2 : M.key) (e1 e2 : elt) (m : M.t elt) :
+      ~ M.E.eq x1 x2 ->
+      M.Equal (M.add x1 e1 (M.add x2 e2 m)) (M.add x2 e2 (M.add x1 e1 m)).
+    Proof.
+      move=> Hne y. case: (M.E.eq_dec y x1); case: (M.E.eq_dec y x2).
+      - move=> Heq2 Heq1. apply: False_ind. apply: Hne. rewrite -Heq1 -Heq2.
+        reflexivity.
+      - move=> Hne2 Heq1. rewrite (find_add_eq Heq1) (find_add_neq Hne2).
+        rewrite (find_add_eq Heq1). reflexivity.
+      - move=> Heq2 Hne1. rewrite (find_add_neq Hne1) !(find_add_eq Heq2).
+        reflexivity.
+      - move=> Hne2 Hne1. rewrite (find_add_neq Hne1) !(find_add_neq Hne2).
+        rewrite (find_add_neq Hne1). reflexivity.
+    Qed.
+
   End FMapLemmas.
 
   Section Proper.
@@ -551,6 +582,21 @@ Module FMapLemmas (M : FMapInterface.S).
     Proof.
       move=> H Hmem. move: (not_mem_find_none Hmem) => Hfind.
       exact: (submap_add_find_none H Hfind).
+    Qed.
+
+    Lemma submap_Equal {m1 m2 : M.t elt} :
+      submap m1 m2 -> submap m2 m1 -> M.Equal m1 m2.
+    Proof.
+      move=> Hsub12 Hsub21. move=> x. case Hfind1: (M.find x m1).
+      - rewrite (Hsub12 _ _ Hfind1). reflexivity.
+      - case Hfind2: (M.find x m2).
+        + rewrite (Hsub21 _ _ Hfind2) in Hfind1. discriminate.
+        + reflexivity.
+    Qed.
+
+    Lemma Equal_submap {m1 m2 : M.t elt} : M.Equal m1 m2 -> submap m1 m2.
+    Proof.
+      move=> Heq x v Hfind. rewrite (Heq x) in Hfind. exact: Hfind.
     Qed.
 
     Set Implicit Arguments.

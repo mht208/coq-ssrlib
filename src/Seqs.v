@@ -149,6 +149,18 @@ Section SeqLemmas.
       move: (rcons_inj H). case. by apply.
   Qed.
 
+  Lemma In_rcons x (s : seq A) l :
+    List.In x (rcons s l) -> List.In x s \/ x = l.
+  Proof.
+    elim: s => [| hd tl IH] /=.
+    - case; [move=> H; right; rewrite H; reflexivity | by elim].
+    - case => H1.
+      + left; left; assumption.
+      + case: (IH H1) => H2.
+        * left; right; assumption.
+        * right; assumption.
+  Qed.
+
 End SeqLemmas.
 
 Section EqSeqLemmas.
