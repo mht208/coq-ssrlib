@@ -161,7 +161,23 @@ Section SeqLemmas.
         * right; assumption.
   Qed.
 
+  Lemma incl_consl (a : A) (l m : seq A) :
+    incl (a :: l) m -> In a m /\ incl l m.
+  Proof.
+    move=> H. split.
+    - apply: (H a). exact: in_eq.
+    - move=> x Hinx. apply: (H x). apply: List.in_cons. assumption.
+  Qed.
+
+  Lemma incl_empty (s : seq A) :
+    incl s [::] -> s = [::].
+  Proof.
+    elim: s => [| x s IH] //=. move=> H. move: (incl_consl H) => [H1 H2].
+    apply: False_ind. exact: (List.in_nil H1).
+  Qed.
+
 End SeqLemmas.
+
 
 Section EqSeqLemmas.
 
@@ -174,6 +190,19 @@ Section EqSeqLemmas.
     case H: (x == y).
     - by rewrite (eqP H) eqxx.
     - apply/negP => /eqP [] Heq. by rewrite Heq eqxx in H.
+  Qed.
+
+  Lemma in_In (x : A) (s : seq A) : x \in s <-> In x s.
+  Proof.
+    elim: s => [| y ys IH] //=. rewrite in_cons. case H: (x == y) => /=.
+    - split.
+      + move=> _. left. rewrite (eqP H). reflexivity.
+      + done.
+    - split.
+      + move=> Hin. right. apply/IH. exact: Hin.
+      + case.
+        * move=> Hyx; rewrite Hyx eqxx in H; discriminate.
+        * move/IH. by apply.
   Qed.
 
   Lemma map_l_nil (f : A -> B) (l : seq A) :

@@ -836,6 +836,13 @@ Module FSetLemmas (S : FSetInterface.S).
       apply: mem_union3. exact: Hmem3.
   Qed.
 
+  Lemma disjoint_diff s1 s2 : disjoint (S.diff s1 s2) s2.
+  Proof.
+    rewrite /disjoint. apply: S.is_empty_1. move=> x Hin.
+    move: (S.inter_1 Hin) (S.inter_2 Hin) => Hin1 Hin2.
+    apply: (S.diff_2 Hin1). exact: Hin2.
+  Qed.
+
   Lemma subset_union_disjoint1 s1 s2 s3 :
     S.subset s1 (S.union s2 s3) ->
     disjoint s1 s3 ->
@@ -1161,6 +1168,14 @@ Module SsrFSetLemmas (S : SsrFSet).
     move=> x s H. apply: inA_elements_mem. apply: Lists.in_inA. exact: H.
   Qed.
 
+  Lemma mem_in x s :
+    (S.mem x s) = (x \in (S.elements s)).
+  Proof.
+    case Hin: (x \in (S.elements s)).
+    - exact: (in_elements_mem Hin).
+    - apply/negP=> Hmem. move/negP: Hin; apply. exact: (mem_in_elements Hmem).
+  Qed.
+
   Lemma mem_of_list_in x s :
     S.mem x (OP.P.of_list s) -> x \in s.
   Proof.
@@ -1171,6 +1186,46 @@ Module SsrFSetLemmas (S : SsrFSet).
     x \in s -> S.mem x (OP.P.of_list s).
   Proof.
     move=> H. apply: mem_of_list2. apply: Lists.in_inA. exact: H.
+  Qed.
+
+  Lemma in_mem x s :
+    (x \in s) = (S.mem x (OP.P.of_list s)).
+  Proof.
+    case Hmem: (S.mem x (OP.P.of_list s)).
+    - exact: (mem_of_list_in Hmem).
+    - apply/negP=> Hin. move/negP: Hmem; apply. exact: (in_mem_of_list Hin).
+  Qed.
+
+  Lemma In_elements_mem x s :
+    In x (S.elements s) <-> S.mem x s.
+  Proof.
+    split=> H.
+    - apply: inA_elements_mem. move: H. move: (S.elements s).
+      elim => [| y ys IH] //=. case => Hin.
+      + apply: SetoidList.InA_cons_hd. rewrite Hin. exact: eqxx.
+      + apply: SetoidList.InA_cons_tl. exact: (IH Hin).
+    - move: (mem_inA_elements H) => {H}. move: (S.elements s).
+      elim => [| y ys IH] //=.
+      + move=> H. by inversion H.
+      + move=> H. inversion_clear H.
+        * left. rewrite (eqP H0). reflexivity.
+        * right. exact: (IH H0).
+  Qed.
+
+  Lemma Subset_incl s1 s2 :
+    S.Subset s1 s2 -> incl (S.elements s1) (S.elements s2).
+  Proof.
+    move=> Hsub. move=> x Hinx1.
+    move/In_elements_mem: Hinx1 => Hmem1. apply/In_elements_mem.
+    move/memP: Hmem1 => Hin1. apply/memP. exact: (Hsub x Hin1).
+  Qed.
+
+  Lemma Equal_incl s1 s2 :
+    S.Equal s1 s2 ->
+    incl (S.elements s1) (S.elements s2).
+  Proof.
+    move=> Heq x Hin1. apply/In_elements_mem. apply/memP.
+    apply/(Heq x). apply/memP. apply/In_elements_mem. exact: Hin1.
   Qed.
 
 End SsrFSetLemmas.

@@ -107,6 +107,9 @@ Module Type TStore (V : SsrOrder).
         Upd2 y1 v1 y2 v2 s1 s2 ->
         acc x s2 = acc x s1.
 
+    Parameter Equal_def :
+      forall s1 s2, Equal s1 s2 <-> (forall v, acc v s1 = acc v s2).
+
     Parameter Equal_refl : forall s, Equal s s.
 
     Parameter Equal_sym : forall s1 s2, Equal s1 s2 -> Equal s2 s1.
@@ -256,6 +259,10 @@ Module MakeTStore (X : SsrOrder) <: TStore X.
     Lemma acc_Upd2_neq x y1 v1 y2 v2 s1 s2 :
       x != y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = acc x s1.
     Proof. move=> Hne1 Hne2 Hupd. rewrite (Hupd x). exact: acc_upd2_neq. Qed.
+
+    Lemma Equal_def s1 s2 :
+      Equal s1 s2 <-> (forall v, acc v s1 = acc v s2).
+    Proof. done. Qed.
 
     Lemma Equal_refl s : Equal s s.
     Proof. done. Qed.
@@ -414,6 +421,9 @@ Module TStoreAdapter (X : SsrOrder) (V : Equalities.Typ).
   Definition acc_Upd2_neq x y1 v1 y2 v2 s1 s2 :
     x != y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = acc x s1 :=
     @S.acc_Upd2_neq value x y1 v1 y2 v2 s1 s2.
+  Definition Equal_def s1 s2 :
+    Equal s1 s2 <-> (forall v, acc v s1 = acc v s2) :=
+    @S.Equal_def value s1 s2.
   Definition Equal_refl s : Equal s s := @S.Equal_refl value s.
   Definition Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1 := @S.Equal_sym value s1 s2.
   Definition Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3 :=
@@ -541,6 +551,10 @@ Module MakeRealizableTStore (X : SsrOrder) <: TStore X.
     Lemma acc_Upd2_neq x y1 v1 y2 v2 s1 s2 :
       x != y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = acc x s1.
     Proof. move=> Hne1 Hne2 Hupd. rewrite (Hupd x). exact: acc_upd2_neq. Qed.
+
+    Lemma Equal_def s1 s2 :
+      Equal s1 s2 <-> (forall v, acc v s1 = acc v s2).
+    Proof. done. Qed.
 
     Lemma Equal_refl s : Equal s s.
     Proof. done. Qed.
@@ -700,6 +714,9 @@ Module RealizableTStoreAdapter (X : SsrOrder) (V : HasDefaultTyp).
   Definition acc_Upd2_neq x y1 v1 y2 v2 s1 s2 :
     x != y1 -> x != y2 -> Upd2 y1 v1 y2 v2 s1 s2 -> acc x s2 = acc x s1 :=
     @S.acc_Upd2_neq value x y1 v1 y2 v2 s1 s2.
+  Definition Equal_def s1 s2 :
+    Equal s1 s2 <-> (forall v, acc v s1 = acc v s2) :=
+    @S.Equal_def value s1 s2.
   Definition Equal_refl s : Equal s s := @S.Equal_refl value s.
   Definition Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1 := @S.Equal_sym value s1 s2.
   Definition Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3 :=
@@ -839,6 +856,10 @@ Module Type PStore (V : SsrOrder).
         Unset y s1 s2 ->
         acc x s2 = acc x s1.
 
+    Parameter Equal_def :
+      forall s1 s2,
+        Equal s1 s2 <-> (forall v, acc v s1 = acc v s2).
+
     Parameter Equal_refl : forall s, Equal s s.
 
     Parameter Equal_sym : forall s1 s2, Equal s1 s2 -> Equal s2 s1.
@@ -959,6 +980,10 @@ Module MakePStore (X : SsrOrder) <: PStore X.
       move=> Hxy Hunset. move: (Hunset x). rewrite (acc_unset_neq Hxy). by apply.
     Qed.
 
+    Lemma Equal_def s1 s2 :
+      Equal s1 s2 <-> (forall v, acc v s1 = acc v s2).
+    Proof. done. Qed.
+
     Lemma Equal_refl s : Equal s s.
     Proof. done. Qed.
 
@@ -1058,6 +1083,9 @@ Module PStoreAdapter (X : SsrOrder) (V : Equalities.Typ).
   Definition acc_Unset_neq x y s1 s2 :
     x != y -> Unset y s1 s2 -> acc x s2 = acc x s1 :=
     @S.acc_Unset_neq value x y s1 s2.
+  Definition Equal_def s1 s2 :
+    Equal s1 s2 <-> (forall v, acc v s1 = acc v s2) :=
+    @S.Equal_def value s1 s2.
   Definition Equal_refl s : Equal s s := @S.Equal_refl value s.
   Definition Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1 := @S.Equal_sym value s1 s2.
   Definition Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3 :=
