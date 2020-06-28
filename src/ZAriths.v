@@ -369,6 +369,15 @@ Section NLemmas.
       + apply/lt_ltn/Pos2Nat.inj_lt. done.
   Qed.
 
+  Lemma Nat2N_inj_lt x y : (N.of_nat x < N.of_nat y)%num <-> (x < y)%coq_nat.
+  Proof.
+    split => H.
+    - apply: Nats.ltn_lt. move/N2Nat_inj_lt: H => H.
+      rewrite !Nnat.Nat2N.id in H. assumption.
+    - move: (Nats.lt_ltn H) => {H} H. apply/N2Nat_inj_lt.
+      rewrite !Nnat.Nat2N.id. assumption.
+  Qed.
+
   Lemma N2Nat_inj_le x y : (N.to_nat x <= N.to_nat y)%N <-> (x <= y)%num.
   Proof.
     split=> H.
@@ -379,6 +388,13 @@ Section NLemmas.
       + move/N2Nat_inj_lt: H => ->. by rewrite orbT.
       + by rewrite H eqxx orTb.
   Qed.
+
+  Lemma nat_of_bin_pos p :
+    nat_of_bin (N.pos p) = nat_of_pos p.
+  Proof. reflexivity. Qed.
+
+  Lemma Npos_ge1 p : (1 <= N.pos p)%num.
+  Proof. by elim: p. Qed.
 
 End NLemmas.
 
