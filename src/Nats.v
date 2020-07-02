@@ -254,6 +254,16 @@ Section NatLemmas.
     move=> H1 H2. move: (ltnW H2) => {H2} H2. exact: leq_mul.
   Qed.
 
+  Lemma addr_ltn n m : 0 < m -> n < n + m.
+  Proof.
+    move=> Hm. rewrite -{1}(addn0 n) ltn_add2l. assumption.
+  Qed.
+
+  Lemma addl_ltn n m : 0 < m -> n < m + n.
+  Proof.
+    rewrite addnC. exact: addr_ltn.
+  Qed.
+
   Lemma div2_succ n :
     Nat.div2 (S n) = Nat.odd n + Nat.div2 n.
   Proof.
