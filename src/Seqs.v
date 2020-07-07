@@ -259,6 +259,92 @@ Section EqSeqLemmas.
     - rewrite !in_cons. rewrite IH. rewrite orbA. reflexivity.
   Qed.
 
+
+  (* Tail recursive filter function *)
+
+  Variable p : pred A.
+
+  Fixpoint tfilter_rec (res es : seq A) :=
+    match es with
+    | [::] => res
+    | hd::tl => if p hd
+                then tfilter_rec (hd::res) tl
+                else tfilter_rec res tl
+    end.
+
+  Definition tfilter es := tfilter_rec [::] es.
+
+  Lemma tfilter_rec_filter res es :
+    tfilter_rec res es = filter p (rev es) ++ res.
+  Proof.
+    rewrite filter_rev. elim: es res => [| e es IH] res //=. case: (p e).
+    - rewrite rev_cons. rewrite cat_rcons. rewrite -IH. reflexivity.
+    - exact: IH.
+  Qed.
+
+  Lemma tfilter_filter es : tfilter es = filter p (rev es).
+  Proof.
+    rewrite /tfilter. rewrite tfilter_rec_filter. rewrite cats0. reflexivity.
+  Qed.
+
+  Lemma tfilter_rec_expand res es :
+    tfilter_rec res es = tfilter_rec [::] es ++ res.
+  Proof.
+    rewrite !tfilter_rec_filter. rewrite !filter_rev. rewrite cats0.
+    reflexivity.
+  Qed.
+
+  Lemma tfilter_rec_cat res es1 es2 :
+    tfilter_rec res (es1 ++ es2) =
+    tfilter_rec (tfilter_rec res es1) es2.
+  Proof.
+    rewrite !tfilter_rec_filter. rewrite !filter_rev.
+    rewrite filter_cat. rewrite rev_cat. rewrite catA. reflexivity.
+  Qed.
+
+  Lemma tfilter_cat es1 es2 :
+    tfilter (es1 ++ es2) = tfilter es2 ++ tfilter es1.
+  Proof.
+    rewrite /tfilter. rewrite tfilter_rec_cat. rewrite tfilter_rec_expand.
+    reflexivity.
+  Qed.
+
+  Lemma tfilter_rec_rcons res es e :
+    tfilter_rec res (rcons es e) = if p e
+                                   then e::(tfilter_rec res es)
+                                   else tfilter_rec res es.
+  Proof.
+    rewrite !tfilter_rec_filter. rewrite !filter_rev filter_rcons. case: (p e).
+    - rewrite rev_rcons. rewrite cat_cons. reflexivity.
+    - reflexivity.
+  Qed.
+
+  Lemma tfilter_rcons es e :
+    tfilter (rcons es e) = if p e
+                           then e::(tfilter es)
+                           else tfilter es.
+  Proof.
+    rewrite /tfilter. rewrite tfilter_rec_rcons. reflexivity.
+  Qed.
+
+  Lemma tfilter_rec_cons res e es :
+    tfilter_rec res (e::es) = if p e
+                              then tfilter_rec (e::res) es
+                              else tfilter_rec res es.
+  Proof. reflexivity. Qed.
+
+  Lemma tfilter_cons e es :
+    tfilter (e::es) = if p e
+                      then rcons (tfilter es) e
+                      else tfilter es.
+  Proof.
+    rewrite /tfilter. rewrite tfilter_rec_cons. rewrite tfilter_rec_expand.
+    rewrite cats1. reflexivity.
+  Qed.
+
+  Lemma tfilter_nil : tfilter [::] = [::].
+  Proof. reflexivity. Qed.
+
 End EqSeqLemmas.
 
 Section UnzipLemmas.
