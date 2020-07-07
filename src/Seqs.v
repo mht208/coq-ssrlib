@@ -150,15 +150,21 @@ Section SeqLemmas.
   Qed.
 
   Lemma In_rcons x (s : seq A) l :
-    List.In x (rcons s l) -> List.In x s \/ x = l.
+    List.In x (rcons s l) <-> List.In x s \/ x = l.
   Proof.
     elim: s => [| hd tl IH] /=.
-    - case; [move=> H; right; rewrite H; reflexivity | by elim].
-    - case => H1.
-      + left; left; assumption.
-      + case: (IH H1) => H2.
+    - split; case=> H //=.
+      + right. symmetry. assumption.
+      + left; symmetry. assumption.
+    - move: IH=> [IH1 IH2]. split; case => H /=.
+      + left; left. assumption.
+      + case: (IH1 H) => {H} H.
         * left; right; assumption.
         * right; assumption.
+      + case: H => H.
+        * left; assumption.
+        * right. exact: (IH2 (or_introl H)).
+      + right. exact: (IH2 (or_intror H)).
   Qed.
 
   Lemma incl_consl (a : A) (l m : seq A) :
@@ -243,6 +249,14 @@ Section EqSeqLemmas.
     rewrite size_cat size_nseq => Hn. rewrite -Hn in H.
     rewrite nseq_addn in H. move/eqP: H. rewrite eqseq_cat; last by rewrite size_nseq.
     move/andP=> [_ /eqP <-]. reflexivity.
+  Qed.
+
+  Lemma in_rcons (x : A) s (y : A) :
+    x \in rcons s y = (x \in s) || (x == y).
+  Proof.
+    elim: s => [| hd tl IH] /=.
+    - rewrite mem_seq1. reflexivity.
+    - rewrite !in_cons. rewrite IH. rewrite orbA. reflexivity.
   Qed.
 
 End EqSeqLemmas.
