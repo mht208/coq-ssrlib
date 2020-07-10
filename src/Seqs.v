@@ -11,6 +11,8 @@ Section SeqLemmas.
 
   Variable A : Type.
 
+  Variable B : Type.
+
   Variable default : A.
 
   Lemma singleton_seq (l : seq A) :
@@ -182,8 +184,90 @@ Section SeqLemmas.
     apply: False_ind. exact: (List.in_nil H1).
   Qed.
 
+  (* Tail-recursive flatten *)
+
+  Fixpoint tflatten_rec res (ss : seq (seq A)) :=
+    match ss with
+    | [::] => res
+    | hd::tl => tflatten_rec (catrev hd res) tl
+    end.
+
+  Definition tflatten ss := tflatten_rec [::] ss.
+
+  Lemma tflatten_rec_rcons pre ss s :
+    tflatten_rec pre (rcons ss s) = rev s ++ tflatten_rec pre ss.
+  Proof.
+    elim: ss pre => [| hd tl IH] //=. exact: catrevE.
+  Qed.
+
+  Lemma tflatten_rcons ss s :
+    tflatten (rcons ss s) = rev s ++ tflatten ss.
+  Proof. exact: tflatten_rec_rcons. Qed.
+
+  Lemma tflatten_rec_flatten pre ss :
+    tflatten_rec pre ss = rev (flatten ss) ++ pre.
+  Proof.
+    move: ss. apply: last_ind => //=. move=> ss s IH.
+    rewrite flatten_rcons. rewrite rev_cat. rewrite -catA. rewrite -IH.
+    exact: tflatten_rec_rcons.
+  Qed.
+
+  Lemma tflatten_flatten ss :
+    tflatten ss = rev (flatten ss).
+  Proof.
+    rewrite /tflatten. rewrite tflatten_rec_flatten. rewrite cats0. reflexivity.
+  Qed.
+
+  Lemma tflatten_rec_expand pre ss :
+    tflatten_rec pre ss = tflatten_rec [::] ss ++ pre.
+  Proof.
+    move: ss pre. apply: last_ind => //=.
+    move=> ss s IH pre. rewrite tflatten_rec_rcons. rewrite IH.
+    rewrite tflatten_rec_rcons. rewrite catA. reflexivity.
+  Qed.
+
+  Lemma tflatten_rec_cons pre s ss :
+    tflatten_rec pre (s::ss) = tflatten_rec (catrev s pre) ss.
+  Proof. reflexivity. Qed.
+
+  Lemma tflatten_cons s ss :
+    tflatten (s::ss) = tflatten ss ++ (rev s).
+  Proof.
+    rewrite /tflatten tflatten_rec_cons. rewrite tflatten_rec_expand.
+    reflexivity.
+  Qed.
+
+  Lemma tflatten_rec_cat pre ss1 ss2 :
+    tflatten_rec pre (ss1 ++ ss2) = tflatten_rec (tflatten_rec pre ss1) ss2.
+  Proof.
+    rewrite tflatten_rec_flatten. rewrite flatten_cat. rewrite rev_cat.
+    rewrite -catA. rewrite -tflatten_rec_flatten. rewrite -tflatten_rec_flatten.
+    reflexivity.
+  Qed.
+
+  Lemma tflattens_cat ss1 ss2 :
+    tflatten (ss1 ++ ss2) = tflatten ss2 ++ tflatten ss1.
+  Proof.
+    rewrite /tflatten. rewrite tflatten_rec_cat. rewrite tflatten_rec_expand.
+    reflexivity.
+  Qed.
+
+  Lemma filter_tflatten ss (p : pred A) :
+    filter p (tflatten ss) = tflatten [seq filter p i | i <- ss].
+  Proof.
+    rewrite (tflatten_flatten [seq filter p i | i <- ss]).
+    rewrite -filter_flatten. rewrite -filter_rev. rewrite -tflatten_flatten.
+    reflexivity.
+  Qed.
+
 End SeqLemmas.
 
+Lemma map_tflatten {A B : Type} (f : A -> B) ss :
+  map f (tflatten ss) = tflatten (map (map f) ss).
+Proof.
+  rewrite (tflatten_flatten (map (map f) ss)). rewrite -map_flatten.
+  rewrite -map_rev. rewrite -tflatten_flatten. reflexivity.
+Qed.
 
 Section EqSeqLemmas.
 
