@@ -80,6 +80,14 @@ Ltac caseb_hyps :=
           | H : is_true [|| _ | _] |- _ => case/orP: H; intros
           end).
 
+Ltac case_hyps :=
+  repeat (match goal with
+          | H : _ /\ _ |- _ => case: H; intros
+          | H : _ \/ _ |- _ => case: H; intros
+          | H : is_true [&& _ & _] |- _ => case/andP: H; intros
+          | H : is_true [|| _ | _] |- _ => case/orP: H; intros
+          end).
+
 Ltac dcase t := move: (refl_equal t); generalize t at -1.
 
 Ltac t_decide_hook := fail.
@@ -89,7 +97,9 @@ Ltac t_decide :=
   repeat (match goal with
           | H : is_true false |- _ => discriminate
           | |- is_true true => reflexivity
+          | |- ?e = ?e => reflexivity
           | H : ?e |- ?e => assumption
+          | |- _ /\ _ => split
           | H : ?e |- context [?e || _] => rewrite H orTb
           | H : ?e |- context [_ || ?e] => rewrite H orbT
           | H : ?e |- context [?e && _] => rewrite H andTb
@@ -141,7 +151,7 @@ Ltac t_auto_hook := fail.
 
 Ltac t_auto_first_with f t :=
   (f unit); intros;
-  repeat (caseb_hyps; t_clear || subst_all || t_decide || (t unit)).
+  repeat (case_hyps; t_clear || subst_all || t_decide || (t unit)).
 
 Ltac t_auto_with t := t_auto_first_with ltac:(fun _ => t_auto_first) t.
 

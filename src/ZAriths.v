@@ -140,6 +140,14 @@ Section PositiveLemmas.
     exact: (Pos.le_trans _ _ _ Hxy Hyz).
   Qed.
 
+  Lemma pos_eqn_ltn_gtn_cases m n : (m == n) || (m <? n) || (n <? m).
+  Proof.
+    move: (Pos.lt_total m n). case; last case.
+    - move/pos_ltP => H. rewrite H orbT /=. reflexivity.
+    - move/eqP=> H. rewrite H orTb /=. reflexivity.
+    - move/pos_ltP => H. rewrite H orbT /=. reflexivity.
+  Qed.
+
   Lemma pos_leb_add_diag_r :
     forall x y : positive, x <=? x + y.
   Proof.
@@ -560,6 +568,35 @@ Section ZLemmas.
       move=> Hlt.
       move: (H2 Hlt).
       by rewrite H.
+  Qed.
+
+  Lemma Z_ltb_trans x y z : x <? y -> y <? z -> x <? z.
+  Proof.
+    move=> /Z_ltP Hxy /Z_ltP Hyz. apply/Z_ltP. exact: (Z.lt_trans _ _ _ Hxy Hyz).
+  Qed.
+
+  Lemma Z_ltb_leb_trans x y z : x <? y -> y <=? z -> x <? z.
+  Proof.
+    move=> /Z_ltP Hxy /Z_leP Hyz. apply/Z_ltP. exact: (Z.lt_le_trans _ _ _ Hxy Hyz).
+  Qed.
+
+  Lemma Z_leb_ltb_trans x y z : x <=? y -> y <? z -> x <? z.
+  Proof.
+    move=> /Z_leP Hxy /Z_ltP Hyz. apply/Z_ltP. exact: (Z.le_lt_trans _ _ _ Hxy Hyz).
+  Qed.
+
+  Lemma Z_leb_trans x y z : x <=? y -> y <=? z -> x <=? z.
+  Proof.
+    move=> /Z_leP Hxy /Z_leP Hyz. apply/Z_leP. exact: (Z.le_trans _ _ _ Hxy Hyz).
+  Qed.
+
+  Lemma Z_eqn_ltn_gtn_cases m n : (m == n) || (m <? n) || (n <? m).
+  Proof.
+    move: (Z.lt_ge_cases m n). case.
+    - move/Z_ltP => H. rewrite H orbT /=. reflexivity.
+    - move=> H. move: (Zle_lt_or_eq _ _ H). case=> {H}.
+      + move/Z_ltP => H. rewrite H orbT /=. reflexivity.
+      + move/eqP=> H. rewrite eq_sym H /=. reflexivity.
   Qed.
 
   Lemma Zdouble_positive (n : Z) :
