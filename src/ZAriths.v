@@ -280,6 +280,14 @@ Section NLemmas.
     move=> /N_ltP Hmn /N_leP Hnp. apply/N_ltP. exact: (N.lt_le_trans _ _ _ Hmn Hnp).
   Qed.
 
+  Lemma N_eqn_ltn_gtn_cases m n : (m == n) || (m <? n) || (n <? m).
+  Proof.
+    move: (N.lt_total m n). case; last case.
+    - move/N_ltP => H. rewrite H orbT /=. reflexivity.
+    - move/eqP=> H. rewrite H orTb /=. reflexivity.
+    - move/N_ltP => H. rewrite H orbT /=. reflexivity.
+  Qed.
+
   Lemma Nltn0Sn n : 0 <? n + 1.
   Proof. apply/N_ltP. apply: N.add_pos_r. done. Qed.
 
