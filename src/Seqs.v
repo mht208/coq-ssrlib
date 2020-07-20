@@ -260,6 +260,66 @@ Section SeqLemmas.
     reflexivity.
   Qed.
 
+  (* Tail-recursive map *)
+
+  Section MapRev.
+
+    Variable f : A -> B.
+
+    Fixpoint mapr_rec res es :=
+      match es with
+      | [::] => res
+      | hd::tl => mapr_rec (f hd::res) tl
+      end.
+
+    Definition mapr es := mapr_rec [::] es.
+
+    Lemma mapr_rec_cons res e es : mapr_rec res (e::es) = mapr_rec (f e::res) es.
+    Proof. reflexivity. Qed.
+
+    Lemma mapr_rec_split res es : mapr_rec res es = mapr_rec [::] es ++ res.
+    Proof.
+      elim: es res => [| e es IH] //= res. rewrite (IH (f e::res)).
+      rewrite (IH [:: f e]). rewrite -cat_rcons. rewrite -cats1. reflexivity.
+    Qed.
+
+    Lemma mapr_cons e es : mapr (e::es) = rcons (mapr es) (f e).
+    Proof.
+      rewrite /mapr. rewrite mapr_rec_cons. rewrite mapr_rec_split. rewrite -cats1.
+      reflexivity.
+    Qed.
+
+    Lemma mapr_rec_rcons res es e :
+      mapr_rec res (rcons es e) = f e :: mapr_rec res es.
+    Proof. by elim: es res e => [| e1 es IH] //=. Qed.
+
+    Lemma mapr_rcons es e : mapr (rcons es e) = f e :: mapr es.
+    Proof. exact: mapr_rec_rcons. Qed.
+
+    Lemma mapr_rec_cat res es1 es2 :
+      mapr_rec res (es1 ++ es2) = mapr_rec (mapr_rec res es1) es2.
+    Proof. by elim: es1 res es2 => [| e1 es1 IH] res es2 //=. Qed.
+
+    Lemma mapr_cat es1 es2 : mapr (es1 ++ es2) = mapr es2 ++ mapr es1.
+    Proof.
+      rewrite /mapr. rewrite mapr_rec_cat. rewrite mapr_rec_split.
+      reflexivity.
+    Qed.
+
+    Lemma mapr_rec_rev_map res es : mapr_rec res es = rev (map f es) ++ res.
+    Proof.
+      elim: es res => [| e es IH] res //=. rewrite IH. rewrite rev_cons.
+      rewrite cat_rcons. reflexivity.
+    Qed.
+
+    Lemma mapr_rev_map es : mapr es = rev (map f es).
+    Proof. rewrite /mapr. rewrite mapr_rec_rev_map. by rewrite cats0. Qed.
+
+    Lemma mapr_map_rev es : mapr es = map f (rev es).
+    Proof. rewrite map_rev. exact: mapr_rev_map. Qed.
+
+  End MapRev.
+
 End SeqLemmas.
 
 Lemma map_tflatten {A B : Type} (f : A -> B) ss :
