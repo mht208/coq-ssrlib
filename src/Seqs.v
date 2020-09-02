@@ -1,6 +1,6 @@
 
 From Coq Require Import OrderedType.
-From mathcomp Require Import ssreflect ssrbool ssrnat seq eqtype.
+From mathcomp Require Import ssreflect ssrbool ssrnat seq eqtype ssrfun.
 From ssrlib Require Import SsrOrder.
 
 Set Implicit Arguments.
@@ -260,6 +260,41 @@ Section SeqLemmas.
     reflexivity.
   Qed.
 
+  Lemma split_cons (x : A * B) (s : seq (A * B)) :
+    split (x::s) = (x.1::(split s).1, x.2::(split s).2).
+  Proof.
+    rewrite /=. case Hs: (split s) => [sa sb] /=. case: x => [xa xb] /=.
+    reflexivity.
+  Qed.
+
+  Lemma split_cat (s1 s2 : seq (A * B)) :
+    split (s1 ++ s2) = ((split s1).1 ++ (split s2).1, (split s1).2 ++ (split s2).2).
+  Proof.
+    elim: s1 => [| [hd1a hd1b] tl1 IH] //=.
+    - by case: (split s2).
+    - move: IH. case: (split (tl1 ++ s2)) => [cs1 cs2].
+      case: (split tl1) => [tl11 tl12]. case: (split s2) => [tl21 tl22] /=.
+      case=> ? ?; subst. reflexivity.
+  Qed.
+
+  Lemma split_rcons (s : seq (A * B)) (x : A * B) :
+    split (rcons s x) = (rcons (split s).1 x.1, rcons (split s).2 x.2).
+  Proof.
+    move: s x. apply: last_ind.
+    - move=> [xa xb] /=. reflexivity.
+    - move=> s [ya yb] IH [xa xb] /=. rewrite IH /=.
+      rewrite -(cats1 s) rcons_cat. rewrite split_cat /=.
+      rewrite -cats1 cat_rcons. rewrite -cats1 cat_rcons. reflexivity.
+  Qed.
+
+  Lemma split_rev (s : seq (A * B)) :
+    split (rev s) = (rev (split s).1, rev (split s).2).
+  Proof.
+    elim: s => [| [hda hdb] tl IH] //=. rewrite rev_cons.
+    rewrite split_rcons. rewrite IH /=. case: (split tl) => [s1 s2] /=.
+    rewrite !rev_cons. reflexivity.
+  Qed.
+
   (* Tail-recursive map *)
 
   Section MapRev.
@@ -401,6 +436,18 @@ Section EqSeqLemmas.
     elim: s => [| hd tl IH] /=.
     - rewrite mem_seq1. reflexivity.
     - rewrite !in_cons. rewrite IH. rewrite orbA. reflexivity.
+  Qed.
+
+  Lemma in_split_rev_l {C : Type} (x : A) (s : seq (A * C)) :
+    (x \in (split (rev s)).1) = (x \in (split s).1).
+  Proof.
+    rewrite split_rev /=. rewrite mem_rev. reflexivity.
+  Qed.
+
+  Lemma in_split_rev_r {C : Type} (x : B) (s : seq (C * B)) :
+    (x \in (split (rev s)).2) = (x \in (split s).2).
+  Proof.
+    rewrite split_rev /=. rewrite mem_rev. reflexivity.
   Qed.
 
 
