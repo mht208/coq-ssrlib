@@ -175,6 +175,29 @@ Section PositiveLemmas.
     by rewrite ltnn.
   Qed.
 
+  Lemma pos_xO_double (n : positive) : n~0 = 2 * n.
+  Proof. reflexivity. Qed.
+
+  Lemma pos_xI_succ_double (n : positive) : n~1 = (2 * n) + 1.
+  Proof. rewrite Pos.xI_succ_xO. reflexivity. Qed.
+
+  Lemma pos_pow_1_l (n : positive) : 1 ^ n = 1.
+  Proof.
+    move: n. apply: Pos.peano_ind => //=.
+    move=> n IH. rewrite Pos.pow_succ_r. rewrite Pos.mul_1_l. assumption.
+  Qed.
+
+  Lemma Pos2N_inj_pow n m :
+    Pos.to_nat (n ^ m) = (Pos.to_nat n ^ Pos.to_nat m)%N.
+  Proof.
+    move: m n. apply: Pos.peano_ind.
+    - move=> n. rewrite Pos.pow_1_r expn1. reflexivity.
+    - move=> m IH n. rewrite Pos.pow_succ_r. rewrite Pos2Nat.inj_mul.
+      rewrite IH. rewrite -muln_mul. rewrite -expnS. rewrite -addn1.
+      rewrite addn_add. replace 1%N with (Pos.to_nat 1) by reflexivity.
+      rewrite -Pos2Nat.inj_add. rewrite Pos.add_1_r. reflexivity.
+  Qed.
+
 End PositiveLemmas.
 
 
@@ -874,6 +897,44 @@ Section ZLemmas.
     Z.of_nat (ssrnat.expn n m) = Z.pow (Z.of_nat n) (Z.of_nat m).
   Proof.
     rewrite expn_pow. exact: Nat2Z_inj_pow.
+  Qed.
+
+  Lemma Zpow_pos_mul_r n x y  :
+    Z.pow_pos n (x * y) = Z.pow_pos (Z.pow_pos n x) y.
+  Proof.
+    rewrite !Z.pow_pos_fold. rewrite Pos2Z.inj_mul.
+    rewrite (Z.pow_mul_r _ _ _ (Pos2Z.is_nonneg _) (Pos2Z.is_nonneg _)).
+    reflexivity.
+  Qed.
+
+  Lemma Zpow_pos_mul_l x y n :
+    Z.pow_pos (x * y) n = Z.pow_pos x n * Z.pow_pos y n.
+  Proof.
+    rewrite !Z.pow_pos_fold. rewrite Z.pow_mul_l. reflexivity.
+  Qed.
+
+  Lemma Z2Nat_le0 (n : Z) : n <= 0 -> Z.to_nat n = 0%N.
+  Proof. by case: n. Qed.
+
+  Lemma Z2Nat_inj_pow_pos (n : Z) (m : positive) :
+    0 <= n ->
+    Z.to_nat (Z.pow_pos n m) = (Z.to_nat n ^ Pos.to_nat m)%N.
+  Proof.
+    case: n => /=.
+    - move=> _. rewrite (exp0n (pos_to_nat_is_pos m)). rewrite Z.pow_pos_fold.
+      rewrite (Z.pow_0_l _ (Pos2Z.pos_is_pos m)). reflexivity.
+    - move=> n _. rewrite -Pos2Z.inj_pow_pos. rewrite Z2Nat.inj_pos.
+      exact: Pos2N_inj_pow.
+    - move=> n H. move: (Pos2Z.neg_is_neg n) => Hn. move: (Z.le_lt_trans _ _ _ H Hn).
+      by inversion 0.
+  Qed.
+
+  Lemma Z2Nat_inj_pow (n m : Z) :
+    0 <= n -> 0 < m ->
+    Z.to_nat (n ^ m) = (Z.to_nat n ^ Z.to_nat m)%N.
+  Proof.
+    case: m => //=. move=> m Hn Hm. apply: Z2Nat_inj_pow_pos.
+    assumption.
   Qed.
 
   Import ssrnat div.
