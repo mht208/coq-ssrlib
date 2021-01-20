@@ -341,6 +341,11 @@ Section SeqLemmas.
       reflexivity.
     Qed.
 
+    Lemma size_mapr es : size (mapr es) = size es.
+    Proof.
+      elim: es => [| e es IH] //=. rewrite mapr_cons. rewrite size_rcons. by rewrite IH.
+    Qed.
+
     Lemma mapr_rec_rev_map res es : mapr_rec res es = rev (map f es) ++ res.
     Proof.
       elim: es res => [| e es IH] res //=. rewrite IH. rewrite rev_cons.
