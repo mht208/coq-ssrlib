@@ -930,7 +930,7 @@ Section ZLemmas.
   Qed.
 
   Lemma Z2Nat_inj_pow (n m : Z) :
-    0 <= n -> 0 < m ->
+    0 <= n -> 0 <= m ->
     Z.to_nat (n ^ m) = (Z.to_nat n ^ Z.to_nat m)%N.
   Proof.
     case: m => //=. move=> m Hn Hm. apply: Z2Nat_inj_pow_pos.
