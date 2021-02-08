@@ -718,7 +718,7 @@ Section ZLemmas.
     apply: (Zmult_lt_reg_r _ _ 2).
     - done.
     - rewrite (Z.mul_comm n 2) (Z.mul_comm m 2).
-      move: (Zle_succ_l (2 * n)%Z (2 * m)%Z) => [] H1 _; apply: H1.
+      move: (Z.le_succ_l (2 * n)%Z (2 * m)%Z) => [] H1 _; apply: H1.
       exact: (Z.lt_le_incl _ _ H).
   Qed.
 
@@ -820,7 +820,7 @@ Section ZLemmas.
   Qed.
 
   Lemma ltn_ltn_addn_divn x y n :
-    0 <= x < n -> 0 <= y < n -> Zdiv (x + y) n = 0 \/ Zdiv (x + y) n = 1.
+    0 <= x < n -> 0 <= y < n -> Z.div (x + y) n = 0 \/ Z.div (x + y) n = 1.
   Proof.
     move=> [Hx1 Hx2] [Hy1 Hy2].
     move: (Z.le_lt_trans _ _ _ Hx1 Hx2) => Hn1.

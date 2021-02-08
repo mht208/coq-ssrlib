@@ -237,7 +237,7 @@ Module MakeTEnv (Import V : SsrOrderWithDefaultSucc) <: TEnv with Module V := V.
     Definition add (v : var) (ty : T) (E : t) : t := VM.add v ty E.
 
     Lemma mem_add_eq {E : t} {x : var} {ty : T} : mem x (add x ty E).
-    Proof. exact: VM.Lemmas.add_eq_b. Qed.
+    Proof. apply: VM.Lemmas.add_eq_b. reflexivity. Qed.
 
     Lemma mem_add_neq {E : t} {x y : var} {ty : T} :
       x != y -> mem x (add y ty E) = mem x E.
@@ -247,7 +247,7 @@ Module MakeTEnv (Import V : SsrOrderWithDefaultSucc) <: TEnv with Module V := V.
     Qed.
 
     Lemma find_add_eq {E : t} {x : var} {ty : T} : find x (add x ty E) = Some ty.
-    Proof. exact: VM.Lemmas.add_eq_o. Qed.
+    Proof. apply: VM.Lemmas.add_eq_o. reflexivity. Qed.
 
     Lemma find_add_neq {E : t} {x y : var} {ty : T} :
       x != y -> find x (add y ty E) = find x E.
@@ -640,7 +640,7 @@ Module MakeHEnv (V : SsrOrderWithDefaultSucc) <: HEnv with Module V := V.
     Qed.
 
     Lemma mem_add_eq {E : t} {x : var} {ty : T} : mem x (add x ty E).
-    Proof. exact: VM.Lemmas.add_eq_b. Qed.
+    Proof. apply: VM.Lemmas.add_eq_b. reflexivity. Qed.
 
     Lemma mem_prepend_vtype E x t :
       VM.mem x (map_prepend_vtype t (vmap E)) = VM.mem x (vmap E).
