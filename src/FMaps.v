@@ -1139,12 +1139,16 @@ Module Map2Map (M1 : FMapInterface.S) (M2 : FMapInterface.S).
     Variable fk_neq_some :
       forall (k1 k2 : M1.E.t) (fk1 fk2 : M2.E.t),
         ~ M1.E.eq k1 k2 -> fk k1 = Some fk1 -> fk k2 = Some fk2 -> ~ M2.E.eq fk1 fk2.
-    Variable fv : elt1 -> elt2.
+
+    Variable fv : M1.E.t -> elt1 -> elt2.
+    Variable fv_eq_key :
+      forall (k1 k2 : M1.E.t) (v : elt1),
+        M1.E.eq k1 k2 -> fv k1 v = fv k2 v.
 
     Definition f k1 v1 m2 :=
       match fk k1 with
       | None => m2
-      | Some k2 => M2.add k2 (fv v1) m2
+      | Some k2 => M2.add k2 (fv k1 v1) m2
       end.
     Definition map2map (m1 : M1.t elt1) : M2.t elt2 :=
       M1.fold f m1 (M2.empty elt2).
@@ -1154,7 +1158,7 @@ Module Map2Map (M1 : FMapInterface.S) (M2 : FMapInterface.S).
     Proof.
       move=> Heqk12 Heqv12 k. rewrite /f. dcase (fk k1). case.
       - move=> fk1 Hfk1. move: (fk_eq_some Heqk12 Hfk1). move=> [fk2 [Hfk2 Heqfk12]].
-        rewrite Hfk2. rewrite Heqfk12 Heqv12. reflexivity.
+        rewrite Hfk2. rewrite Heqfk12 Heqv12. rewrite (fv_eq_key _ Heqk12). reflexivity.
       - move=> Hfk1. rewrite (fk_eq_none Heqk12 Hfk1). reflexivity.
     Qed.
 
@@ -1163,7 +1167,8 @@ Module Map2Map (M1 : FMapInterface.S) (M2 : FMapInterface.S).
     Proof.
       move=> Heqk12 Heqv12 Heqm12 k. rewrite /f. dcase (fk k1). case.
       - move=> fk1 Hfk1. move: (fk_eq_some Heqk12 Hfk1). move=> [fk2 [Hfk2 Heqfk12]].
-        rewrite Hfk2. rewrite Heqfk12 Heqv12 Heqm12. reflexivity.
+        rewrite Hfk2. rewrite Heqfk12 Heqv12 Heqm12. rewrite (fv_eq_key _ Heqk12).
+        reflexivity.
       - move=> Hfk1. rewrite (fk_eq_none Heqk12 Hfk1) Heqm12. reflexivity.
     Qed.
 
@@ -1264,7 +1269,7 @@ Module Map2Map (M1 : FMapInterface.S) (M2 : FMapInterface.S).
 
     Lemma map2map_find_some (m1 : M1.t elt1) k1 fk1 v1 :
       fk k1 = Some fk1 -> M1.find k1 m1 = Some v1 ->
-      M2.find fk1 (map2map m1) = Some (fv v1).
+      M2.find fk1 (map2map m1) = Some (fv k1 v1).
     Proof.
       move: m1.
       eapply (@Lemmas1.OP.P.map_induction
@@ -1272,7 +1277,7 @@ Module Map2Map (M1 : FMapInterface.S) (M2 : FMapInterface.S).
                 (fun (m1 : M1.t elt1) =>
                    (fk k1 = Some fk1 ->
                     M1.find k1 m1 = Some v1 ->
-                    M2.find fk1 (map2map m1) = Some (fv v1)))).
+                    M2.find fk1 (map2map m1) = Some (fv k1 v1)))).
       - move=> m1 Hempty Hfk1 Hfind1. rewrite (Lemmas1.Empty_find _ Hempty) in Hfind1.
         discriminate.
       - move=> m1 m1' IH k2 v2 Hin2 Hadd2 Hfk1 Hfind1.
@@ -1281,7 +1286,7 @@ Module Map2Map (M1 : FMapInterface.S) (M2 : FMapInterface.S).
           rewrite /f Hfk2. rewrite (Lemmas2.F.add_eq_o _ _ (M2.E.eq_sym Heqfk12)).
           rewrite (Lemmas1.F.find_o _ Heqk12) in Hfind1. rewrite (Hadd2 k2) in Hfind1.
           rewrite (Lemmas1.add_eq_o _ _ (M1.E.eq_refl k2))in Hfind1.
-          case: Hfind1 => ->; reflexivity.
+          case: Hfind1 => ->. rewrite (fv_eq_key _ Heqk12). reflexivity.
         + move=> Hneqk12. rewrite (Hadd2 k1) in Hfind1.
           have Hneqk21: ~ M1.E.eq k2 k1 by
               move=> H; apply: Hneqk12; apply: M1.E.eq_sym.
