@@ -38,7 +38,7 @@ Section HList.
   | Hnil : hlist nil
   | Hcons A E : T A -> hlist E -> hlist (A :: E).
 
-  Definition hnil : hlist [] := Hnil.
+  Definition hnil : hlist nil := Hnil.
 
 
 
