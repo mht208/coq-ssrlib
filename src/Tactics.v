@@ -72,6 +72,43 @@ Ltac applyb H :=
     apply/negP => H0; apply: (negP H); move: H0
   end.
 
+Ltac iffb_tac :=
+  match goal with
+  | H : is_true ?b1 <-> is_true ?b2 |-
+      is_true (~~ ?b1) <-> is_true (~~ ?b2) =>
+      let H1 := fresh in
+      let H2 := fresh in
+      let Hs := fresh in
+      let He := fresh in
+      (move: H => [H1 H2]); (split=> He);
+      [ apply/negP=> Hs; apply/idP: He; exact: (H2 Hs)
+      | apply/negP=> Hs; apply/idP: He; exact: (H1 Hs) ]
+  | H1 : is_true ?b11 <-> is_true ?b12, H2 : is_true ?b21 <-> is_true ?b22 |-
+      is_true (?b11 && ?b21) <-> is_true (?b12 && ?b22) =>
+      let H1a := fresh in
+      let H1b := fresh in
+      let H2a := fresh in
+      let H2b := fresh in
+      let He1 := fresh in
+      let He2 := fresh in
+      (move: H1 H2 => [H1a H1b] [H2a H2b]); (split => /andP [He1 He2]);
+      [ by rewrite (H1a He1) (H2a He2)
+      | by rewrite (H1b He1) (H2b He2) ]
+  | H1 : is_true (?b11) <-> is_true ?b12, H2 : is_true ?b21 <-> is_true ?b22 |-
+      is_true (?b11 || ?b21) <-> is_true (?b12 || ?b22) =>
+      let H1a := fresh in
+      let H1b := fresh in
+      let H2a := fresh in
+      let H2b := fresh in
+      let He := fresh in
+      (move: H1 H2 => [H1a H1b] [H2a H2b]); (split => /orP [] He);
+      [ by rewrite (H1a He)
+      | by rewrite (H2a He) orbT
+      | by rewrite (H1b He)
+      | by rewrite (H2b He) orbT ]
+  end.
+
+
 Ltac sethave e1 e2 := set e1 := e2; have: e1 = e2 by reflexivity.
 
 Ltac caseb_hyps :=
@@ -151,7 +188,7 @@ Ltac t_auto_hook := fail.
 
 Ltac t_auto_first_with f t :=
   (f unit); intros;
-  repeat (case_hyps; t_clear || subst_all || t_decide || (t unit)).
+  repeat (case_hyps; t_clear || subst_all || iffb_tac || t_decide || (t unit)).
 
 Ltac t_auto_with t := t_auto_first_with ltac:(fun _ => t_auto_first) t.
 
