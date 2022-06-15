@@ -1,4 +1,5 @@
 -R src ssrlib
+src/Compatibility.v
 src/Types.v
 src/SsrOrder.v
 src/Tactics.v

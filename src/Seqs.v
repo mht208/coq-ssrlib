@@ -1,11 +1,13 @@
 
 From Coq Require Import OrderedType.
 From mathcomp Require Import ssreflect ssrbool ssrnat seq eqtype ssrfun.
-From ssrlib Require Import SsrOrder.
+From ssrlib Require Import SsrOrder Compatibility.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
+
+(** Lemmas for sequences of Type *)
 
 Section SeqLemmas.
 
@@ -184,82 +186,6 @@ Section SeqLemmas.
     apply: False_ind. exact: (List.in_nil H1).
   Qed.
 
-  (* Tail-recursive flatten *)
-
-  Fixpoint tflatten_rec res (ss : seq (seq A)) :=
-    match ss with
-    | [::] => res
-    | hd::tl => tflatten_rec (catrev hd res) tl
-    end.
-
-  Definition tflatten ss := tflatten_rec [::] ss.
-
-  Lemma tflatten_rec_rcons pre ss s :
-    tflatten_rec pre (rcons ss s) = rev s ++ tflatten_rec pre ss.
-  Proof.
-    elim: ss pre => [| hd tl IH] //=. exact: catrevE.
-  Qed.
-
-  Lemma tflatten_rcons ss s :
-    tflatten (rcons ss s) = rev s ++ tflatten ss.
-  Proof. exact: tflatten_rec_rcons. Qed.
-
-  Lemma tflatten_rec_flatten pre ss :
-    tflatten_rec pre ss = rev (flatten ss) ++ pre.
-  Proof.
-    move: ss. apply: last_ind => //=. move=> ss s IH.
-    rewrite flatten_rcons. rewrite rev_cat. rewrite -catA. rewrite -IH.
-    exact: tflatten_rec_rcons.
-  Qed.
-
-  Lemma tflatten_flatten ss :
-    tflatten ss = rev (flatten ss).
-  Proof.
-    rewrite /tflatten. rewrite tflatten_rec_flatten. rewrite cats0. reflexivity.
-  Qed.
-
-  Lemma tflatten_rec_expand pre ss :
-    tflatten_rec pre ss = tflatten_rec [::] ss ++ pre.
-  Proof.
-    move: ss pre. apply: last_ind => //=.
-    move=> ss s IH pre. rewrite tflatten_rec_rcons. rewrite IH.
-    rewrite tflatten_rec_rcons. rewrite catA. reflexivity.
-  Qed.
-
-  Lemma tflatten_rec_cons pre s ss :
-    tflatten_rec pre (s::ss) = tflatten_rec (catrev s pre) ss.
-  Proof. reflexivity. Qed.
-
-  Lemma tflatten_cons s ss :
-    tflatten (s::ss) = tflatten ss ++ (rev s).
-  Proof.
-    rewrite /tflatten tflatten_rec_cons. rewrite tflatten_rec_expand.
-    reflexivity.
-  Qed.
-
-  Lemma tflatten_rec_cat pre ss1 ss2 :
-    tflatten_rec pre (ss1 ++ ss2) = tflatten_rec (tflatten_rec pre ss1) ss2.
-  Proof.
-    rewrite tflatten_rec_flatten. rewrite flatten_cat. rewrite rev_cat.
-    rewrite -catA. rewrite -tflatten_rec_flatten. rewrite -tflatten_rec_flatten.
-    reflexivity.
-  Qed.
-
-  Lemma tflattens_cat ss1 ss2 :
-    tflatten (ss1 ++ ss2) = tflatten ss2 ++ tflatten ss1.
-  Proof.
-    rewrite /tflatten. rewrite tflatten_rec_cat. rewrite tflatten_rec_expand.
-    reflexivity.
-  Qed.
-
-  Lemma filter_tflatten ss (p : pred A) :
-    filter p (tflatten ss) = tflatten [seq filter p i | i <- ss].
-  Proof.
-    rewrite (tflatten_flatten [seq filter p i | i <- ss]).
-    rewrite -filter_flatten. rewrite -filter_rev. rewrite -tflatten_flatten.
-    reflexivity.
-  Qed.
-
   Lemma split_cons (x : A * B) (s : seq (A * B)) :
     split (x::s) = (x.1::(split s).1, x.2::(split s).2).
   Proof.
@@ -295,72 +221,98 @@ Section SeqLemmas.
     rewrite !rev_cons. reflexivity.
   Qed.
 
-  (* Tail-recursive map *)
+  Lemma catrevs0 (s : seq A) : catrev s [::] = rev s.
+  Proof. by rewrite catrevE cats0. Qed.
 
-  Section MapRev.
-
-    Variable f : A -> B.
-
-    Fixpoint mapr_rec res es :=
-      match es with
-      | [::] => res
-      | hd::tl => mapr_rec (f hd::res) tl
-      end.
-
-    Definition mapr es := mapr_rec [::] es.
-
-    Lemma mapr_rec_cons res e es : mapr_rec res (e::es) = mapr_rec (f e::res) es.
-    Proof. reflexivity. Qed.
-
-    Lemma mapr_rec_split res es : mapr_rec res es = mapr_rec [::] es ++ res.
-    Proof.
-      elim: es res => [| e es IH] //= res. rewrite (IH (f e::res)).
-      rewrite (IH [:: f e]). rewrite -cat_rcons. rewrite -cats1. reflexivity.
-    Qed.
-
-    Lemma mapr_cons e es : mapr (e::es) = rcons (mapr es) (f e).
-    Proof.
-      rewrite /mapr. rewrite mapr_rec_cons. rewrite mapr_rec_split. rewrite -cats1.
-      reflexivity.
-    Qed.
-
-    Lemma mapr_rec_rcons res es e :
-      mapr_rec res (rcons es e) = f e :: mapr_rec res es.
-    Proof. by elim: es res e => [| e1 es IH] //=. Qed.
-
-    Lemma mapr_rcons es e : mapr (rcons es e) = f e :: mapr es.
-    Proof. exact: mapr_rec_rcons. Qed.
-
-    Lemma mapr_rec_cat res es1 es2 :
-      mapr_rec res (es1 ++ es2) = mapr_rec (mapr_rec res es1) es2.
-    Proof. by elim: es1 res es2 => [| e1 es1 IH] res es2 //=. Qed.
-
-    Lemma mapr_cat es1 es2 : mapr (es1 ++ es2) = mapr es2 ++ mapr es1.
-    Proof.
-      rewrite /mapr. rewrite mapr_rec_cat. rewrite mapr_rec_split.
-      reflexivity.
-    Qed.
-
-    Lemma size_mapr es : size (mapr es) = size es.
-    Proof.
-      elim: es => [| e es IH] //=. rewrite mapr_cons. rewrite size_rcons. by rewrite IH.
-    Qed.
-
-    Lemma mapr_rec_rev_map res es : mapr_rec res es = rev (map f es) ++ res.
-    Proof.
-      elim: es res => [| e es IH] res //=. rewrite IH. rewrite rev_cons.
-      rewrite cat_rcons. reflexivity.
-    Qed.
-
-    Lemma mapr_rev_map es : mapr es = rev (map f es).
-    Proof. rewrite /mapr. rewrite mapr_rec_rev_map. by rewrite cats0. Qed.
-
-    Lemma mapr_map_rev es : mapr es = map f (rev es).
-    Proof. rewrite map_rev. exact: mapr_rev_map. Qed.
-
-  End MapRev.
+  Lemma catrev0s (s : seq A) : catrev [::] s = s.
+  Proof. reflexivity. Qed.
 
 End SeqLemmas.
+
+
+(** Lemmas for foldl and folr *)
+
+Section Fold.
+
+  Context {A : Type} {B : Type} {R : relation B} {E : Equivalence R}.
+
+  Context {f : B -> A -> B}.
+
+  Context {g : A -> B -> B}.
+
+  Context {Rf_swap : forall (a1 a2 : A) (b : B),
+              R (f (f b a1) a2) (f (f b a2) a1)}.
+
+  Context {R_foldl : forall (b1 b2 : B) (ls : seq A),
+              R b1 b2 -> R (foldl f b1 ls) (foldl f b2 ls)}.
+
+  Lemma foldl_fold_left a s : foldl f a s = fold_left f s a.
+  Proof. by elim: s a => [| x s IH] a //=. Qed.
+
+  Lemma foldr_fold_right a s : foldr g a s = fold_right g a s.
+  Proof. reflexivity. Qed.
+
+  Lemma foldl_map {C : Type} (h : C -> A) r s :
+    foldl f r (map h s) = foldl (fun x y => f x (h y)) r s.
+  Proof. by elim: s r => [| x s IH] r //=. Qed.
+
+  Lemma foldl_cons (hd : A) (tl : seq A) (r : B) :
+    R (foldl f r (hd::tl)) (f (foldl f r tl) hd).
+  Proof.
+    elim: tl hd r => /=.
+    - move=> hd r. reflexivity.
+    - move=> tl_hd tl_tl IH hd r. rewrite -(IH hd (f r tl_hd)).
+      move: (Rf_swap tl_hd hd r) => H. rewrite (R_foldl _ H). reflexivity.
+  Qed.
+
+  Lemma flodr_cons r x s : foldr g r (x::s) = g x (foldr g r s).
+  Proof. reflexivity. Qed.
+
+  Lemma foldr_rev r s : foldr g r (rev s) = foldl (fun r x => g x r) r s.
+  Proof.
+    elim: s r => [| x s IH] r //=. rewrite rev_cons foldr_rcons. rewrite IH.
+    reflexivity.
+  Qed.
+
+End Fold.
+
+
+(** Tail-recursive flatten, the result is the reverse of flatten *)
+
+Section TailRecursiveFlatten.
+
+  Context {A : Type}.
+
+  Definition tflatten (ss : seq (seq A)) := foldl (fun r s => catrev s r) [::] ss.
+
+  Lemma tflatten_flatten ss : tflatten ss = rev (flatten ss).
+  Proof.
+    rewrite /tflatten. rewrite -(cats0 (rev (flatten ss))).
+    move: [::]. move: ss. apply: last_ind => [| ss x IH] l //=.
+    rewrite flatten_rcons. rewrite rev_cat -catA. rewrite -IH.
+    rewrite foldl_rcons. rewrite catrevE. reflexivity.
+  Qed.
+
+  Lemma tflatten_cons s ss : tflatten (s::ss) = (tflatten ss) ++ (rev s).
+  Proof. rewrite !tflatten_flatten /=. rewrite rev_cat. reflexivity. Qed.
+
+  Lemma tflatten_rcons ss s :
+    tflatten (rcons ss s) = rev s ++ tflatten ss.
+  Proof. rewrite !tflatten_flatten. rewrite flatten_rcons rev_cat. reflexivity. Qed.
+
+  Lemma tflattens_cat ss1 ss2 :
+    tflatten (ss1 ++ ss2) = tflatten ss2 ++ tflatten ss1.
+  Proof. rewrite !tflatten_flatten. rewrite flatten_cat rev_cat. reflexivity. Qed.
+
+  Lemma filter_tflatten ss (p : pred A) :
+    filter p (tflatten ss) = tflatten [seq filter p i | i <- ss].
+  Proof.
+    rewrite (tflatten_flatten [seq filter p i | i <- ss]).
+    rewrite -filter_flatten. rewrite -filter_rev. rewrite -tflatten_flatten.
+    reflexivity.
+  Qed.
+
+End TailRecursiveFlatten.
 
 Lemma map_tflatten {A B : Type} (f : A -> B) ss :
   map f (tflatten ss) = tflatten (map (map f) ss).
@@ -368,6 +320,75 @@ Proof.
   rewrite (tflatten_flatten (map (map f) ss)). rewrite -map_flatten.
   rewrite -map_rev. rewrite -tflatten_flatten. reflexivity.
 Qed.
+
+
+(* Tail-recursive map, the result is the reverse of map *)
+
+Section MapRev.
+
+  Context {A : Type} {B : Type}.
+
+  Variable f : A -> B.
+
+  Fixpoint mapr_rec res es :=
+    match es with
+    | [::] => res
+    | hd::tl => mapr_rec (f hd::res) tl
+    end.
+
+  Definition mapr es := mapr_rec [::] es.
+
+  Lemma mapr_rec_rev_map res es : mapr_rec res es = rev (map f es) ++ res.
+  Proof.
+    elim: es res => [| e es IH] res //=. rewrite IH. rewrite rev_cons.
+    rewrite cat_rcons. reflexivity.
+  Qed.
+
+  Lemma mapr_rev_map es : mapr es = rev (map f es).
+  Proof. rewrite /mapr. rewrite mapr_rec_rev_map. by rewrite cats0. Qed.
+
+  Lemma mapr_map es : mapr es = map f (rev es).
+  Proof. rewrite map_rev. exact: mapr_rev_map. Qed.
+
+  Lemma mapr_rec_cons res e es : mapr_rec res (e::es) = mapr_rec (f e::res) es.
+  Proof. reflexivity. Qed.
+
+  Lemma mapr_rec_split res es : mapr_rec res es = mapr_rec [::] es ++ res.
+  Proof.
+    elim: es res => [| e es IH] //= res. rewrite (IH (f e::res)).
+    rewrite (IH [:: f e]). rewrite -cat_rcons. rewrite -cats1. reflexivity.
+  Qed.
+
+  Lemma mapr_cons e es : mapr (e::es) = rcons (mapr es) (f e).
+  Proof.
+    rewrite !mapr_map. rewrite rev_cons map_rcons. reflexivity.
+  Qed.
+
+  Lemma mapr_rec_rcons res es e :
+    mapr_rec res (rcons es e) = f e :: mapr_rec res es.
+  Proof. by elim: es res e => [| e1 es IH] //=. Qed.
+
+  Lemma mapr_rcons es e : mapr (rcons es e) = f e :: mapr es.
+  Proof. exact: mapr_rec_rcons. Qed.
+
+  Lemma mapr_rec_cat res es1 es2 :
+    mapr_rec res (es1 ++ es2) = mapr_rec (mapr_rec res es1) es2.
+  Proof. by elim: es1 res es2 => [| e1 es1 IH] res es2 //=. Qed.
+
+  Lemma mapr_cat es1 es2 : mapr (es1 ++ es2) = mapr es2 ++ mapr es1.
+  Proof.
+    rewrite !mapr_map. rewrite rev_cat map_cat. reflexivity.
+  Qed.
+
+  Lemma size_mapr es : size (mapr es) = size es.
+  Proof.
+    rewrite mapr_map. rewrite size_map size_rev. reflexivity.
+  Qed.
+
+End MapRev.
+
+
+(** Lemmas for sequences of eqType *)
 
 Section EqSeqLemmas.
 
@@ -456,63 +477,23 @@ Section EqSeqLemmas.
   Qed.
 
 
-  (* Tail recursive filter function *)
+  (* Tail-recursive filter function, the result is the reverse of filter *)
 
   Variable p : pred A.
 
-  Fixpoint tfilter_rec (res es : seq A) :=
-    match es with
-    | [::] => res
-    | hd::tl => if p hd
-                then tfilter_rec (hd::res) tl
-                else tfilter_rec res tl
-    end.
+  Definition tfilter es := foldl (fun r x => if p x then x::r else r) [::] es.
 
-  Definition tfilter es := tfilter_rec [::] es.
-
-  Lemma tfilter_rec_filter res es :
-    tfilter_rec res es = filter p (rev es) ++ res.
+  Lemma tfilter_filter es : tfilter es = filter p (rev es).
   Proof.
-    rewrite filter_rev. elim: es res => [| e es IH] res //=. case: (p e).
+    rewrite -(cats0 (filter p (rev es))). rewrite /tfilter. rewrite filter_rev.
+    move: [::]. elim: es => [| e es IH] r //=. case: (p e).
     - rewrite rev_cons. rewrite cat_rcons. rewrite -IH. reflexivity.
     - exact: IH.
   Qed.
 
-  Lemma tfilter_filter es : tfilter es = filter p (rev es).
+  Lemma tfilter_cat es1 es2 : tfilter (es1 ++ es2) = tfilter es2 ++ tfilter es1.
   Proof.
-    rewrite /tfilter. rewrite tfilter_rec_filter. rewrite cats0. reflexivity.
-  Qed.
-
-  Lemma tfilter_rec_expand res es :
-    tfilter_rec res es = tfilter_rec [::] es ++ res.
-  Proof.
-    rewrite !tfilter_rec_filter. rewrite !filter_rev. rewrite cats0.
-    reflexivity.
-  Qed.
-
-  Lemma tfilter_rec_cat res es1 es2 :
-    tfilter_rec res (es1 ++ es2) =
-    tfilter_rec (tfilter_rec res es1) es2.
-  Proof.
-    rewrite !tfilter_rec_filter. rewrite !filter_rev.
-    rewrite filter_cat. rewrite rev_cat. rewrite catA. reflexivity.
-  Qed.
-
-  Lemma tfilter_cat es1 es2 :
-    tfilter (es1 ++ es2) = tfilter es2 ++ tfilter es1.
-  Proof.
-    rewrite /tfilter. rewrite tfilter_rec_cat. rewrite tfilter_rec_expand.
-    reflexivity.
-  Qed.
-
-  Lemma tfilter_rec_rcons res es e :
-    tfilter_rec res (rcons es e) = if p e
-                                   then e::(tfilter_rec res es)
-                                   else tfilter_rec res es.
-  Proof.
-    rewrite !tfilter_rec_filter. rewrite !filter_rev filter_rcons. case: (p e).
-    - rewrite rev_rcons. rewrite cat_cons. reflexivity.
-    - reflexivity.
+    rewrite !tfilter_filter. rewrite rev_cat filter_cat. reflexivity.
   Qed.
 
   Lemma tfilter_rcons es e :
@@ -520,22 +501,15 @@ Section EqSeqLemmas.
                            then e::(tfilter es)
                            else tfilter es.
   Proof.
-    rewrite /tfilter. rewrite tfilter_rec_rcons. reflexivity.
+    rewrite !tfilter_filter. rewrite rev_rcons /=. reflexivity.
   Qed.
-
-  Lemma tfilter_rec_cons res e es :
-    tfilter_rec res (e::es) = if p e
-                              then tfilter_rec (e::res) es
-                              else tfilter_rec res es.
-  Proof. reflexivity. Qed.
 
   Lemma tfilter_cons e es :
     tfilter (e::es) = if p e
                       then rcons (tfilter es) e
                       else tfilter es.
   Proof.
-    rewrite /tfilter. rewrite tfilter_rec_cons. rewrite tfilter_rec_expand.
-    rewrite cats1. reflexivity.
+    rewrite !tfilter_filter. rewrite rev_cons filter_rcons. reflexivity.
   Qed.
 
   Lemma tfilter_nil : tfilter [::] = [::].
@@ -543,11 +517,123 @@ Section EqSeqLemmas.
 
 End EqSeqLemmas.
 
-Section UnzipLemmas.
 
-  Variable A : eqType.
+(* Tail-recursive zip *)
 
-  Variable B : eqType.
+Section TailRecursiveZip.
+
+  Context {A : Type} {B : Type}.
+
+  Fixpoint zipr_rec res_rev (xs : seq A) (ys : seq B) : seq (A * B) :=
+    match xs, ys with
+    | _, [::]
+    | [::], _ => res_rev
+    | x::xs, y::ys => zipr_rec ((x, y)::res_rev) xs ys
+    end.
+
+  Definition zipr (xs : seq A) (ys : seq B) : seq (A * B) := zipr_rec [::] xs ys.
+
+  Definition unzip1r := mapr (@fst A B).
+
+  Definition unzip2r := mapr (@snd A B).
+
+  Lemma zipr_rec_cons r x xs y ys : zipr_rec r (x::xs) (y::ys) = zipr_rec ((x, y)::r) xs ys.
+  Proof. reflexivity. Qed.
+
+  Lemma zipr_zip xs ys : zipr xs ys = rev (zip xs ys).
+  Proof.
+    rewrite /zipr. rewrite -(cats0 (rev (zip xs ys))). move: [::].
+    elim: xs ys => [| x xs IHx] [| y ys] r //=. rewrite IHx. rewrite rev_cons.
+    rewrite cat_rcons. reflexivity.
+  Qed.
+
+  Lemma unzip1r_unzip1 s : unzip1r s = rev (unzip1 s).
+  Proof. rewrite /unzip1r. rewrite mapr_map map_rev. reflexivity. Qed.
+
+  Lemma unzip2r_unzip2 s : unzip2r s = rev (unzip2 s).
+  Proof. rewrite /unzip2r. rewrite mapr_map map_rev. reflexivity. Qed.
+
+  Lemma zipr_cons x xs y ys : zipr (x::xs) (y::ys) = rcons (zipr xs ys) (x, y).
+  Proof. rewrite !zipr_zip /=. rewrite rev_cons. reflexivity. Qed.
+
+  Lemma zipr_rcons xs x ys y :
+    size xs = size ys -> zipr (rcons xs x) (rcons ys y) = (x, y)::(zipr xs ys).
+  Proof.
+    move=> Hs. rewrite !zipr_zip. rewrite (zip_rcons _ _ Hs).
+    rewrite rev_rcons. reflexivity.
+  Qed.
+
+  Lemma zipr_cat xs1 xs2 ys1 ys2 :
+    size xs1 = size ys1 -> zipr (xs1 ++ xs2) (ys1 ++ ys2) = zipr xs2 ys2 ++ zipr xs1 ys1.
+  Proof.
+    move=> Hs. rewrite !zipr_zip. rewrite (zip_cat _ _ Hs). rewrite rev_cat.
+    reflexivity.
+  Qed.
+
+  Lemma rev_zipr xs ys : size xs = size ys -> rev (zipr xs ys) = zipr (rev xs) (rev ys).
+  Proof.
+    move=> Hs. rewrite !zipr_zip. rewrite (rev_zip Hs). reflexivity.
+  Qed.
+
+  Lemma unzip1_zipr s t : size s <= size t -> unzip1 (zipr s t) = rev s.
+  Proof.
+    rewrite zipr_zip => Hs. move: (unzip1_zip Hs). rewrite /unzip1.
+    rewrite map_rev. move=> ->. reflexivity.
+  Qed.
+
+  Lemma unzip2_zipr s t : size t <= size s -> unzip2 (zipr s t) = rev t.
+  Proof.
+    rewrite zipr_zip => Hs. move: (unzip2_zip Hs). rewrite /unzip2.
+    rewrite map_rev. move=> ->. reflexivity.
+  Qed.
+
+  Lemma unzip1r_zipr s t : size s <= size t -> unzip1r (zipr s t) = s.
+  Proof.
+    rewrite unzip1r_unzip1 => Hs. rewrite (unzip1_zipr Hs). by rewrite revK.
+  Qed.
+
+  Lemma unzip2r_zipr s t : size t <= size s -> unzip2r (zipr s t) = t.
+  Proof.
+    rewrite unzip2r_unzip2 => Hs. rewrite (unzip2_zipr Hs). by rewrite revK.
+  Qed.
+
+  Lemma size1_zipr s t : size s <= size t -> size (zipr s t) = size s.
+  Proof.
+    rewrite zipr_zip => Hs. rewrite size_rev. rewrite (size1_zip Hs). reflexivity.
+  Qed.
+
+  Lemma size2_zipr s t : size t <= size s -> size (zipr s t) = size t.
+  Proof.
+    rewrite zipr_zip => Hs. rewrite size_rev. rewrite (size2_zip Hs). reflexivity.
+  Qed.
+
+  Lemma size_zipr xs ys : size (zipr xs ys) = minn (size xs) (size ys).
+  Proof. rewrite zipr_zip size_rev size_zip. reflexivity. Qed.
+
+  Lemma nth_zipr x y s t i :
+    size s = size t -> nth (x, y) (zipr s t) i = (nth x (rev s) i, nth y (rev t) i).
+  Proof.
+    move=> Hs. rewrite zipr_zip. rewrite (rev_zip Hs). rewrite nth_zip; first reflexivity.
+    rewrite !size_rev; assumption.
+  Qed.
+
+  Lemma zipr_map {C : eqType} (f : C -> A) (g : C -> B) (s : seq C) :
+    zipr (map f s) (map g s) = mapr (fun x => (f x, g x)) s.
+  Proof. rewrite zipr_zip. rewrite zip_map mapr_map map_rev. reflexivity. Qed.
+
+  Lemma zipr_mapr {C : eqType} (f : C -> A) (g : C -> B) (s : seq C) :
+    zipr (mapr f s) (mapr g s) = map (fun x => (f x, g x)) s.
+  Proof.
+    rewrite zipr_zip. rewrite !mapr_map !map_rev.
+    rewrite rev_zip; last by rewrite !size_rev !size_map. rewrite !revK.
+    rewrite zip_map. reflexivity.
+  Qed.
+
+End TailRecursiveZip.
+
+Section ZipLemmas.
+
+  Context {A : eqType} {B : eqType}.
 
   Lemma unzip1_l_nil (pairs : seq (A * B)) :
     (unzip1 pairs == [::]) = (pairs == [::]).
@@ -557,7 +643,43 @@ Section UnzipLemmas.
     (unzip2 pairs == [::]) = (pairs == [::]).
   Proof. by rewrite /unzip2 map_l_nil. Qed.
 
-End UnzipLemmas.
+End ZipLemmas.
+
+
+Section Map2.
+
+  Context {S T U : Type}.
+
+  Context (f : S -> T -> U).
+
+  (* This function is tail-recursive. *)
+  Definition map2 (s : seq S) (t : seq T) : seq U :=
+    mapr (fun '(a, b) => f a b) (zipr s t).
+
+  Lemma map2s0 s : map2 s [::] = [::].
+  Proof. by case: s. Qed.
+
+  Lemma map20s t : map2 [::] t = [::].
+  Proof. by case: t. Qed.
+
+  Lemma map2_cons s ss t tt : map2 (s::ss) (t::tt) = (f s t)::(map2 ss tt).
+  Proof. rewrite /map2. rewrite zipr_cons mapr_rcons. reflexivity. Qed.
+
+  Lemma map2_rcons ss s tt t :
+    size ss = size tt ->
+    map2 (rcons ss s) (rcons tt t) = rcons (map2 ss tt) (f s t).
+  Proof.
+    move=> Hs. rewrite /map2 (zipr_rcons _ _ Hs). rewrite mapr_cons. reflexivity.
+  Qed.
+
+  Lemma map2_cat ss1 ss2 tt1 tt2 :
+    size ss1 = size tt1 ->
+    map2 (ss1 ++ ss2) (tt1 ++ tt2) = (map2 ss1 tt1) ++ (map2 ss2 tt2).
+  Proof.
+    move=> Hs. rewrite /map2. rewrite (zipr_cat _ _ Hs). rewrite mapr_cat. reflexivity.
+  Qed.
+
+End Map2.
 
 Section PrefixOf.
 
@@ -603,6 +725,14 @@ Section PrefixOf.
   Proof.
     elim: s1 s2 x => [| hd1 tl1 IH1] [| hd2 tl2] x //=.
     move=> /andP [/eqP -> Htl]. by rewrite eqxx (IH1 _ _ Htl).
+  Qed.
+
+  Lemma prefix_of_cat s1 s2 s3 :
+    prefix_of s1 s2 -> prefix_of s1 (s2 ++ s3).
+  Proof.
+    move: s3 s2. apply: last_ind => [| s3 x IH] s2 Hpre12 //=.
+    - rewrite cats0. assumption.
+    - rewrite -rcons_cat. apply: prefix_of_rcons. exact: (IH _ Hpre12).
   Qed.
 
   Lemma prefix_of_belast x s1 s2 :
@@ -656,28 +786,63 @@ Section PrefixOf.
 
 End PrefixOf.
 
-Section Fold.
 
-  Context {A : Type} {B : Type} {R : relation B} {E : Equivalence R}.
+Section ExtSeq.
 
-  Context {f : B -> A -> B}.
+  Context {A : Type} (a : A).
+  (* Extend a sequence *)
+  Fixpoint extseq (xs ys : seq A) :=
+    match xs, ys with
+    | _, [::] => [::]
+    | [::], _::ys => a::(extseq xs ys)
+    | x::xs, y::ys => x::(extseq xs ys)
+    end.
 
-  Context {Rf_swap : forall (a1 a2 : A) (b : B),
-              R (f (f b a1) a2) (f (f b a2) a1)}.
+  Lemma extseq_cons x xs y ys :
+    extseq (x::xs) (y::ys) = x::(extseq xs ys).
+  Proof. reflexivity. Qed.
 
-  Context {R_foldl : forall (b1 b2 : B) (ls : seq A),
-              R b1 b2 -> R (foldl f b1 ls) (foldl f b2 ls)}.
+  Lemma extseqs0 xs : extseq xs [::] = [::].
+  Proof. by elim: xs => [| x xs IH] //=. Qed.
 
-  Lemma foldl_cons (hd : A) (tl : seq A) (r : B) :
-    R (foldl f r (hd::tl)) (f (foldl f r tl) hd).
+  Lemma extseq0s ys : extseq [::] ys = nseq (size ys) a.
   Proof.
-    elim: tl hd r => /=.
-    - move=> hd r. reflexivity.
-    - move=> tl_hd tl_tl IH hd r. rewrite -(IH hd (f r tl_hd)).
-      move: (Rf_swap tl_hd hd r) => H. rewrite (R_foldl _ H). reflexivity.
+    elim: ys => [| y ys IH] //=. rewrite IH. reflexivity.
   Qed.
 
-End Fold.
+  Lemma extseq_eqsize xs ys : size xs = size ys -> extseq xs ys = xs.
+  Proof.
+    elim: xs ys => [| x xs IH] [| y ys] //= Hs. move: (eq_add_S _ _ Hs) => {}Hs.
+    rewrite (IH _ Hs). reflexivity.
+  Qed.
+
+  Lemma extseq_lesize xs ys :
+    size xs <= size ys -> extseq xs ys = xs ++ nseq (size ys - size xs) a.
+  Proof.
+    elim: xs ys => [| x xs IH] [| y ys] //=.
+    - move=> _. rewrite extseq0s. reflexivity.
+    - move=> Hs. move: (ltnSE Hs) => {}Hs. rewrite subSS. rewrite (IH _ Hs).
+      reflexivity.
+  Qed.
+
+  Lemma extseq_gesize xs ys : size ys <= size xs -> extseq xs ys = take (size ys) xs.
+  Proof.
+    elim: xs ys => [| x xs IH] [| y ys] //=. move=> Hs. move: (ltnSE Hs) => {}Hs.
+    rewrite (IH _ Hs). reflexivity.
+  Qed.
+
+  Lemma size_extseq xs ys : size (extseq xs ys) = size ys.
+  Proof.
+    case Hseq: (size xs == size ys).
+    - rewrite (extseq_eqsize (eqP Hseq)). exact: (eqP Hseq).
+    - case/orP: (leq_total (size xs) (size ys)) => Hs.
+      + rewrite (extseq_lesize Hs). rewrite seq.size_cat size_nseq.
+        rewrite (subnKC Hs). reflexivity.
+      + rewrite (extseq_gesize Hs). rewrite size_take. rewrite leq_eqVlt in Hs.
+        rewrite eq_sym in Hseq. rewrite Hseq /= in Hs. rewrite Hs. reflexivity.
+  Qed.
+
+End ExtSeq.
 
 Module SeqOrderMinimal (X : SsrOrder) <: SsrOrderMinimal.
   Definition t := seq_eqType X.T.

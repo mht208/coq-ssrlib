@@ -1,7 +1,7 @@
 
 From Coq Require Import Arith ZArith OrderedType.
-From mathcomp Require Import ssreflect ssrbool ssrnat ssralg ssrfun choice eqtype.
-From ssrlib Require Import Types SsrOrder Nats.
+From mathcomp Require Import ssreflect eqtype ssrbool ssrnat ssralg ssrfun choice.
+From ssrlib Require Import Types SsrOrder Nats Compatibility.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -1254,15 +1254,14 @@ Section EqualityModulo.
     exact (Z.mul_reg_l _ _ z Hz H).
   Qed.
 
-  Require Import Nsatz.
+  Require Import Lia.
 
   Lemma modulo_plus x y a b p :
     modulo x a p -> modulo y b p ->
     modulo (x + y) (a + b) p.
   Proof.
     move=> [k1 H1] [k2 H2].
-    exists (k1 + k2).
-    nsatz.
+    exists (k1 + k2). lia.
   Qed.
 
 End EqualityModulo.
@@ -1283,3 +1282,183 @@ Ltac modulo_inj_pow2add1 H :=
     discriminate |
     apply H with 1%Z; first [assumption | reflexivity]
   ].
+
+From mathcomp Require Import seq.
+From ssrlib Require Import Seqs.
+
+(** Apply addition and multiplication to a list of integers. *)
+Section ZaddsZmuls.
+
+  Local Open Scope Z_scope.
+
+  Local Notation seq := seq.seq.
+
+  Definition zadds (zs : seq Z) : Z := foldl Z.add 0 zs.
+
+  Definition zmuls (xs ys : seq Z) : seq Z := map2 Z.mul xs ys.
+
+  Lemma zadds0 : zadds nil = 0.
+  Proof. done. Qed.
+
+  Lemma zadds_cons m ms : zadds (m::ms) = m + zadds ms.
+  Proof.
+    rewrite /zadds foldl_cons.
+    - rewrite Z.add_comm. reflexivity.
+    - move=> x y z. rewrite -Z.add_assoc (Z.add_comm x y) Z.add_assoc. reflexivity.
+    - move=> x y zs => ->. reflexivity.
+  Qed.
+
+  Lemma zadds_rcons ms m : zadds (rcons ms m) = zadds ms + m.
+  Proof. rewrite /zadds. rewrite foldl_rcons. reflexivity. Qed.
+
+  Lemma zadds_cat ms ns : zadds (ms ++ ns) = zadds ms + zadds ns.
+  Proof.
+    elim: ms ns => [| m ms IHm] ns //=. rewrite !zadds_cons. rewrite IHm. ring.
+  Qed.
+
+  Lemma zopp_zadds ms : - zadds ms = zadds (map Z.opp ms).
+  Proof.
+    elim: ms => [| m ms IH] //=. rewrite !zadds_cons. rewrite Z.opp_add_distr.
+    rewrite -IH. reflexivity.
+  Qed.
+
+  Lemma zmulss0 xs : zmuls xs nil = nil.
+  Proof. exact: map2s0. Qed.
+
+  Lemma zmuls0s ys : zmuls nil ys = nil.
+  Proof. exact: map20s. Qed.
+
+  Lemma zmuls_cons x xs y ys : zmuls (x::xs) (y::ys) = (x * y)::(zmuls xs ys).
+  Proof. exact: map2_cons. Qed.
+
+  Lemma zmuls_rcons xs x ys y :
+    size xs = size ys ->
+    zmuls (rcons xs x) (rcons ys y) = rcons (zmuls xs ys) (x * y).
+  Proof. exact: map2_rcons. Qed.
+
+  Lemma zmuls_cat xs1 xs2 ys1 ys2 :
+    size xs1 = size ys1 ->
+    zmuls (xs1 ++ xs2) (ys1 ++ ys2) = (zmuls xs1 ys1) ++ (zmuls xs2 ys2).
+  Proof. exact: map2_cat. Qed.
+
+  Lemma zopp_zmuls_l xs ys : map Z.opp (zmuls xs ys) = zmuls (map Z.opp xs) ys.
+  Proof.
+    elim: xs ys => [| x xs IHx] [| y ys] //=. rewrite !zmuls_cons map_cons IHx.
+    rewrite Z.mul_opp_l. reflexivity.
+  Qed.
+
+  Lemma zopp_zmuls_r xs ys : map Z.opp (zmuls xs ys) = zmuls xs (map Z.opp ys).
+  Proof.
+    elim: xs ys => [| x xs IHx] [| y ys] //=. rewrite !zmuls_cons map_cons IHx.
+    rewrite Z.mul_opp_r. reflexivity.
+  Qed.
+
+  Definition is_zero (n : Z) : bool := n == 0.
+
+  Lemma zadds_zmuls_comm xs ys : zadds (zmuls xs ys) = zadds (zmuls ys xs).
+  Proof.
+    elim: xs ys => [| x xs IHx] [| y ys] //=.
+    rewrite !zmuls_cons !zadds_cons IHx. rewrite Z.mul_comm. reflexivity.
+  Qed.
+
+  Lemma zadds_zmuls_all0_r xs ys : all is_zero ys -> zadds (zmuls xs ys) = 0.
+  Proof.
+    elim: xs ys => [| x xs IHx] [| y ys] //=.
+    move/andP => [Hy Hys]. rewrite zmuls_cons zadds_cons. rewrite (IHx _ Hys) Z.add_0_r.
+    rewrite (eqP Hy) Z.mul_0_r. reflexivity.
+  Qed.
+
+  Lemma zadds_zmuls_all0_l xs ys : all is_zero xs -> zadds (zmuls xs ys) = 0.
+  Proof.
+    rewrite zadds_zmuls_comm. exact: zadds_zmuls_all0_r.
+  Qed.
+
+  Lemma zadds_zmuls_cons x xs y ys :
+    zadds (zmuls (x::xs) (y::ys)) = (x * y) + zadds (zmuls xs ys).
+  Proof. rewrite zmuls_cons zadds_cons. reflexivity. Qed.
+
+End ZaddsZmuls.
+
+
+(**
+ * Congruence modulo single modulus or multi-moduli.
+ * In the single modulus case, x ≡ y (mod m) is definsed as `exists k, x - y == k * m`
+ * such that we can find the witness of k with xchoose when its proof is given.
+ *)
+Section ZEQM.
+
+  Local Open Scope Z_scope.
+
+  (* congruence modulo single modulus *)
+
+  Definition zeqm (x y m : Z) := exists k : Z, x - y == k * m.
+
+  Definition xchoose_zeqm (x y m : Z) (ex : zeqm x y m) : Z :=
+    xchoose ex.
+
+  Lemma xchoose_zeqm_sound x y m (ex : zeqm x y m) :
+    x - y = (xchoose_zeqm ex) * m.
+  Proof. exact: (eqP (xchooseP ex)). Qed.
+
+
+  (* congruence modulo multi-moduli *)
+
+  Definition zeqms (x y : Z) (ms : seq Z) :=
+    exists ks, x - y == zadds (zmuls ks ms).
+
+  Lemma zeqms_refl x ms : zeqms x x ms.
+  Proof.
+    exists [::]. rewrite Z.sub_diag. rewrite zmuls0s zadds0. exact: eqxx.
+  Qed.
+
+  Lemma zeqms_comm x y ms : zeqms x y ms -> zeqms y x ms.
+  Proof.
+    move=> [ks H]. exists (map Z.opp ks). rewrite -(Z.opp_involutive (y - x)).
+    rewrite Z.opp_sub_distr. rewrite Z.add_comm Z.add_opp_r.
+    rewrite (eqP H). rewrite zopp_zadds zopp_zmuls_l. exact: eqxx.
+  Qed.
+
+  Lemma zeqms_nil x y : zeqms x y [::] -> x = y.
+  Proof.
+    move=> [ks H]. rewrite zmulss0 zadds0 in H. apply: Zminus_eq.
+    apply/eqP. assumption.
+  Qed.
+
+  Definition xchoose_zeqms (x y : Z) (ms : seq Z) (ex : zeqms x y ms) : seq Z :=
+    xchoose ex.
+
+  Lemma xchoose_zeqms_sound x y ms (ex : zeqms x y ms) :
+    x - y = zadds (zmuls (xchoose_zeqms ex) ms).
+  Proof. exact: (eqP (xchooseP ex)). Qed.
+
+  Definition xchoose_zeqms_ext (x y : Z) (ms : seq Z) (ex : zeqms x y ms) : seq Z :=
+    extseq 0 (xchoose_zeqms ex) ms.
+
+  Lemma zadds_zmuls_extseq xs ys :
+    zadds (zmuls (extseq 0 xs ys) ys) = zadds (zmuls xs ys).
+  Proof.
+    elim: xs ys => [| x xs IHx].
+    - elim=> [| y ys IHy] //=. rewrite zadds_zmuls_cons. rewrite IHy.
+      rewrite !zmuls0s zadds0. ring.
+    - case=> [| y ys] //=. rewrite !zadds_zmuls_cons IHx. reflexivity.
+  Qed.
+
+  Lemma size_xchoose_zeqms_ext x y ms (ex : zeqms x y ms) :
+    size (xchoose_zeqms_ext ex) = size ms.
+  Proof. rewrite /xchoose_zeqms_ext. rewrite size_extseq. reflexivity. Qed.
+
+  Lemma xchoose_zeqms_eqsize_ext x y ms (ex : zeqms x y ms) :
+    x - y = zadds (zmuls (xchoose_zeqms_ext ex) ms).
+  Proof.
+    rewrite /xchoose_zeqms_ext. rewrite zadds_zmuls_extseq.
+    exact: xchoose_zeqms_sound.
+  Qed.
+
+  Lemma xchoose_zeqms_ext_sound x y ms (ex : zeqms x y ms) :
+    x - y = zadds (zmuls (xchoose_zeqms_ext ex) ms).
+  Proof.
+    rewrite /xchoose_zeqms_ext zadds_zmuls_extseq.
+    exact: (eqP (xchooseP ex)).
+  Qed.
+
+End ZEQM.
