@@ -332,3 +332,42 @@ Module UnitOrder <: SsrOrder.
   Include O.
 End UnitOrder.
 
+
+(** Convert orderType to SsrOrder. *)
+
+From mathcomp Require Import order.
+Import Order.Theory.
+
+Module Type OrderType.
+  Parameter d : unit.
+  Parameter t : orderType d.
+End OrderType.
+
+Module SsrOrderMinimalOfOrderType (O : OrderType) <: SsrOrderMinimal.
+  Local Open Scope order_scope.
+  Definition t := Order.Total.eqType O.t.
+  Definition eqn (x y : t) : bool := x == y.
+  Definition ltn (x y : t) : bool := x < y.
+  Lemma ltn_trans : forall x y z : t, ltn x y -> ltn y z -> ltn x z.
+  Proof.
+    move=> x y z. rewrite /ltn => Hxy Hyz. exact: (lt_trans Hxy Hyz).
+  Qed.
+  Lemma ltn_not_eqn : forall x y : t, ltn x y -> x != y.
+  Proof.
+    move=> x y. rewrite /ltn lt_def. rewrite eq_sym. move/andP=> [-> _]. reflexivity.
+  Qed.
+  Definition compare : forall x y : t, Compare ltn eqn x y.
+  Proof.
+    move=> x y. case Heq: (x == y).
+    - exact: (EQ Heq).
+    - case Hlt: (x < y).
+      + exact: (LT Hlt).
+      + apply: GT. rewrite /ltn lt_def. rewrite Heq /=. rewrite leNgt Hlt. reflexivity.
+  Defined.
+End SsrOrderMinimalOfOrderType.
+
+Module SsrOrderOfOrderType (O : OrderType) <: SsrOrder.
+  Module M := SsrOrderMinimalOfOrderType O.
+  Module P := MakeSsrOrder M.
+  Include P.
+End SsrOrderOfOrderType.
