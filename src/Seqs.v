@@ -322,7 +322,9 @@ Proof.
 Qed.
 
 
-(* Tail-recursive map, the result is the reverse of map *)
+(* Tail-recursive maps.
+   mapr: the result is the reverse of map
+   tmap: the result is the same as map *)
 
 Section MapRev.
 
@@ -391,7 +393,32 @@ Section MapRev.
     rewrite IH. reflexivity.
   Qed.
 
+
+  Definition tmap es := mapr (rev es).
+
+  Lemma tmap_map es : tmap es = map f es.
+  Proof. rewrite /tmap mapr_rev. reflexivity. Qed.
+
 End MapRev.
+
+
+
+(** Tail-recursive append. *)
+
+Section TailRecursiveAppend.
+
+  Context {A : Type}.
+
+  Definition tappend (es1 es2 : seq A) := rev_append (rev es1) es2.
+
+  Lemma tappend_cat es1 es2 : tappend es1 es2 = es1 ++ es2.
+  Proof.
+    rewrite /tappend. move: es1 es2. apply: last_ind => [| es1 e1 IH1] es2 //=.
+    rewrite rev_rcons /=. rewrite IH1. rewrite cat_rcons. reflexivity.
+  Qed.
+
+End TailRecursiveAppend.
+
 
 
 (** Lemmas for sequences of eqType *)
