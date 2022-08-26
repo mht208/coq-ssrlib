@@ -385,6 +385,12 @@ Section MapRev.
     rewrite mapr_map. rewrite size_map size_rev. reflexivity.
   Qed.
 
+  Lemma mapr_rev es : mapr (rev es) = map f es.
+  Proof.
+    elim: es => [| e es IH] //=. rewrite rev_cons. rewrite mapr_rcons.
+    rewrite IH. reflexivity.
+  Qed.
+
 End MapRev.
 
 
