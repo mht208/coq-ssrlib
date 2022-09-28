@@ -951,7 +951,8 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
 
     Lemma key_set_Empty m : M.Empty m -> S.Empty (key_set m).
     Proof.
-      rewrite /key_set => Hempty. rewrite (MLemmas.OP.P.fold_Empty _ _ _ Hempty).
+      rewrite /key_set => Hempty.
+      rewrite (MLemmas.OP.P.fold_Empty SLemmas.Equal_ST add_to_set S.empty Hempty).
       exact: S.empty_1.
     Qed.
 
@@ -1302,3 +1303,280 @@ Module Map2Map (M1 : FMapInterface.S) (M2 : FMapInterface.S).
   End Map2Map.
 
 End Map2Map.
+
+
+
+(* Maps that agree values of a sub-domain *)
+
+Module MapAgree
+       (E : OrderedType)
+       (M : FMapInterface.S with Module E := E)
+       (S : FSetInterface.S with Module E := E).
+
+  Section AgreeDefn.
+
+    Variable elt : Type.
+
+    Variable s : S.t.
+
+    Definition agree (m1 m2 : M.t elt) : Prop :=
+      forall x, S.mem x s -> M.find x m1 = M.find x m2.
+
+    Lemma agree_refl m : agree m m.
+    Proof. move=> x Hmem. reflexivity. Qed.
+
+    Lemma agree_sym m1 m2 : agree m1 m2 -> agree m2 m1.
+    Proof. move=> H x Hmem. rewrite (H x Hmem). reflexivity. Qed.
+
+    Lemma agree_trans m1 m2 m3 :
+      agree m1 m2 -> agree m2 m3 -> agree m1 m3.
+    Proof. move=> H12 H23 x Hmem. rewrite (H12 x Hmem). exact: (H23 x Hmem). Qed.
+
+    Global Instance agree_equivalence : Equivalence agree.
+    Proof.
+      split.
+      - exact: agree_refl.
+      - exact: agree_sym.
+      - exact: agree_trans.
+    Qed.
+
+  End AgreeDefn.
+
+  Add Parametric Relation (elt : Type) (s : S.t) : (M.t elt) (@agree elt s)
+      reflexivity proved by (@agree_refl elt s)
+      symmetry proved by (@agree_sym elt s)
+      transitivity proved by (@agree_trans elt s)
+      as agree_rel.
+
+  Module VSLemmas := FSetLemmas S.
+  Module VMLemmas := FMapLemmas M.
+
+  (*
+  Module SF := FSetFacts.Facts(S).
+  Module SOP := FSetProperties.OrdProperties S.
+  Module MF := FMapFacts.Facts(M).*)
+
+  Section AgreeLemmas.
+
+    Variable elt : Type.
+
+    Global Instance add_agree_proper1 :
+      Proper (S.Equal ==> eq ==> eq ==> iff) (@agree elt).
+    Proof.
+      move=> s1 s2 Heqs m1 m1' Heqm1 m2 m2' Heqm2. subst. split => Ha x Hmemx.
+      - rewrite (Ha x); first reflexivity.
+        apply/S.mem_1. rewrite Heqs. apply/S.mem_2. exact: Hmemx.
+      - rewrite (Ha x); first reflexivity.
+        apply/S.mem_1. rewrite -Heqs. apply/S.mem_2. exact: Hmemx.
+    Qed.
+
+    Global Instance add_agree_proper2 :
+      Proper (eq ==> (@M.Equal elt) ==> eq ==> iff) (@agree elt).
+    Proof.
+      move=> s1 s2 Heqs m1 m1' Heqm1 m2 m2' Heqm2. subst. split => Ha x Hmemx.
+      - rewrite <- Heqm1. exact: (Ha x Hmemx).
+      - rewrite -> Heqm1. exact: (Ha x Hmemx).
+    Qed.
+
+    Global Instance add_agree_proper3 :
+      Proper (eq ==> eq ==> (@M.Equal elt) ==> iff) (@agree elt).
+    Proof.
+      move=> s1 s2 Heqs m1 m1' Heqm1 m2 m2' Heqm2. subst. split => Ha x Hmemx.
+      - rewrite <- Heqm2. exact: (Ha x Hmemx).
+      - rewrite -> Heqm2. exact: (Ha x Hmemx).
+    Qed.
+
+    Global Instance add_agree_proper :
+      Proper (S.Equal ==> (@M.Equal elt) ==> (@M.Equal elt) ==> iff) (@agree elt).
+    Proof.
+      move=> s1 s2 Heqs m1 m1' Heqm1 m2 m2' Heqm2. split; move=> Ha x Hmemx.
+      - rewrite -Heqm1 -Heqm2. rewrite (Ha x); first reflexivity.
+        apply/S.mem_1. rewrite Heqs. apply/S.mem_2. exact: Hmemx.
+      - rewrite Heqm1 Heqm2. rewrite (Ha x); first reflexivity.
+        apply/S.mem_1. rewrite -Heqs. apply/S.mem_2. exact: Hmemx.
+    Qed.
+
+    Lemma Empty_agree vs (m1 m2 : M.t elt) : S.Empty vs -> agree vs m1 m2.
+    Proof. move=> He x /S.mem_2 Hmemx. move: (He _ Hmemx). done. Qed.
+
+    Lemma agree_empty_set (m1 m2 : M.t elt) : agree S.empty m1 m2.
+    Proof. apply: Empty_agree. exact: S.empty_1. Qed.
+
+    Lemma agree_singleton_set x (m1 m2 : M.t elt) :
+      agree (S.singleton x) m1 m2 <-> M.find x m1 = M.find x m2.
+    Proof.
+      split=> H.
+      - apply: H. apply: S.mem_1. apply: S.singleton_2. reflexivity.
+      - move=> y /S.mem_2/S.singleton_1 Hin. rewrite -Hin. assumption.
+    Qed.
+
+    Lemma agree_empty_map_l vs (m : M.t elt) x :
+      agree vs (M.empty elt) m -> S.mem x vs -> M.find x m = None.
+    Proof. move=> Ha Hmem. rewrite -(Ha _ Hmem). exact: VMLemmas.empty_o. Qed.
+
+    Lemma agree_empty_map_r vs (m : M.t elt) x :
+      agree vs m (M.empty elt) -> S.mem x vs -> M.find x m = None.
+    Proof. move=> Ha Hmem. rewrite (Ha _ Hmem). exact: VMLemmas.empty_o. Qed.
+
+    Lemma Subset_set_agree s1 s2 (m1 m2 : M.t elt) :
+      S.Subset s1 s2 -> agree s2 m1 m2 -> agree s1 m1 m2.
+    Proof.
+      move=> Hsub Ha x /S.mem_2 Hin1. apply: Ha. apply/S.mem_1. exact: (Hsub _ Hin1).
+    Qed.
+
+    Lemma subset_set_agree s1 s2 (m1 m2 : M.t elt) :
+      S.subset s1 s2 -> agree s2 m1 m2 -> agree s1 m1 m2.
+    Proof.
+      move=> Hsub Ha. apply: (Subset_set_agree _ Ha). apply: S.subset_2. exact: Hsub.
+    Qed.
+
+    Lemma not_mem_add_map_l vs (m1 m2 : M.t elt) x v :
+      ~~ S.mem x vs -> agree vs m1 m2 -> agree vs (M.add x v m1) m2.
+    Proof.
+      move=> Hmem Ha y Hmemy. rewrite VMLemmas.add_neq_o.
+      - exact: (Ha _ Hmemy).
+      - move=> Heq. move/negP: Hmem; apply. rewrite (VSLemmas.mem_b _ Heq). exact: Hmemy.
+    Qed.
+
+    Lemma not_mem_add_map_r vs (m1 m2 : M.t elt) x v :
+      ~~ S.mem x vs -> agree vs m1 m2 -> agree vs m1 (M.add x v m2).
+    Proof.
+      move=> Hmem /agree_sym Ha. apply: agree_sym. exact: (not_mem_add_map_l _ Hmem Ha).
+    Qed.
+
+    Lemma agree_add_map2 vs (m1 m2 : M.t elt) x v :
+      agree vs m1 m2 -> agree vs (M.add x v m1) (M.add x v m2).
+    Proof.
+      move=> Ha y Hmemy. case: (E.eq_dec x y).
+      - move=> Heq. rewrite 2!(VMLemmas.add_eq_o _ _ Heq). reflexivity.
+      - move=> Hneq. rewrite 2!(VMLemmas.add_neq_o _ _ Hneq). exact: (Ha _ Hmemy).
+    Qed.
+
+    Lemma agree_add_map_l vs (m1 m2 : M.t elt) x v :
+      agree vs m1 m2 -> M.find x m2 = Some v ->
+      agree vs (M.add x v m1) m2.
+    Proof.
+      move=> Ha Hfind y Hmemy. case: (E.eq_dec x y).
+      - move=> Heq. rewrite (VMLemmas.add_eq_o _ _ Heq). rewrite -(VMLemmas.find_o _ Heq).
+        rewrite -Hfind. reflexivity.
+      - move=> Hneq. rewrite (VMLemmas.add_neq_o _ _ Hneq). exact: (Ha _ Hmemy).
+    Qed.
+
+    Lemma agree_add_map_r vs (m1 m2 : M.t elt) x v :
+      agree vs m1 m2 -> M.find x m1 = Some v ->
+      agree vs m1 (M.add x v m2).
+    Proof.
+      move=> /agree_sym Ha Hf. apply: agree_sym. exact: (agree_add_map_l Ha Hf).
+    Qed.
+
+    Lemma agree_add_set_l x vs (m1 m2 : M.t elt) :
+      agree (S.add x vs) m1 m2 -> agree (S.singleton x) m1 m2.
+    Proof.
+      move=> Ha y Hmemy. apply: (Ha y). rewrite VSLemmas.singleton_b in Hmemy.
+      rewrite VSLemmas.add_b Hmemy /=. reflexivity.
+    Qed.
+
+    Lemma agree_add_set_r x vs (m1 m2 : M.t elt) :
+      agree (S.add x vs) m1 m2 -> agree vs m1 m2.
+    Proof.
+      move=> Ha y Hmemy. apply: (Ha y). rewrite VSLemmas.add_b Hmemy orbT. reflexivity.
+    Qed.
+
+    Lemma agree_union_set_l vs1 vs2 (m1 m2 : M.t elt) :
+      agree (S.union vs1 vs2) m1 m2 -> agree vs1 m1 m2.
+    Proof.
+      move=> Ha x Hmemx. apply: (Ha x). rewrite VSLemmas.union_b Hmemx /=. reflexivity.
+    Qed.
+
+    Lemma agree_union_set_r vs1 vs2 (m1 m2 : M.t elt) :
+      agree (S.union vs1 vs2) m1 m2 -> agree vs2 m1 m2.
+    Proof.
+      move=> Ha x Hmemx. apply: (Ha x). rewrite VSLemmas.union_b Hmemx /= orbT. reflexivity.
+    Qed.
+
+    Lemma agree_add_to_set x vs (m1 m2 : M.t elt) :
+      agree vs m1 m2 -> M.find x m1 = M.find x m2 -> agree (S.add x vs) m1 m2.
+    Proof.
+      move=> Ha Hf y /S.mem_2 Hmem.
+      case/VSLemmas.OP.P.Dec.F.add_iff: Hmem => H.
+      - rewrite -2!(VMLemmas.find_o _ H). exact: Hf.
+      - move/S.mem_1: H => Hmem. exact: (Ha _ Hmem).
+    Qed.
+
+    Lemma agree_union_sets vs1 vs2 (m1 m2 : M.t elt) :
+      agree vs1 m1 m2 -> agree vs2 m1 m2 -> agree (S.union vs1 vs2) m1 m2.
+    Proof.
+      move=> Ha1 Ha2 x Hmem. rewrite VSLemmas.union_b in Hmem. case/orP: Hmem=> Hmem.
+      - exact: (Ha1 _ Hmem).
+      - exact: (Ha2 _ Hmem).
+    Qed.
+
+    Lemma agree_add_set x vs (m1 m2 : M.t elt) :
+      agree (S.add x vs) m1 m2 <-> agree (S.singleton x) m1 m2 /\ agree vs m1 m2.
+    Proof.
+      split.
+      - move=> H. exact: (conj (agree_add_set_l H) (agree_add_set_r H)).
+      - move=> [H1 H2]. apply: (agree_add_to_set H2). apply/agree_singleton_set.
+        assumption.
+    Qed.
+
+    Lemma agree_union_set vs1 vs2 (m1 m2 : M.t elt) :
+      agree (S.union vs1 vs2) m1 m2 <-> agree vs1 m1 m2 /\ agree vs2 m1 m2.
+    Proof.
+      split.
+      - move=> H. exact: (conj (agree_union_set_l H) (agree_union_set_r H)).
+      - move=> [H1 H2]. exact: agree_union_sets.
+    Qed.
+
+  End AgreeLemmas.
+
+  Ltac simpl_agree :=
+    repeat
+      match goal with
+      | H : @agree ?t (S.add _ _) _ _ |- _ =>
+          let H1 := fresh in
+          let H2 := fresh in
+          (* `move: (agree_add_set_l H)` succeeds inside this module
+             but fails outside this module *)
+          generalize (agree_add_set_r H);
+          generalize (agree_add_set_l H);
+          move=> {H} H1 H2
+      | H : @agree ?t (S.union _ _) _ _ |- _ =>
+          let H1 := fresh in
+          let H2 := fresh in
+          generalize (agree_union_set_r H);
+          generalize (agree_union_set_l H);
+          move=> {H} H1 H2
+      end.
+
+  Ltac dp_agree :=
+    repeat
+      match goal with
+      | |- agree S.empty _ _ => exact: agree_empty_set
+      | H : S.is_empty ?vs |- agree ?vs _ _ =>
+          (apply: Empty_agree); (apply: S.is_empty_2); assumption
+      | H : S.Empty ?vs |- agree ?vs _ _ => exact: Empty_agree H
+      | |- agree _ ?E ?E => exact: agree_refl
+      | H : agree ?vs ?E1 ?E2 |- agree ?vs ?E2 ?E1 => exact: (agree_sym H)
+      | H1 : agree ?vs ?E1 ?E2, H2 : agree ?vs ?E2 ?E3
+        |- agree ?vs ?E1 ?E3 => exact: (agree_trans H1 H2)
+      | H : agree (S.singleton _) _ _ |- _ => move/agree_singleton_set: H => H
+      | |- agree (S.singleton _) _ _ => apply/agree_singleton_set
+      | |- agree (S.add _ _) _ _ => apply: agree_add_to_set
+      | |- agree (S.union _ _) _ _ => apply: agree_union_sets
+      | |- agree _ (M.add ?x ?v _) (M.add ?x ?v _) => apply: agree_add_map2
+      | |- agree _ (M.add _ _ _) _ => apply: agree_add_map_l
+      | |- agree _ _ (M.add _ _ _) => apply: agree_add_map_r
+      | H1 : is_true (S.subset ?s1 ?s2),
+          H2 : agree ?s2 ?m1 ?m2 |- agree ?s1 ?m1 ?m2 =>
+          exact: (subset_set_agree H1 H2)
+      | H1 : is_true (~~ S.mem ?x ?vs),
+          H2 : agree ?vs ?m1 ?m2 |- agree ?vs (M.add ?x ?v ?m1) ?m2 =>
+          exact: (not_mem_add_map_l H1 H2)
+      | H1 : is_true (~~ S.mem ?x ?vs),
+          H2 : agree ?vs ?m1 ?m2 |- agree ?vs ?m1 (M.add ?x ?v ?m2) =>
+          exact: (not_mem_add_map_r H1 H2)
+      | H : ?e |- ?e => assumption
+      end.
+
+End MapAgree.

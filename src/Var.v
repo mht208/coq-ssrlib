@@ -1,7 +1,7 @@
 
 (** * Variables *)
 
-From Coq Require Import FMaps FSets ZArith.
+From Coq Require Import FMaps FSets ZArith OrderedType.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 From ssrlib Require Import SsrOrder FMaps FSets ZAriths.
 
@@ -49,6 +49,17 @@ Definition sidx (x : SSAVarOrder.t) := snd x.
 Hint Unfold svar sidx.
 
 Definition svar_notin v vs : Prop := forall i, ~~ SSAVS.mem (v, i) vs.
+
+Global Instance add_proper_svar_notin :
+  Proper (eq ==> SSAVS.Equal ==> iff) svar_notin.
+Proof.
+  move=> v1 v2 ?; subst. move=> s1 s2 Heq. split.
+  - move=> Hnotin x. rewrite -Heq. exact: (Hnotin x).
+  - move=> Hnotin x. rewrite Heq. exact: (Hnotin x).
+Qed.
+
+Lemma svar_notin_empty avn : svar_notin avn SSAVS.empty.
+Proof. move=> x. rewrite SSAVS.Lemmas.mem_empty. by trivial. Qed.
 
 Lemma svar_notin_singleton1 v x :
   svar_notin v (SSAVS.singleton x) -> v != svar x.
@@ -137,6 +148,42 @@ Proof.
   move/negP: (H2 x). apply. exact: Hmem.
 Qed.
 
+Ltac simpl_svar_notin :=
+  repeat
+    match goal with
+    | H : svar_notin _ (SSAVS.add _ _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        move/svar_notin_add: H => [H1 H2]
+    | H : svar_notin _ (SSAVS.union _ _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        move/svar_notin_union: H => [H1 H2]
+    end.
+
+Ltac dp_svar_notin :=
+  repeat
+    match goal with
+    | H : ?e |- ?e => assumption
+    | |- svar_notin _ SSAVS.empty =>
+        exact: svar_notin_empty
+    | H : svar_notin _ (SSAVS.singleton _) |- _ =>
+        move/svar_notin_singleton: H => H
+    | H : svar_notin _ (SSAVS.add _ _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        move/svar_notin_add: H => [H1 H2]
+    | H : svar_notin _ (SSAVS.union _ _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        move/svar_notin_union: H => [H1 H2]
+    | |- svar_notin _ (SSAVS.singleton _) =>
+        apply/svar_notin_singleton
+    | |- svar_notin _ (SSAVS.add _ _) =>
+        apply/svar_notin_add; split
+    | |- svar_notin _ (SSAVS.union _ _) =>
+        apply/svar_notin_union; split
+    end.
 
 
 (** Generate new SSA variables *)

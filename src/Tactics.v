@@ -3,6 +3,8 @@ From mathcomp Require Import ssreflect ssrbool eqtype.
 
 (** General tactics *)
 
+Ltac dcase t := move: (refl_equal t); generalize t at -1.
+
 (* Split goal of the form (_ && _). *)
 Ltac splitb := apply/andP; split.
 
@@ -18,6 +20,91 @@ Ltac hyps_splitb :=
 Ltac leftb := apply/orP; left.
 
 Ltac rightb := apply/orP; right.
+
+Ltac case_option :=
+  repeat
+    match goal with
+    | H : Some _ = None |- _ => discriminate
+    | H : None = Some _ |- _ => discriminate
+    | H : Some _ = Some _ |- _ =>
+        case: H; move=> H
+    end.
+
+Ltac case_tuples :=
+  repeat match goal with
+         | H : (_, _, _, _, _, _, _, _, _, _) = (_, _, _, _, _, _, _, _, _, _) |- _ =>
+             let H1 := fresh in
+             let H2 := fresh in
+             let H3 := fresh in
+             let H4 := fresh in
+             let H5 := fresh in
+             let H6 := fresh in
+             let H7 := fresh in
+             let H8 := fresh in
+             let H9 := fresh in
+             let H0 := fresh in
+             case: H; move=> H1 H2 H3 H4 H5 H6 H7 H8 H9 H0
+         | H : (_, _, _, _, _, _, _, _, _) = (_, _, _, _, _, _, _, _, _) |- _ =>
+             let H1 := fresh in
+             let H2 := fresh in
+             let H3 := fresh in
+             let H4 := fresh in
+             let H5 := fresh in
+             let H6 := fresh in
+             let H7 := fresh in
+             let H8 := fresh in
+             let H9 := fresh in
+             case: H; move=> H1 H2 H3 H4 H5 H6 H7 H8 H9
+         | H : (_, _, _, _, _, _, _, _) = (_, _, _, _, _, _, _, _) |- _ =>
+             let H1 := fresh in
+             let H2 := fresh in
+             let H3 := fresh in
+             let H4 := fresh in
+             let H5 := fresh in
+             let H6 := fresh in
+             let H7 := fresh in
+             let H8 := fresh in
+             case: H; move=> H1 H2 H3 H4 H5 H6 H7 H8
+         | H : (_, _, _, _, _, _, _) = (_, _, _, _, _, _, _) |- _ =>
+             let H1 := fresh in
+             let H2 := fresh in
+             let H3 := fresh in
+             let H4 := fresh in
+             let H5 := fresh in
+             let H6 := fresh in
+             let H7 := fresh in
+             case: H; move=> H1 H2 H3 H4 H5 H6 H7
+         | H : (_, _, _, _, _, _) = (_, _, _, _, _, _) |- _ =>
+             let H1 := fresh in
+             let H2 := fresh in
+             let H3 := fresh in
+             let H4 := fresh in
+             let H5 := fresh in
+             let H6 := fresh in
+             case: H; move=> H1 H2 H3 H4 H5 H6
+         | H : (_, _, _, _, _) = (_, _, _, _, _) |- _ =>
+             let H1 := fresh in
+             let H2 := fresh in
+             let H3 := fresh in
+             let H4 := fresh in
+             let H5 := fresh in
+             case: H; move=> H1 H2 H3 H4 H5
+         | H : (_, _, _, _) = (_, _, _, _) |- _ =>
+             let H1 := fresh in
+             let H2 := fresh in
+             let H3 := fresh in
+             let H4 := fresh in
+             case: H; move=> H1 H2 H3 H4
+         | H : (_, _, _) = (_, _, _) |- _ =>
+             let H1 := fresh in
+             let H2 := fresh in
+             let H3 := fresh in
+             case: H; move=> H1 H2 H3
+         | H : (_, _) = (_, _) |- _ =>
+             let H1 := fresh in
+             let H2 := fresh in
+             case: H; move=> H1 H2
+         end.
 
 Ltac caseb H :=
   match type of H with
@@ -63,6 +150,21 @@ Ltac caseb H :=
   | [\/ _ | _ ] => elim: H
   | _ \/ _ => elim: H
   end.
+
+Ltac case_if :=
+  repeat
+    match goal with
+    | H : context f [if ?e then _ else _] |- _ =>
+        repeat match goal with
+               | H : context c [e] |- _ => move: H
+               end;
+        (dcase e); case; intros
+    | |- context f [if ?e then _ else _] =>
+        repeat match goal with
+               | H : context c [e] |- _ => move: H
+               end;
+        dcase e; case; intros
+    end.
 
 Ltac applyb H :=
   match goal with
@@ -124,8 +226,6 @@ Ltac case_hyps :=
           | H : is_true [&& _ & _] |- _ => case/andP: H; intros
           | H : is_true [|| _ | _] |- _ => case/orP: H; intros
           end).
-
-Ltac dcase t := move: (refl_equal t); generalize t at -1.
 
 Ltac t_decide_hook := fail.
 

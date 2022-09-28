@@ -31,28 +31,28 @@ Module Type DTStore (V : SsrOrder).
     Parameter upd2 : var -> value -> var -> value -> t value -> t value.
 
     Parameter acc_upd_eq :
-      forall x y v s,
+      forall {x y v s},
         x == y ->
         acc x (upd y v s) = v.
 
     Parameter acc_upd_neq :
-      forall x y v s,
+      forall {x y v s},
         x != y ->
         acc x (upd y v s) = acc x s.
 
     Parameter acc_upd2_eq1 :
-      forall x y1 v1 y2 v2 (s : t value),
+      forall {x y1 v1 y2 v2 s},
         x == y1 ->
         x != y2 ->
         acc x (upd2 y1 v1 y2 v2 s) = v1.
 
     Parameter acc_upd2_eq2 :
-      forall x y1 v1 y2 v2 (s : t value),
+      forall {x y1 v1 y2 v2 s},
         x == y2 ->
         acc x (upd2 y1 v1 y2 v2 s) = v2.
 
     Parameter acc_upd2_neq :
-      forall x y1 v1 y2 v2 s,
+      forall {x y1 v1 y2 v2 s},
         x != y1 ->
         x != y2 ->
         acc x (upd2 y1 v1 y2 v2 s) = acc x s.
@@ -790,28 +790,28 @@ Module Type TStore (X : SsrOrder) (V : Equalities.Typ).
     Parameter upd2 : var -> value -> var -> value -> t -> t.
 
     Parameter acc_upd_eq :
-      forall x y v s,
+      forall {x y v s},
         x == y ->
         acc x (upd y v s) = v.
 
     Parameter acc_upd_neq :
-      forall x y v s,
+      forall {x y v s},
         x != y ->
         acc x (upd y v s) = acc x s.
 
     Parameter acc_upd2_eq1 :
-      forall x y1 v1 y2 v2 (s : t),
+      forall {x y1 v1 y2 v2 s},
         x == y1 ->
         x != y2 ->
         acc x (upd2 y1 v1 y2 v2 s) = v1.
 
     Parameter acc_upd2_eq2 :
-      forall x y1 v1 y2 v2 (s : t),
+      forall {x y1 v1 y2 v2 s},
         x == y2 ->
         acc x (upd2 y1 v1 y2 v2 s) = v2.
 
     Parameter acc_upd2_neq :
-      forall x y1 v1 y2 v2 s,
+      forall {x y1 v1 y2 v2 s},
         x != y1 ->
         x != y2 ->
         acc x (upd2 y1 v1 y2 v2 s) = acc x s.
@@ -876,7 +876,13 @@ Module Type TStore (X : SsrOrder) (V : Equalities.Typ).
 
     Parameter Equal_trans : forall s1 s2 s3, Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
 
-    Parameter Equal_ST : RelationClasses.Equivalence Equal.
+    Instance Equal_ST : RelationClasses.Equivalence Equal.
+    Proof.
+      split.
+      - exact: Equal_refl.
+      - exact: Equal_sym.
+      - exact: Equal_trans.
+    Qed.
 
     Parameter Equal_upd_Equal : forall v e s1 s2,
         Equal s1 s2 ->
@@ -924,6 +930,81 @@ Module Type TStore (X : SsrOrder) (V : Equalities.Typ).
 
     Parameter Upd2_idem : forall v1 e1 v2 e2 s1 s2 s3,
         Upd2 v1 e1 v2 e2 s1 s2 -> Upd2 v1 e1 v2 e2 s2 s3 -> Equal s2 s3.
+
+    Global Instance add_proper_equal1 :
+      Proper (Equal ==> eq ==> iff) Equal.
+    Proof.
+      move=> s1 s2 /Equal_def Hs12 s3 s4 Hs34. subst. split; move=> /Equal_def H.
+      - apply/Equal_def => x. rewrite -(Hs12 x). exact: (H x).
+      - apply/Equal_def => x. rewrite (Hs12 x). exact: (H x).
+    Qed.
+
+    Global Instance add_proper_equal2 :
+      Proper (eq ==> Equal ==> iff) Equal.
+    Proof.
+      move=> s1 s2 Hs12 s3 s4 /Equal_def Hs34. subst. split; move=> /Equal_def H.
+      - apply/Equal_def => x. rewrite (H x) (Hs34 x). reflexivity.
+      - apply/Equal_def => x. rewrite (H x) (Hs34 x). reflexivity.
+    Qed.
+
+    Global Instance add_proper_acc :
+      Proper (eq ==> Equal ==> eq) acc.
+    Proof.
+      move=> x1 x2 Hx s1 s2 /Equal_def Hs. subst. exact: (Hs x2).
+    Qed.
+
+    Global Instance add_proper_upd :
+      Proper (eq ==> eq ==> Equal ==> Equal) upd.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv s1 s2 Hs. subst. exact: Equal_upd_Equal.
+    Qed.
+
+    Global Instance add_proper_upd2 :
+      Proper (eq ==> eq ==> eq ==> eq ==> Equal ==> Equal) upd2.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv y1 y2 Hy u1 u2 Hu s1 s2 Hs. subst.
+      exact: Equal_upd2_Equal.
+    Qed.
+
+    Global Instance add_proper_Upd1 :
+      Proper (eq ==> eq ==> Equal ==> eq ==> iff) Upd.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv s1 s2 Hs t1 t2 Ht. subst.
+      split => H; apply: (Upd_Equal_Upd H).
+      - assumption.
+      - exact: Equal_refl.
+      - apply: Equal_sym. assumption.
+      - exact: Equal_refl.
+    Qed.
+
+    Global Instance add_proper_Upd2 :
+      Proper (eq ==> eq ==> eq ==> Equal ==> iff) Upd.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv s1 s2 Hs t1 t2 Ht. subst.
+      split => H; apply: (Upd_Equal_Upd H).
+      - exact: Equal_refl.
+      - assumption.
+      - exact: Equal_refl.
+      - apply: Equal_sym. assumption.
+    Qed.
+
+    Global Instance add_proper_Upd2_1 :
+      Proper (eq ==> eq ==> eq ==> eq ==> Equal ==> eq ==> iff) Upd2.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv y1 y2 Hy u1 u2 Hu s1 s2 Hs t1 t2 Ht. subst.
+      split => H; rewrite /Upd2 in H *; move=> w; rewrite (H w).
+      - rewrite Hs. reflexivity.
+      - rewrite Hs. reflexivity.
+    Qed.
+
+    Global Instance add_proper_Upd2_2 :
+      Proper (eq ==> eq ==> eq ==> eq ==> eq ==> Equal ==> iff) Upd2.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv y1 y2 Hy u1 u2 Hu s1 s2 Hs t1 t2 Ht. subst.
+      split => H; rewrite /Upd2 in H *; move=> w; rewrite -(H w).
+      - rewrite Ht. reflexivity.
+      - rewrite Ht. reflexivity.
+    Qed.
 
   End TStore.
 
@@ -1023,7 +1104,7 @@ Module MakeTStoreFun (X : SsrOrder) (V : HasDefaultTyp) <: TStore X V.
     Lemma Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
     Proof. move=> H1 H2 v. rewrite (H1 v) (H2 v). reflexivity. Qed.
 
-    Instance Equal_ST : RelationClasses.Equivalence Equal :=
+    Global Instance Equal_ST : RelationClasses.Equivalence Equal :=
       { Equivalence_Reflexive := Equal_refl;
         Equivalence_Symmetric := Equal_sym;
         Equivalence_Transitive := Equal_trans }.
@@ -1120,6 +1201,82 @@ Module MakeTStoreFun (X : SsrOrder) (V : HasDefaultTyp) <: TStore X V.
         + rewrite !(acc_upd_eq Hxv1). reflexivity.
         + move/idP/negP: Hxv1 => Hxv1. rewrite !(acc_upd_neq Hxv1). rewrite (H12 x).
           rewrite (acc_upd_neq Hxv2) (acc_upd_neq Hxv1). reflexivity.
+    Qed.
+
+
+    Global Instance add_proper_equal1 :
+      Proper (Equal ==> eq ==> iff) Equal.
+    Proof.
+      move=> s1 s2 /Equal_def Hs12 s3 s4 Hs34. subst. split; move=> /Equal_def H.
+      - apply/Equal_def => x. rewrite -(Hs12 x). exact: (H x).
+      - apply/Equal_def => x. rewrite (Hs12 x). exact: (H x).
+    Qed.
+
+    Global Instance add_proper_equal2 :
+      Proper (eq ==> Equal ==> iff) Equal.
+    Proof.
+      move=> s1 s2 Hs12 s3 s4 /Equal_def Hs34. subst. split; move=> /Equal_def H.
+      - apply/Equal_def => x. rewrite (H x) (Hs34 x). reflexivity.
+      - apply/Equal_def => x. rewrite (H x) (Hs34 x). reflexivity.
+    Qed.
+
+    Global Instance add_proper_acc :
+      Proper (eq ==> Equal ==> eq) acc.
+    Proof.
+      move=> x1 x2 Hx s1 s2 /Equal_def Hs. subst. exact: (Hs x2).
+    Qed.
+
+    Global Instance add_proper_upd :
+      Proper (eq ==> eq ==> Equal ==> Equal) upd.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv s1 s2 Hs. subst. exact: Equal_upd_Equal.
+    Qed.
+
+    Global Instance add_proper_upd2 :
+      Proper (eq ==> eq ==> eq ==> eq ==> Equal ==> Equal) upd2.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv y1 y2 Hy u1 u2 Hu s1 s2 Hs. subst.
+      exact: Equal_upd2_Equal.
+    Qed.
+
+    Global Instance add_proper_Upd1 :
+      Proper (eq ==> eq ==> Equal ==> eq ==> iff) Upd.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv s1 s2 Hs t1 t2 Ht. subst.
+      split => H; apply: (Upd_Equal_Upd H).
+      - assumption.
+      - exact: Equal_refl.
+      - apply: Equal_sym. assumption.
+      - exact: Equal_refl.
+    Qed.
+
+    Global Instance add_proper_Upd2 :
+      Proper (eq ==> eq ==> eq ==> Equal ==> iff) Upd.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv s1 s2 Hs t1 t2 Ht. subst.
+      split => H; apply: (Upd_Equal_Upd H).
+      - exact: Equal_refl.
+      - assumption.
+      - exact: Equal_refl.
+      - apply: Equal_sym. assumption.
+    Qed.
+
+    Global Instance add_proper_Upd2_1 :
+      Proper (eq ==> eq ==> eq ==> eq ==> Equal ==> eq ==> iff) Upd2.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv y1 y2 Hy u1 u2 Hu s1 s2 Hs t1 t2 Ht. subst.
+      split => H; rewrite /Upd2 in H *; move=> w; rewrite (H w).
+      - rewrite Hs. reflexivity.
+      - rewrite Hs. reflexivity.
+    Qed.
+
+    Global Instance add_proper_Upd2_2 :
+      Proper (eq ==> eq ==> eq ==> eq ==> eq ==> Equal ==> iff) Upd2.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv y1 y2 Hy u1 u2 Hu s1 s2 Hs t1 t2 Ht. subst.
+      split => H; rewrite /Upd2 in H *; move=> w; rewrite -(H w).
+      - rewrite Ht. reflexivity.
+      - rewrite Ht. reflexivity.
     Qed.
 
   End TStore.
@@ -1229,7 +1386,7 @@ Module MakeTStoreMap (X : SsrOrder) (V : HasDefaultTyp) <: TStore X V.
     Lemma Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
     Proof. move=> H1 H2 v. rewrite (H1 v) (H2 v). reflexivity. Qed.
 
-    Instance Equal_ST : RelationClasses.Equivalence Equal :=
+    Global Instance Equal_ST : RelationClasses.Equivalence Equal :=
       { Equivalence_Reflexive := Equal_refl;
         Equivalence_Symmetric := Equal_sym;
         Equivalence_Transitive := Equal_trans }.
@@ -1328,6 +1485,82 @@ Module MakeTStoreMap (X : SsrOrder) (V : HasDefaultTyp) <: TStore X V.
           rewrite (acc_upd_neq Hxv2) (acc_upd_neq Hxv1). reflexivity.
     Qed.
 
+
+    Global Instance add_proper_equal1 :
+      Proper (Equal ==> eq ==> iff) Equal.
+    Proof.
+      move=> s1 s2 /Equal_def Hs12 s3 s4 Hs34. subst. split; move=> /Equal_def H.
+      - apply/Equal_def => x. rewrite -(Hs12 x). exact: (H x).
+      - apply/Equal_def => x. rewrite (Hs12 x). exact: (H x).
+    Qed.
+
+    Global Instance add_proper_equal2 :
+      Proper (eq ==> Equal ==> iff) Equal.
+    Proof.
+      move=> s1 s2 Hs12 s3 s4 /Equal_def Hs34. subst. split; move=> /Equal_def H.
+      - apply/Equal_def => x. rewrite (H x) (Hs34 x). reflexivity.
+      - apply/Equal_def => x. rewrite (H x) (Hs34 x). reflexivity.
+    Qed.
+
+    Global Instance add_proper_acc :
+      Proper (eq ==> Equal ==> eq) acc.
+    Proof.
+      move=> x1 x2 Hx s1 s2 /Equal_def Hs. subst. exact: (Hs x2).
+    Qed.
+
+    Global Instance add_proper_upd :
+      Proper (eq ==> eq ==> Equal ==> Equal) upd.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv s1 s2 Hs. subst. exact: Equal_upd_Equal.
+    Qed.
+
+    Global Instance add_proper_upd2 :
+      Proper (eq ==> eq ==> eq ==> eq ==> Equal ==> Equal) upd2.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv y1 y2 Hy u1 u2 Hu s1 s2 Hs. subst.
+      exact: Equal_upd2_Equal.
+    Qed.
+
+    Global Instance add_proper_Upd1 :
+      Proper (eq ==> eq ==> Equal ==> eq ==> iff) Upd.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv s1 s2 Hs t1 t2 Ht. subst.
+      split => H; apply: (Upd_Equal_Upd H).
+      - assumption.
+      - exact: Equal_refl.
+      - apply: Equal_sym. assumption.
+      - exact: Equal_refl.
+    Qed.
+
+    Global Instance add_proper_Upd2 :
+      Proper (eq ==> eq ==> eq ==> Equal ==> iff) Upd.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv s1 s2 Hs t1 t2 Ht. subst.
+      split => H; apply: (Upd_Equal_Upd H).
+      - exact: Equal_refl.
+      - assumption.
+      - exact: Equal_refl.
+      - apply: Equal_sym. assumption.
+    Qed.
+
+    Global Instance add_proper_Upd2_1 :
+      Proper (eq ==> eq ==> eq ==> eq ==> Equal ==> eq ==> iff) Upd2.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv y1 y2 Hy u1 u2 Hu s1 s2 Hs t1 t2 Ht. subst.
+      split => H; rewrite /Upd2 in H *; move=> w; rewrite (H w).
+      - rewrite Hs. reflexivity.
+      - rewrite Hs. reflexivity.
+    Qed.
+
+    Global Instance add_proper_Upd2_2 :
+      Proper (eq ==> eq ==> eq ==> eq ==> eq ==> Equal ==> iff) Upd2.
+    Proof.
+      move=> x1 x2 Hx v1 v2 Hv y1 y2 Hy u1 u2 Hu s1 s2 Hs t1 t2 Ht. subst.
+      split => H; rewrite /Upd2 in H *; move=> w; rewrite -(H w).
+      - rewrite Ht. reflexivity.
+      - rewrite Ht. reflexivity.
+    Qed.
+
   End TStore.
 
 End MakeTStoreMap.
@@ -1355,25 +1588,25 @@ Module Type PStore (V : SsrOrder).
     Parameter unset : var -> t value -> t value.
 
     Parameter acc_upd_eq :
-      forall x y v s,
+      forall {x y v s},
         x == y ->
         acc x (upd y v s) = Some v.
 
     Parameter acc_upd_neq :
-      forall x y v s,
+      forall {x y v s},
         x != y ->
         acc x (upd y v s) = acc x s.
 
     Parameter acc_empty :
-      forall x, acc x empty = None.
+      forall {x}, acc x empty = None.
 
     Parameter acc_unset_eq :
-      forall x y s,
+      forall {x y s},
         x == y ->
         acc x (unset y s) = None.
 
     Parameter acc_unset_neq :
-      forall x y s,
+      forall {x y s},
         x != y ->
         acc x (unset y s) = acc x s.
 
@@ -2002,7 +2235,7 @@ End MakeHStore.
 
 From ssrlib Require Import FSets.
 
-Module TStateEqmod
+Module DTStateEqmod
        (X : SsrOrder)
        (Store : DTStore X) (VS : SsrFSet with Module SE := X).
 
@@ -2093,6 +2326,305 @@ Module TStateEqmod
       move=> Heqm1 Heqm2 v Hmem. case: (VSLemmas.mem_union1 Hmem) => {Hmem} Hmem.
       - exact: (Heqm1 v Hmem).
       - exact: (Heqm2 v Hmem).
+    Qed.
+
+  End SEQM2.
+
+End DTStateEqmod.
+
+Module TStateEqmod
+       (X : SsrOrder)
+       (V : Equalities.Typ)
+       (Store : TStore X V) (VS : SsrFSet with Module SE := X).
+
+  Section SEQM1.
+
+    Variable vs : VS.t.
+
+    Local Notation value := V.t.
+
+    Definition state_eqmod (s1 s2 : Store.t) : Prop :=
+      forall v, VS.mem v vs -> Store.acc v s1 = Store.acc v s2.
+
+    Lemma state_eqmod_refl (s : Store.t) : state_eqmod s s.
+    Proof. move=> v Hmem; reflexivity. Qed.
+
+    Lemma state_eqmod_sym (s1 s2 : Store.t) :
+      state_eqmod s1 s2 -> state_eqmod s2 s1.
+    Proof. move=> Heqm v Hmem. rewrite (Heqm v Hmem). reflexivity. Qed.
+
+    Lemma state_eqmod_trans (s1 s2 s3 : Store.t) :
+      state_eqmod s1 s2 -> state_eqmod s2 s3 -> state_eqmod s1 s3.
+    Proof.
+      move=> Heqm12 Heqm23 v Hmem. rewrite (Heqm12 v Hmem) (Heqm23 v Hmem).
+      reflexivity.
+    Qed.
+
+    Global Instance state_eqmod_equiv : RelationClasses.Equivalence state_eqmod.
+    Proof.
+      split.
+      - exact: state_eqmod_refl.
+      - exact: state_eqmod_sym.
+      - exact: state_eqmod_trans.
+    Defined.
+
+  End SEQM1.
+
+  Module VSLemmas := FSetLemmas VS.
+
+  Section SEQM2.
+
+    Local Notation value := V.t.
+
+    Global Instance add_proper_state_eqmod :
+      Proper (VS.Equal ==> Store.Equal ==> Store.Equal ==> iff) state_eqmod.
+    Proof.
+      move=> vs1 vs2 Heqvs s1 s2 Heqs12 s3 s4 Heqs34.
+      split; (move=> Heqm x Hmem); (move/Store.Equal_def: Heqs12 => Heqs12);
+        (move/Store.Equal_def: Heqs34 => Heqs34).
+      - rewrite -(Heqs12 x) -(Heqs34 x). apply: Heqm. rewrite Heqvs. exact: Hmem.
+      - rewrite (Heqs12 x) (Heqs34 x). apply: Heqm. rewrite -Heqvs. exact: Hmem.
+    Qed.
+
+    Global Instance add_proper_state_eqmod_vs_equal :
+      Proper (VS.Equal ==> eq ==> eq ==> iff) state_eqmod.
+    Proof.
+      move=> vs1 vs2 Heqvs s1 s2 Heqs12 s3 s4 Heqs34. subst.
+      split; move=> Heqm x Hmem.
+      - apply: Heqm. rewrite Heqvs. exact: Hmem.
+      - apply: Heqm. rewrite -Heqvs. exact: Hmem.
+    Qed.
+
+    Global Instance add_proper_state_eqmod_vs_subset :
+      Proper (VS.subset ==> eq ==> eq ==> flip impl) state_eqmod.
+    Proof.
+      move=> vs1 vs2 Hsub s1 s2 Heqs12 s3 s4 Heqs34 H. subst.
+      move=> x Hmem. move: (VSLemmas.mem_subset Hmem Hsub) => Hmem2.
+      exact: (H _ Hmem2).
+    Qed.
+
+    Global Instance add_proper_state_eqmod_store1 :
+      Proper (eq ==> Store.Equal ==> eq ==> iff) state_eqmod.
+    Proof.
+      move=> vs1 vs2 Heqvs s1 s2 Heqs12 s3 s4 Heqs34. subst.
+      split; move=> Heqm x Hmem; move/Store.Equal_def: Heqs12 => Heqs12.
+      - rewrite -(Heqs12 x). exact: (Heqm _ Hmem).
+      - rewrite (Heqs12 x). exact: (Heqm _ Hmem).
+    Qed.
+
+    Global Instance add_proper_state_eqmod_store2 :
+      Proper (eq ==> eq ==> Store.Equal ==> iff) state_eqmod.
+    Proof.
+      move=> vs1 vs2 Heqvs s1 s2 Heqs12 s3 s4 Heqs34. subst.
+      split; move=> Heqm x Hmem; move/Store.Equal_def: Heqs34 => Heqs34.
+      - rewrite -(Heqs34 x). exact: (Heqm _ Hmem).
+      - rewrite (Heqs34 x). exact: (Heqm _ Hmem).
+    Qed.
+
+    Lemma state_eqmod_subset (vs1 vs2 : VS.t) (s1 s2 : Store.t) :
+      state_eqmod vs1 s1 s2 ->
+      VS.subset vs2 vs1 ->
+      state_eqmod vs2 s1 s2.
+    Proof. move=> Heq Hsub. rewrite -> Hsub. exact: Heq. Qed.
+
+    Lemma state_eqmod_add1 v (vs : VS.t) (s1 s2 : Store.t) :
+      state_eqmod (VS.add v vs) s1 s2 ->
+      Store.acc v s1 = Store.acc v s2 /\ state_eqmod vs s1 s2.
+    Proof.
+      move=> Heqm; split.
+      - apply: Heqm. apply: VSLemmas.mem_add2. exact: VS.E.eq_refl.
+      - move=> x Hmem; apply: Heqm. apply: VSLemmas.mem_add3. assumption.
+    Qed.
+
+    Lemma state_eqmod_add2 v (vs : VS.t) (s1 s2 : Store.t) :
+      state_eqmod vs s1 s2 ->
+      Store.acc v s1 = Store.acc v s2 ->
+      state_eqmod (VS.add v vs) s1 s2.
+    Proof.
+      move=> Heqm Hv x Hmem. case: (VSLemmas.mem_add1 Hmem) => {Hmem} Hmem.
+      - by rewrite (eqP Hmem).
+      - exact: (Heqm x Hmem).
+    Qed.
+
+    Lemma state_eqmod_union1 (vs1 vs2 : VS.t) (s1 s2 : Store.t) :
+      state_eqmod (VS.union vs1 vs2) s1 s2 ->
+      state_eqmod vs1 s1 s2 /\ state_eqmod vs2 s1 s2.
+    Proof.
+      move=> Heqm; split; move=> v Hmem; apply: Heqm.
+      - apply: VSLemmas.mem_union2. assumption.
+      - apply: VSLemmas.mem_union3. assumption.
+    Qed.
+
+    Lemma state_eqmod_union2 (vs1 vs2 : VS.t) (s1 s2 : Store.t) :
+      state_eqmod vs1 s1 s2 ->
+      state_eqmod vs2 s1 s2 ->
+      state_eqmod (VS.union vs1 vs2) s1 s2.
+    Proof.
+      move=> Heqm1 Heqm2 v Hmem. case: (VSLemmas.mem_union1 Hmem) => {Hmem} Hmem.
+      - exact: (Heqm1 v Hmem).
+      - exact: (Heqm2 v Hmem).
+    Qed.
+
+    Lemma state_eqmod_Upd_add x v vs s1 s2 s3 s4 :
+      Store.Upd x v s1 s3 -> Store.Upd x v s2 s4 ->
+      state_eqmod vs s1 s2 -> state_eqmod (VS.add x vs) s3 s4.
+    Proof.
+      move=> Hupd13 Hupd24 Heqm12 y Hmem. case Hyx: (y == x).
+      - rewrite (Store.acc_Upd_eq Hyx Hupd13) (Store.acc_Upd_eq Hyx Hupd24).
+        reflexivity.
+      - move/idP/negP: Hyx => Hyx. rewrite (Store.acc_Upd_neq Hyx Hupd13)
+                                           (Store.acc_Upd_neq Hyx Hupd24).
+        apply: Heqm12. rewrite VSLemmas.add_b in Hmem. case/orP: Hmem => Hmem.
+        + apply: False_ind. rewrite eq_sym in Hyx. apply/idP: Hyx.
+          exact: (VSLemmas.eqb_eq Hmem).
+        + assumption.
+    Qed.
+
+    Lemma state_eqmod_upd_add vs s1 s2 x v :
+      state_eqmod vs s1 s2 ->
+      state_eqmod (VS.add x vs) (Store.upd x v s1) (Store.upd x v s2).
+    Proof.
+      move=> Heqm y Hmem. apply: (state_eqmod_Upd_add _ _ Heqm Hmem).
+      - exact: Store.Upd_upd.
+      - exact: Store.Upd_upd.
+    Qed.
+
+    Lemma state_eqmod_Upd x v vs s1 s2 s3 s4 :
+      Store.Upd x v s1 s3 -> Store.Upd x v s2 s4 ->
+      state_eqmod vs s1 s2 -> state_eqmod vs s3 s4.
+    Proof.
+      move=> H13 H24 Heqm. apply: (state_eqmod_subset (state_eqmod_Upd_add H13 H24 Heqm)).
+      apply: VSLemmas.subset_add. exact: VSLemmas.subset_refl.
+    Qed.
+
+    Lemma state_eqmod_upd vs s1 s2 x v :
+      state_eqmod vs s1 s2 ->
+      state_eqmod vs (Store.upd x v s1) (Store.upd x v s2).
+    Proof.
+      move=> Heqm y Hmem. apply: (state_eqmod_Upd _ _ Heqm Hmem).
+      - exact: Store.Upd_upd.
+      - exact: Store.Upd_upd.
+    Qed.
+
+    Lemma state_eqmod_Upd_notin_l x v vs s1 s2 s3 :
+      state_eqmod vs s1 s2 -> ~~ VS.mem x vs ->
+      Store.Upd x v s1 s3 -> state_eqmod vs s3 s2.
+    Proof.
+      move=> Heqm Hnotin Hupd y Hmem. have Hyx: (y != x).
+      { apply/negP=> /eqP Hyx; subst. rewrite Hmem in Hnotin. discriminate. }
+      rewrite (Store.acc_Upd_neq Hyx Hupd). exact: (Heqm y).
+    Qed.
+
+    Lemma state_eqmod_Upd_notin_r x v vs s1 s2 s3 :
+      state_eqmod vs s1 s2 -> ~~ VS.mem x vs ->
+      Store.Upd x v s2 s3 -> state_eqmod vs s1 s3.
+    Proof.
+      move=> Heqm Hnotin Hupd y Hmem. have Hyx: (y != x).
+      { apply/negP=> /eqP Hyx; subst. rewrite Hmem in Hnotin. discriminate. }
+      rewrite (Store.acc_Upd_neq Hyx Hupd). exact: (Heqm y).
+    Qed.
+
+    Lemma state_eqmod_upd_notin_l x v vs s1 s2 :
+      state_eqmod vs s1 s2 -> ~~ VS.mem x vs ->
+      state_eqmod vs (Store.upd x v s1) s2.
+    Proof.
+      move=> Heqm Hnotin. apply: (state_eqmod_Upd_notin_l Heqm Hnotin).
+      exact: Store.Upd_upd.
+    Qed.
+
+    Lemma state_eqmod_upd_notin_r x v vs s1 s2 :
+      state_eqmod vs s1 s2 -> ~~ VS.mem x vs ->
+      state_eqmod vs s1 (Store.upd x v s2).
+    Proof.
+      move=> Heqm Hnotin. apply: (state_eqmod_Upd_notin_r Heqm Hnotin).
+      exact: Store.Upd_upd.
+    Qed.
+
+    Lemma state_eqmod_Upd2_add x1 v1 x2 v2 vs s1 s2 s3 s4 :
+      Store.Upd2 x1 v1 x2 v2 s1 s3 -> Store.Upd2 x1 v1 x2 v2 s2 s4 ->
+      state_eqmod vs s1 s2 -> state_eqmod (VS.add x1 (VS.add x2 vs)) s3 s4.
+    Proof.
+      move=> Hupd13 Hupd24 Heqm12 y Hmem. case Hyx2: (y == x2).
+      - rewrite (Store.acc_Upd2_eq2 Hyx2 Hupd13) (Store.acc_Upd2_eq2 Hyx2 Hupd24).
+        reflexivity.
+      - move/idP/negP: Hyx2 => Hyx2. case Hyx1: (y == x1).
+        + rewrite (Store.acc_Upd2_eq1 Hyx1 Hyx2 Hupd13)
+                  (Store.acc_Upd2_eq1 Hyx1 Hyx2 Hupd24). reflexivity.
+        + move/idP/negP: Hyx1 => Hyx1.
+          rewrite (Store.acc_Upd2_neq Hyx1 Hyx2 Hupd13)
+                  (Store.acc_Upd2_neq Hyx1 Hyx2 Hupd24). apply: Heqm12.
+          rewrite VSLemmas.add_b in Hmem. case/orP: Hmem => Hmem.
+          * apply: False_ind. rewrite eq_sym in Hyx1. apply/idP: Hyx1.
+            exact: (VSLemmas.eqb_eq Hmem).
+          * rewrite VSLemmas.add_b in Hmem. case/orP: Hmem => Hmem.
+            -- apply: False_ind. rewrite eq_sym in Hyx2. apply/idP: Hyx2.
+               exact: (VSLemmas.eqb_eq Hmem).
+            -- assumption.
+    Qed.
+
+    Lemma state_eqmod_upd2_add x1 v1 x2 v2 vs s1 s2 :
+      state_eqmod vs s1 s2 ->
+      state_eqmod (VS.add x1 (VS.add x2 vs))
+                  (Store.upd2 x1 v1 x2 v2 s1) (Store.upd2 x1 v1 x2 v2 s2).
+    Proof.
+      move=> Heqm. apply: (state_eqmod_Upd2_add _ _ Heqm).
+      - exact: Store.Upd2_upd2.
+      - exact: Store.Upd2_upd2.
+    Qed.
+
+    Lemma state_eqmod_Upd2 x1 v1 x2 v2 vs s1 s2 s3 s4 :
+      Store.Upd2 x1 v1 x2 v2 s1 s3 -> Store.Upd2 x1 v1 x2 v2 s2 s4 ->
+      state_eqmod vs s1 s2 -> state_eqmod vs s3 s4.
+    Proof.
+      move=> Hupd13 Hupd24 Heqm12.
+      apply: (state_eqmod_subset (state_eqmod_Upd2_add Hupd13 Hupd24 Heqm12)).
+      apply: VSLemmas.subset_add. apply: VSLemmas.subset_add. exact: VSLemmas.subset_refl.
+    Qed.
+
+    Lemma state_eqmod_upd2 x1 v1 x2 v2 vs s1 s2 :
+      state_eqmod vs s1 s2 ->
+      state_eqmod vs
+                  (Store.upd2 x1 v1 x2 v2 s1) (Store.upd2 x1 v1 x2 v2 s2).
+    Proof.
+      move=> Heqm. apply: (state_eqmod_Upd2 _ _ Heqm).
+      - exact: Store.Upd2_upd2.
+      - exact: Store.Upd2_upd2.
+    Qed.
+
+    Lemma state_eqmod_Upd2_notin_l x v y u vs s1 s2 s3 :
+      state_eqmod vs s1 s2 -> ~~ VS.mem x vs -> ~~ VS.mem y vs ->
+      Store.Upd2 x v y u s1 s3 -> state_eqmod vs s3 s2.
+    Proof.
+      move=> Heqm Hnotinx Hnotiny Hupd z Hmemz.
+      have Hzx: (z != x). { apply/negP=> /eqP ?; subst; rewrite Hmemz in Hnotinx; discriminate. }
+      have Hzy: (z != y). { apply/negP=> /eqP ?; subst; rewrite Hmemz in Hnotiny; discriminate. }
+      rewrite (Store.acc_Upd2_neq Hzx Hzy Hupd). exact: (Heqm z).
+    Qed.
+
+    Lemma state_eqmod_Upd2_notin_r x v y u vs s1 s2 s3 :
+      state_eqmod vs s1 s2 -> ~~ VS.mem x vs -> ~~ VS.mem y vs ->
+      Store.Upd2 x v y u s2 s3 -> state_eqmod vs s1 s3.
+    Proof.
+      move=> Heqm Hnotinx Hnotiny Hupd z Hmemz.
+      have Hzx: (z != x). { apply/negP=> /eqP ?; subst; rewrite Hmemz in Hnotinx; discriminate. }
+      have Hzy: (z != y). { apply/negP=> /eqP ?; subst; rewrite Hmemz in Hnotiny; discriminate. }
+      rewrite (Store.acc_Upd2_neq Hzx Hzy Hupd). exact: (Heqm z).
+    Qed.
+
+    Lemma state_eqmod_upd2_notin_l x v y u vs s1 s2 :
+      state_eqmod vs s1 s2 -> ~~ VS.mem x vs -> ~~ VS.mem y vs ->
+      state_eqmod vs (Store.upd2 x v y u s1) s2.
+    Proof.
+      move=> Heqm Hnotinx Hnotiny. apply: (state_eqmod_Upd2_notin_l Heqm Hnotinx Hnotiny).
+      exact: Store.Upd2_upd2.
+    Qed.
+
+    Lemma state_eqmod_upd2_notin_r x v y u vs s1 s2 :
+      state_eqmod vs s1 s2 -> ~~ VS.mem x vs -> ~~ VS.mem y vs ->
+      state_eqmod vs s1 (Store.upd2 x v y u s2).
+    Proof.
+      move=> Heqm Hnotinx Hnotiny. apply: (state_eqmod_Upd2_notin_r Heqm Hnotinx Hnotiny).
+      exact: Store.Upd2_upd2.
     Qed.
 
   End SEQM2.

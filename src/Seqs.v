@@ -17,6 +17,36 @@ Section SeqLemmas.
 
   Variable default : A.
 
+  Lemma in_cat (x : A) (s1 s2 : seq A) :
+    In x (s1 ++ s2) -> In x s1 \/ In x s2.
+  Proof.
+    elim: s1 s2 => [| y s1 IH] s2 /=.
+    - move=> H; right; assumption.
+    - case => H.
+      + left; left; assumption.
+      + case: (IH _ H) => {}H.
+        * left; right; assumption.
+        * right; assumption.
+  Qed.
+
+  Lemma in_cat_l (x : A) (s1 s2 : seq A) :
+    In x s1 -> In x (s1 ++ s2).
+  Proof.
+    elim: s1 s2 => [| y s1 IH] s2 //=. case => H.
+    + left; assumption.
+    + right; exact: (IH _ H).
+  Qed.
+
+  Lemma in_cat_r (x : A) (s1 s2 : seq A) :
+    In x s2 -> In x (s1 ++ s2).
+  Proof.
+    elim: s1 s2 => [| y s1 IH] s2 //=. move=> H; right; exact: (IH _ H).
+  Qed.
+
+  Lemma in_singleton (x y : A) :
+    In x [:: y] -> x = y.
+  Proof. by case => //=. Qed.
+
   Lemma singleton_seq (l : seq A) :
     size l = 1%N -> exists x : A, l = x :: nil.
   Proof.
