@@ -742,7 +742,63 @@ Section Map2.
     move=> Hs. rewrite /map2. rewrite (zipr_cat _ _ Hs). rewrite mapr_cat. reflexivity.
   Qed.
 
+  Lemma map2_equal_size ss tt :
+    map2 ss tt = map2 (take (minn (size ss) (size tt)) ss)
+                      (take (minn (size ss) (size tt)) tt).
+  Proof.
+    elim: ss tt => [| s ss IH] [| t tt] //=. rewrite map2_cons. rewrite !minnSS.
+    rewrite !take_cons map2_cons. rewrite -IH. reflexivity.
+  Qed.
+
+  Lemma map2_size_gt_l ss tt :
+    size tt < size ss -> map2 ss tt = map2 (take (size tt) ss) tt.
+  Proof.
+    move=> Hs. rewrite map2_equal_size /minn. move: (ltn_geF Hs).
+    rewrite leq_eqVlt. move/Bool.orb_false_elim => [_ {}Hs]. rewrite Hs take_size.
+    reflexivity.
+  Qed.
+
+  Lemma map2_size_gt_r ss tt :
+    size ss < size tt -> map2 ss tt = map2 ss (take (size ss) tt).
+  Proof.
+    move=> Hs. rewrite map2_equal_size /minn. rewrite Hs take_size.
+    reflexivity.
+  Qed.
+
 End Map2.
+
+Section Map2SSS.
+
+  Context {S : Type}.
+  Context (f : S -> S -> S).
+  Context {f_commutative : commutative f}.
+  Context {f_associative : associative f}.
+  Context {f_idempotent : idempotent f}.
+
+  Lemma map2_comm xs ys : map2 f xs ys = map2 f ys xs.
+  Proof.
+    elim: xs ys => [| x xs IH] [| y ys] //=.
+    rewrite !map2_cons. rewrite f_commutative IH. reflexivity.
+  Qed.
+
+  Lemma map2_assoc xs ys zs : map2 f xs (map2 f ys zs) = map2 f (map2 f xs ys) zs.
+  Proof.
+    elim: xs ys zs => [| x xs IH] //=.
+    - move=> ys zs. rewrite !map20s. reflexivity.
+    - case=> [| y ys] //=.
+      + move=> zs. rewrite map20s map2s0. reflexivity.
+      + case=> [| z zs] //=.
+        * rewrite !map2s0. reflexivity.
+        * rewrite !map2_cons. rewrite f_associative IH. reflexivity.
+  Qed.
+
+  Lemma map2_idem xs : map2 f xs xs = xs.
+  Proof.
+    elim: xs => [| x xs IH] //=. rewrite map2_cons f_idempotent IH. reflexivity.
+  Qed.
+
+End Map2SSS.
+
 
 Section PrefixOf.
 

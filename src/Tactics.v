@@ -26,6 +26,78 @@ Ltac case_option :=
     match goal with
     | H : Some _ = None |- _ => discriminate
     | H : None = Some _ |- _ => discriminate
+    | H : Some (_, _, _, _, _, _, _, _, _, _) = Some (_, _, _, _, _, _, _, _, _, _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        let H3 := fresh in
+        let H4 := fresh in
+        let H5 := fresh in
+        let H6 := fresh in
+        let H7 := fresh in
+        let H8 := fresh in
+        let H9 := fresh in
+        let H0 := fresh in
+        case: H; move=> H1 H2 H3 H4 H5 H6 H7 H8 H9 H0
+    | H : Some (_, _, _, _, _, _, _, _, _) = Some (_, _, _, _, _, _, _, _, _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        let H3 := fresh in
+        let H4 := fresh in
+        let H5 := fresh in
+        let H6 := fresh in
+        let H7 := fresh in
+        let H8 := fresh in
+        let H9 := fresh in
+        case: H; move=> H1 H2 H3 H4 H5 H6 H7 H8 H9
+    | H : Some (_, _, _, _, _, _, _, _) = Some (_, _, _, _, _, _, _, _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        let H3 := fresh in
+        let H4 := fresh in
+        let H5 := fresh in
+        let H6 := fresh in
+        let H7 := fresh in
+        let H8 := fresh in
+        case: H; move=> H1 H2 H3 H4 H5 H6 H7 H8
+    | H : Some (_, _, _, _, _, _, _) = Some (_, _, _, _, _, _, _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        let H3 := fresh in
+        let H4 := fresh in
+        let H5 := fresh in
+        let H6 := fresh in
+        let H7 := fresh in
+        case: H; move=> H1 H2 H3 H4 H5 H6 H7
+    | H : Some (_, _, _, _, _, _) = Some (_, _, _, _, _, _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        let H3 := fresh in
+        let H4 := fresh in
+        let H5 := fresh in
+        let H6 := fresh in
+        case: H; move=> H1 H2 H3 H4 H5 H6
+    | H : Some (_, _, _, _, _) = Some (_, _, _, _, _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        let H3 := fresh in
+        let H4 := fresh in
+        let H5 := fresh in
+        case: H; move=> H1 H2 H3 H4 H5
+    | H : Some (_, _, _, _) = Some (_, _, _, _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        let H3 := fresh in
+        let H4 := fresh in
+        case: H; move=> H1 H2 H3 H4
+    | H : Some (_, _, _) = Some (_, _, _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        let H3 := fresh in
+        case: H; move=> H1 H2 H3
+    | H : Some (_, _) = Some (_, _) |- _ =>
+        let H1 := fresh in
+        let H2 := fresh in
+        case: H; move=> H1 H2
     | H : Some _ = Some _ |- _ =>
         case: H; move=> H
     end.
