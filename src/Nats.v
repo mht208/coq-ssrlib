@@ -511,7 +511,7 @@ Module NatOrderMinimal <: SsrOrderMinimal.
 
   Definition ltn : t -> t -> bool := fun x y => x < y.
 
-  Hint Unfold eqn ltn.
+  Global Hint Unfold eqn ltn : core.
 
   Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
   Proof. exact: ltn_trans. Qed.

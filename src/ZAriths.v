@@ -363,7 +363,7 @@ Section NLemmas.
     case H: (m <=? n).
     - apply/orP.
       move/N_leP: H => H.
-      case: (H1 H) => {H} H.
+      case: (H1 H) => {} H.
       + right; apply/N_ltP; assumption.
       + left; apply/eqP; assumption.
     - apply/negP => /orP Hor.
@@ -402,7 +402,7 @@ Section NLemmas.
   Lemma N2Nat_inj_lt x y : (N.to_nat x < N.to_nat y)%N <-> (x < y)%num.
   Proof.
     case: x; case: y => //=.
-    - move=> y. split=> H //=. move: (Pos2Nat.is_pos y) => {H} H. exact: (lt_ltn H).
+    - move=> y. split=> H //=. move: (Pos2Nat.is_pos y) => {} H. exact: (lt_ltn H).
     - move=> x y. split=> H.
       + move/ltn_lt: H => H. move/Pos2Nat.inj_lt: H. done.
       + apply/lt_ltn/Pos2Nat.inj_lt. done.
@@ -413,7 +413,7 @@ Section NLemmas.
     split => H.
     - apply: Nats.ltn_lt. move/N2Nat_inj_lt: H => H.
       rewrite !Nnat.Nat2N.id in H. assumption.
-    - move: (Nats.lt_ltn H) => {H} H. apply/N2Nat_inj_lt.
+    - move: (Nats.lt_ltn H) => {} H. apply/N2Nat_inj_lt.
       rewrite !Nnat.Nat2N.id. assumption.
   Qed.
 
@@ -641,7 +641,7 @@ Section ZLemmas.
     n <= 0 -> Z.double n <= n.
   Proof.
     rewrite Z.double_spec -Z.add_diag => H.
-    move: (Z.add_le_mono _ _ _ _ (Z.le_refl n) H) => {H} H.
+    move: (Z.add_le_mono _ _ _ _ (Z.le_refl n) H) => {} H.
     rewrite Z.add_0_r in H.
     exact: H.
   Qed.
@@ -814,7 +814,7 @@ Section ZLemmas.
     move: (Z_div_mod_eq (n * 2 - 1) n (Z.lt_gt _ _ Hn1)).
     rewrite (Zmod_mul2_sub1 Hn1).
     replace (n * 2 - 1) with (n + (n - 1)) by ring.
-    move=> H. move: (proj1 (Z.add_cancel_r _ _ _) H) => {H} H.
+    move=> H. move: (proj1 (Z.add_cancel_r _ _ _) H) => {} H.
     exact: (proj1 (Z.mul_id_r _ _ Hn2) (Logic.eq_sym H)).
   Qed.
 
@@ -827,7 +827,7 @@ Section ZLemmas.
     move: (not_eq_sym (Z.lt_neq _ _ Hn1)) => Hn3.
     move: (Z.add_le_mono _ _ _ _ Hx1 Hy1) => /= Hxy1.
     move: (Z.add_lt_mono _ _ _ _ Hx2 Hy2) => Hxy2.
-    move: (proj1 (Z.lt_le_pred (x + y) (n + n)) Hxy2) => {Hxy2} Hxy2.
+    move: (proj1 (Z.lt_le_pred (x + y) (n + n)) Hxy2) => {} Hxy2.
     move: (Z.lt_ge_cases (x + y) n); case => Hxy3.
     - rewrite (Z.div_small _ _ (conj Hxy1 Hxy3)). left; reflexivity.
     - move: (Z_div_le _ _ _ Hn2 Hxy3).
@@ -859,7 +859,7 @@ Section ZLemmas.
     have: tmp = Z.div_eucl a b by reflexivity.
     destruct tmp as [q r]. move=> Heucl Ha Hb.
     rewrite (Zdiv_eucl_q Heucl).
-    case: (proj1 (Z.lt_eq_cases 0 b) Hb) => {Hb} Hb.
+    case: (proj1 (Z.lt_eq_cases 0 b) Hb) => {} Hb.
     - exact: (Z.ge_le _ _ (Z_div_ge0 _ _ (Z.lt_gt _ _ Hb) (Z.le_ge _ _ Ha))).
     - by rewrite -Hb Zdiv_0_r.
   Qed.
@@ -925,7 +925,7 @@ Section ZLemmas.
     - move=> n _. rewrite -Pos2Z.inj_pow_pos. rewrite Z2Nat.inj_pos.
       exact: Pos2N_inj_pow.
     - move=> n H. move: (Pos2Z.neg_is_neg n) => Hn. move: (Z.le_lt_trans _ _ _ H Hn).
-      by inversion 0.
+      done.
   Qed.
 
   Lemma Z2Nat_inj_pow (n m : Z) :
@@ -1039,7 +1039,7 @@ Module PositiveOrderMinimal <: SsrOrderMinimal.
 
   Definition ltn : t -> t -> bool := fun x y => Pos.ltb x y.
 
-  Hint Unfold eqn ltn.
+  Global Hint Unfold eqn ltn : core.
 
   Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
   Proof.
@@ -1084,7 +1084,7 @@ Module NOrderMinimal <: SsrOrderMinimal.
 
   Definition ltn : t -> t -> bool := fun x y => N.ltb x y.
 
-  Hint Unfold eqn ltn.
+  Global Hint Unfold eqn ltn : core.
 
   Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
   Proof.
@@ -1129,7 +1129,7 @@ Module ZOrderMinimal <: SsrOrderMinimal.
 
   Definition ltn : t -> t -> bool := fun x y => Z.ltb x y.
 
-  Hint Unfold eqn ltn.
+  Global Hint Unfold eqn ltn : core.
 
   Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
   Proof.
@@ -1163,6 +1163,8 @@ Module ZOrder <: SsrOrder := MakeSsrOrder ZOrderMinimal.
 
 
 (** Equality Modulo *)
+
+Require Import Lia.
 
 Section EqualityModulo.
 
@@ -1259,8 +1261,6 @@ Section EqualityModulo.
     rewrite -Z.mul_sub_distr_l Z.mul_assoc (Z.mul_comm k z) -Z.mul_assoc in H.
     exact (Z.mul_reg_l _ _ z Hz H).
   Qed.
-
-  Require Import Lia.
 
   Lemma modulo_plus x y a b p :
     modulo x a p -> modulo y b p ->

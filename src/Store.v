@@ -274,7 +274,7 @@ Module MakeDTStore (X : SsrOrder) <: DTStore X.
     Lemma Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
     Proof. move=> H1 H2 v. rewrite (H1 v) (H2 v). reflexivity. Qed.
 
-    Instance Equal_ST : RelationClasses.Equivalence Equal :=
+    Global Instance Equal_ST : RelationClasses.Equivalence Equal :=
       { Equivalence_Reflexive := Equal_refl;
         Equivalence_Symmetric := Equal_sym;
         Equivalence_Transitive := Equal_trans }.
@@ -295,7 +295,7 @@ Module MakeDTStore (X : SsrOrder) <: DTStore X.
     Lemma Equal_upd2_Equal v1 e1 v2 e2 s1 s2 :
       Equal s1 s2 -> Equal (upd2 v1 e1 v2 e2 s1) (upd2 v1 e1 v2 e2 s2).
     Proof.
-      move=> Heq. rewrite /upd2. move: (Equal_upd_Equal v1 e1 Heq) => {Heq} Heq.
+      move=> Heq. rewrite /upd2. move: (Equal_upd_Equal v1 e1 Heq) => {} Heq.
       exact: (Equal_upd_Equal v2 e2 Heq).
     Qed.
 
@@ -430,7 +430,7 @@ Module DTStoreAdapter (X : SsrOrder) (V : Equalities.Typ).
   Definition Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1 := @S.Equal_sym value s1 s2.
   Definition Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3 :=
     @S.Equal_trans value s1 s2 s3.
-  Instance Equal_ST : RelationClasses.Equivalence Equal := S.Equal_ST value.
+  Global Instance Equal_ST : RelationClasses.Equivalence Equal := S.Equal_ST value.
   Definition Equal_upd_Equal v e s1 s2 :
     Equal s1 s2 -> Equal (upd v e s1) (upd v e s2) :=
     @S.Equal_upd_Equal value v e s1 s2.
@@ -568,7 +568,7 @@ Module MakeRealizableDTStore (X : SsrOrder) <: DTStore X.
     Lemma Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
     Proof. move=> H1 H2 v. rewrite (H1 v) (H2 v). reflexivity. Qed.
 
-    Instance Equal_ST : RelationClasses.Equivalence Equal :=
+    Global Instance Equal_ST : RelationClasses.Equivalence Equal :=
       { Equivalence_Reflexive := Equal_refl;
         Equivalence_Symmetric := Equal_sym;
         Equivalence_Transitive := Equal_trans }.
@@ -589,7 +589,7 @@ Module MakeRealizableDTStore (X : SsrOrder) <: DTStore X.
     Lemma Equal_upd2_Equal v1 e1 v2 e2 s1 s2 :
       Equal s1 s2 -> Equal (upd2 v1 e1 v2 e2 s1) (upd2 v1 e1 v2 e2 s2).
     Proof.
-      move=> Heq. rewrite /upd2. move: (Equal_upd_Equal v1 e1 Heq) => {Heq} Heq.
+      move=> Heq. rewrite /upd2. move: (Equal_upd_Equal v1 e1 Heq) => {} Heq.
       exact: (Equal_upd_Equal v2 e2 Heq).
     Qed.
 
@@ -724,7 +724,7 @@ Module RealizableDTStoreAdapter (X : SsrOrder) (V : HasDefaultTyp).
   Definition Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1 := @S.Equal_sym value s1 s2.
   Definition Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3 :=
     @S.Equal_trans value s1 s2 s3.
-  Instance Equal_ST : RelationClasses.Equivalence Equal := S.Equal_ST value.
+  Global Instance Equal_ST : RelationClasses.Equivalence Equal := S.Equal_ST value.
   Definition Equal_upd_Equal v e s1 s2 :
     Equal s1 s2 -> Equal (upd v e s1) (upd v e s2) :=
     @S.Equal_upd_Equal value v e s1 s2.
@@ -876,7 +876,7 @@ Module Type TStore (X : SsrOrder) (V : Equalities.Typ).
 
     Parameter Equal_trans : forall s1 s2 s3, Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3.
 
-    Instance Equal_ST : RelationClasses.Equivalence Equal.
+    Global Instance Equal_ST : RelationClasses.Equivalence Equal.
     Proof.
       split.
       - exact: Equal_refl.
@@ -1125,7 +1125,7 @@ Module MakeTStoreFun (X : SsrOrder) (V : HasDefaultTyp) <: TStore X V.
     Lemma Equal_upd2_Equal v1 e1 v2 e2 s1 s2 :
       Equal s1 s2 -> Equal (upd2 v1 e1 v2 e2 s1) (upd2 v1 e1 v2 e2 s2).
     Proof.
-      move=> Heq. rewrite /upd2. move: (Equal_upd_Equal v1 e1 Heq) => {Heq} Heq.
+      move=> Heq. rewrite /upd2. move: (Equal_upd_Equal v1 e1 Heq) => {} Heq.
       exact: (Equal_upd_Equal v2 e2 Heq).
     Qed.
 
@@ -1889,7 +1889,7 @@ Module PStoreAdapter (X : SsrOrder) (V : Equalities.Typ).
   Definition Equal_sym s1 s2 : Equal s1 s2 -> Equal s2 s1 := @S.Equal_sym value s1 s2.
   Definition Equal_trans s1 s2 s3 : Equal s1 s2 -> Equal s2 s3 -> Equal s1 s3 :=
     @S.Equal_trans value s1 s2 s3.
-  Instance Equal_ST : RelationClasses.Equivalence Equal := S.Equal_ST value.
+  Global Instance Equal_ST : RelationClasses.Equivalence Equal := S.Equal_ST value.
   Definition Equal_upd_Equal v e s1 s2 :
     Equal s1 s2 -> Equal (upd v e s1) (upd v e s2) :=
     @S.Equal_upd_Equal value v e s1 s2.
@@ -2304,7 +2304,7 @@ Module DTStateEqmod
       Store.acc v s1 = Store.acc v s2 ->
       state_eqmod (VS.add v vs) s1 s2.
     Proof.
-      move=> Heqm Hv x Hmem. case: (VSLemmas.mem_add1 Hmem) => {Hmem} Hmem.
+      move=> Heqm Hv x Hmem. case: (VSLemmas.mem_add1 Hmem) => {} Hmem.
       - by rewrite (eqP Hmem).
       - exact: (Heqm x Hmem).
     Qed.
@@ -2323,7 +2323,7 @@ Module DTStateEqmod
       state_eqmod vs2 s1 s2 ->
       state_eqmod (VS.union vs1 vs2) s1 s2.
     Proof.
-      move=> Heqm1 Heqm2 v Hmem. case: (VSLemmas.mem_union1 Hmem) => {Hmem} Hmem.
+      move=> Heqm1 Heqm2 v Hmem. case: (VSLemmas.mem_union1 Hmem) => {} Hmem.
       - exact: (Heqm1 v Hmem).
       - exact: (Heqm2 v Hmem).
     Qed.
@@ -2441,7 +2441,7 @@ Module TStateEqmod
       Store.acc v s1 = Store.acc v s2 ->
       state_eqmod (VS.add v vs) s1 s2.
     Proof.
-      move=> Heqm Hv x Hmem. case: (VSLemmas.mem_add1 Hmem) => {Hmem} Hmem.
+      move=> Heqm Hv x Hmem. case: (VSLemmas.mem_add1 Hmem) => {} Hmem.
       - by rewrite (eqP Hmem).
       - exact: (Heqm x Hmem).
     Qed.
@@ -2460,7 +2460,7 @@ Module TStateEqmod
       state_eqmod vs2 s1 s2 ->
       state_eqmod (VS.union vs1 vs2) s1 s2.
     Proof.
-      move=> Heqm1 Heqm2 v Hmem. case: (VSLemmas.mem_union1 Hmem) => {Hmem} Hmem.
+      move=> Heqm1 Heqm2 v Hmem. case: (VSLemmas.mem_union1 Hmem) => {} Hmem.
       - exact: (Heqm1 v Hmem).
       - exact: (Heqm2 v Hmem).
     Qed.

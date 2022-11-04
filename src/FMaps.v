@@ -298,7 +298,7 @@ Module FMapLemmas (M : FMapInterface.S).
 
     Variable f : elt -> elt'.
 
-    Instance add_f_proper :
+    Global Instance add_f_proper :
       Proper (M.E.eq ==> eq ==> M.Equal ==> M.Equal)
              (fun (k : M.key) (e : elt) (m : M.t elt') => M.add k (f e) m).
     Proof.
@@ -597,6 +597,15 @@ Module FMapLemmas (M : FMapInterface.S).
     Lemma Equal_submap {m1 m2 : M.t elt} : M.Equal m1 m2 -> submap m1 m2.
     Proof.
       move=> Heq x v Hfind. rewrite (Heq x) in Hfind. exact: Hfind.
+    Qed.
+
+    Lemma submap_add {te1 te2: M.t elt} x v :
+      submap te1 te2 ->
+      submap (M.add x v te1) (M.add x v te2).
+    Proof.
+      move=> Hsm k typ. case: (M.E.eq_dec k x).
+      - move=> H. by rewrite !(find_add_eq H).
+      - move=> Hne. rewrite !(find_add_neq Hne). exact: Hsm.
     Qed.
 
     Set Implicit Arguments.
@@ -937,10 +946,29 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
     (* Return the keys as a set *)
     Definition key_set (m : M.t elt) : S.t := M.fold add_to_set m S.empty.
 
-    Instance add_to_set_proper :
+    Global Instance add_to_set_proper :
       Proper (M.SE.eq ==> eq ==> S.Equal ==> S.Equal) add_to_set.
     Proof.
       move=> x y Hxy a b -> s1 s2 Heq. rewrite /add_to_set Hxy Heq. reflexivity.
+    Qed.
+
+    Global Instance add_to_set_proper_map :
+      Proper (M.SE.eq ==> eq ==> eq ==> S.Equal) add_to_set.
+    Proof.
+      move=> x y Hxy a b ? s1 s2 ?; subst. rewrite /add_to_set Hxy. reflexivity.
+    Qed.
+
+    Global Instance add_to_set_proper_set :
+      Proper (eq ==> eq ==> S.Equal ==> S.Equal) add_to_set.
+    Proof.
+      move=> x y ? a b ? s1 s2 Heq; subst. rewrite /add_to_set Heq. reflexivity.
+    Qed.
+
+    Global Instance add_proper_key_set :
+      Proper (M.Equal ==> S.Equal) key_set.
+    Proof.
+      move=> m1 m2 Heq. rewrite /key_set. apply: MLemmas.fold_Equal.
+      assumption.
     Qed.
 
     Lemma add_to_set_transpose_neqkey :

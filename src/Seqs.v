@@ -179,7 +179,7 @@ Section SeqLemmas.
   Proof.
     elim: s1 s2 s3 => [| hd tl IH] s2 s3 /=.
     - rewrite !cats0. by apply.
-    - rewrite -!cat_rcons. move=> H. move: (IH _ _ H) => {H} H.
+    - rewrite -!cat_rcons. move=> H. move: (IH _ _ H) => {} H.
       move: (rcons_inj H). case. by apply.
   Qed.
 
@@ -192,7 +192,7 @@ Section SeqLemmas.
       + left; symmetry. assumption.
     - move: IH=> [IH1 IH2]. split; case => H /=.
       + left; left. assumption.
-      + case: (IH1 H) => {H} H.
+      + case: (IH1 H) => {} H.
         * left; right; assumption.
         * right; assumption.
       + case: H => H.
@@ -256,6 +256,14 @@ Section SeqLemmas.
 
   Lemma catrev0s (s : seq A) : catrev [::] s = s.
   Proof. reflexivity. Qed.
+
+  Lemma in_map_exists (s : seq A) (f : A -> B) (x : B) :
+    In x (map f s) -> exists y, In y s /\ x = f y.
+  Proof.
+    elim: s => [| hd tl IH] //=. case=> Hin.
+    - subst. exists hd. tauto.
+    - move: (IH Hin) => [y [Hiny Hxy]]. exists y. tauto.
+  Qed.
 
 End SeqLemmas.
 

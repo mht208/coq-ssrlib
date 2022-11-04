@@ -92,14 +92,14 @@ Module FSetLemmas (S : FSetInterface.S).
 
   Lemma mem_singleton2 x y : S.E.eq x y -> S.mem x (S.singleton y).
   Proof.
-    move=> Heq. apply/memP. move: (S.E.eq_sym Heq) => {Heq} Heq.
+    move=> Heq. apply/memP. move: (S.E.eq_sym Heq) => {} Heq.
     exact: (S.singleton_2 Heq).
   Qed.
 
   Lemma not_mem_singleton1 x y : ~~ S.mem x (S.singleton y) -> ~ S.E.eq x y.
   Proof.
     move=> /negP Hmem. move=> Heq; apply: Hmem. apply/memP.
-    move: (S.E.eq_sym Heq) => {Heq} Heq. exact: (S.singleton_2 Heq).
+    move: (S.E.eq_sym Heq) => {} Heq. exact: (S.singleton_2 Heq).
   Qed.
 
   Lemma not_mem_singleton2 x y : ~ S.E.eq x y -> ~~ S.mem x (S.singleton y).
@@ -205,7 +205,7 @@ Module FSetLemmas (S : FSetInterface.S).
       S.mem v s2.
   Proof.
     move=> v s1 s2 /memP Hin Hsub; apply/memP.
-    move: (S.subset_2 Hsub) => {Hsub} Hsub.
+    move: (S.subset_2 Hsub) => {} Hsub.
     exact: (Hsub _ Hin).
   Qed.
 
@@ -272,7 +272,7 @@ Module FSetLemmas (S : FSetInterface.S).
   Lemma union_emptyl s : S.Equal (S.union S.empty s) s.
   Proof.
     move=> v; split => Hin.
-    - case: (S.union_1 Hin) => {Hin} Hin.
+    - case: (S.union_1 Hin) => {} Hin.
       + apply: False_ind. apply: S.empty_1. exact: Hin.
       + assumption.
     - apply: S.union_3. assumption.
@@ -446,7 +446,7 @@ Module FSetLemmas (S : FSetInterface.S).
   Lemma subset_singleton1 x s :
     S.subset (S.singleton x) s -> S.mem x s.
   Proof.
-    move=> H. apply/memP. move: (S.subset_2 H) => {H} H.
+    move=> H. apply/memP. move: (S.subset_2 H) => {} H.
     apply: (H x). apply: S.singleton_2. reflexivity.
   Qed.
 
@@ -512,30 +512,30 @@ Module FSetLemmas (S : FSetInterface.S).
   Lemma subset_trans s1 s2 s3 :
     S.subset s1 s2 -> S.subset s2 s3 -> S.subset s1 s3.
   Proof.
-    move=> H12 H23. move: (S.subset_2 H12) => {H12} H12.
-    move: (S.subset_2 H23) => {H23} H23. apply: S.subset_1.
+    move=> H12 H23. move: (S.subset_2 H12) => {} H12.
+    move: (S.subset_2 H23) => {} H23. apply: S.subset_1.
     exact: (OP.P.subset_trans H12 H23).
   Qed.
 
   Lemma subset_add v s1 s2 :
     S.subset s1 s2 -> S.subset s1 (S.add v s2).
   Proof.
-    move=> Hsub. move: (S.subset_2 Hsub) => {Hsub} Hsub.
-    apply: S.subset_1 => x Hin. move: (Hsub x Hin) => {Hin} Hin.
+    move=> Hsub. move: (S.subset_2 Hsub) => {} Hsub.
+    apply: S.subset_1 => x Hin. move: (Hsub x Hin) => {} Hin.
     exact: (S.add_2 _ Hin).
   Qed.
 
   Lemma subset_add2 x s1 s2 :
     S.subset s1 s2 -> S.subset s1 (S.add x s2).
   Proof.
-    move=> Hsub. move: (S.subset_2 Hsub) => {Hsub} Hsub.
+    move=> Hsub. move: (S.subset_2 Hsub) => {} Hsub.
     apply/S.subset_1. exact: OP.P.subset_add_2.
   Qed.
 
   Lemma subset_add3 x s1 s2 :
     S.mem x s2 -> S.subset s1 s2 -> S.subset (S.add x s1) s2.
   Proof.
-    move=> /memP Hin Hsub. move: (S.subset_2 Hsub) => {Hsub} Hsub.
+    move=> /memP Hin Hsub. move: (S.subset_2 Hsub) => {} Hsub.
     apply/S.subset_1. exact: OP.P.subset_add_3.
   Qed.
 
@@ -543,7 +543,7 @@ Module FSetLemmas (S : FSetInterface.S).
     S.subset (S.add x s1) s2 -> S.mem x s2.
   Proof.
     rewrite OP.P.add_union_singleton. move=> H.
-    move: (subset_union4 H) => {H} H. exact: (subset_singleton1 H).
+    move: (subset_union4 H) => {} H. exact: (subset_singleton1 H).
   Qed.
 
   Lemma subset_add5 x s1 s2 :
@@ -636,7 +636,7 @@ Module FSetLemmas (S : FSetInterface.S).
   Proof.
     move=> Hmem; split.
     - move=> Heq.
-      move: (S.E.eq_sym Heq) => {Heq} Heq.
+      move: (S.E.eq_sym Heq) => {} Heq.
       apply: (@S.remove_1 s y x Heq).
       apply/memP.
       assumption.
@@ -668,7 +668,7 @@ Module FSetLemmas (S : FSetInterface.S).
     S.In x (S.remove y s) -> ~ S.E.eq x y.
   Proof.
     move=> Hin Heq.
-    move: (S.E.eq_sym Heq) => {Heq} Heq.
+    move: (S.E.eq_sym Heq) => {} Heq.
     exact: (S.remove_1 Heq Hin).
   Qed.
 
@@ -691,7 +691,7 @@ Module FSetLemmas (S : FSetInterface.S).
         move=> [H _].
         move=> H1; case: (H H1) => {H H1}.
         * move=> Heq.
-          move: (S.E.eq_sym Heq) => {Heq} Heq.
+          move: (S.E.eq_sym Heq) => {} Heq.
           exact: (in_remove_ne Hin Heq).
         * move=> Hins2.
           exact: (S.diff_2 (S.remove_3 Hin) Hins2).
@@ -703,7 +703,7 @@ Module FSetLemmas (S : FSetInterface.S).
   Proof.
     move=> H.
     apply: S.subset_1 => x Hin_diff.
-    move: (S.subset_2 H) => {H} H.
+    move: (S.subset_2 H) => {} H.
     move: (H x (S.diff_1 Hin_diff)) => Hin_union.
     case: (S.union_1 Hin_union).
     - move=> Hin2.
@@ -738,7 +738,7 @@ Module FSetLemmas (S : FSetInterface.S).
     S.subset s1 (S.union s2 s3).
   Proof.
     move=> H.
-    move: (S.subset_2 H) => {H} H.
+    move: (S.subset_2 H) => {} H.
     apply/S.subset_1 => x Hinx.
     case H2: (S.mem x s2).
     - apply: S.union_2.
@@ -805,7 +805,7 @@ Module FSetLemmas (S : FSetInterface.S).
   Lemma mem_disjoint1 x s1 s2 :
     disjoint s1 s2 -> S.mem x s1 -> ~~ S.mem x s2.
   Proof.
-    move=> Hd Hm1. apply/negP => Hm2. move: (S.is_empty_2 Hd) => {Hd} Hd.
+    move=> Hd Hm1. apply/negP => Hm2. move: (S.is_empty_2 Hd) => {} Hd.
     apply: (Hd x). apply/memP. exact: (mem_inter3 Hm1 Hm2).
   Qed.
 
@@ -969,7 +969,7 @@ Module FSetLemmas (S : FSetInterface.S).
     - by apply.
   Qed.
 
-  Lemma add_proper_proper_subset : Proper (S.Equal ==> S.Equal ==> eq) proper_subset.
+  Global Instance add_proper_proper_subset : Proper (S.Equal ==> S.Equal ==> eq) proper_subset.
   Proof.
     move=> s1 s2 Heq12 s3 s4 Heq34. rewrite /proper_subset.
     rewrite Heq12 Heq34. reflexivity.
@@ -1053,18 +1053,18 @@ Module FSetLemmas (S : FSetInterface.S).
       S.for_all f (S.union vs1 vs2) = (S.for_all f vs1 && S.for_all f vs2).
     Proof.
       case Hall1: (S.for_all f vs1) => /=.
-      - move: (S.for_all_2 compat Hall1) => {Hall1} Hall1.
+      - move: (S.for_all_2 compat Hall1) => {} Hall1.
         case Hall2: (S.for_all f vs2).
         + apply: (S.for_all_1 compat).
-          move=> x Hin. case: (S.union_1 Hin) => {Hin} Hin.
+          move=> x Hin. case: (S.union_1 Hin) => {} Hin.
           * exact: (Hall1 x Hin).
-          * move: (S.for_all_2 compat Hall2) => {Hall2} Hall2. exact: (Hall2 x Hin).
+          * move: (S.for_all_2 compat Hall2) => {} Hall2. exact: (Hall2 x Hin).
         + apply/negP => Hunion. move/negP: Hall2. apply.
-          move: (S.for_all_2 compat Hunion) => {Hunion} Hunion.
+          move: (S.for_all_2 compat Hunion) => {} Hunion.
           apply: (S.for_all_1 compat). move=> x Hin2.
           exact: (Hunion x (S.union_3 vs1 Hin2)).
       - apply/negP=> Hunion. move/negP: Hall1. apply.
-        move: (S.for_all_2 compat Hunion) => {Hunion} Hunion.
+        move: (S.for_all_2 compat Hunion) => {} Hunion.
         apply: (S.for_all_1 compat). move=> x Hin1.
         exact: (Hunion x (S.union_2 vs2 Hin1)).
     Qed.
@@ -1072,9 +1072,9 @@ Module FSetLemmas (S : FSetInterface.S).
     Lemma for_all_subset vs1 vs2 :
       S.subset vs1 vs2 -> S.for_all f vs2 -> S.for_all f vs1.
     Proof.
-      move=> Hsub Hall2. move: (S.for_all_2 compat Hall2) => {Hall2} Hall2.
+      move=> Hsub Hall2. move: (S.for_all_2 compat Hall2) => {} Hall2.
       apply: (S.for_all_1 compat). move=> x Hin1.
-      move: (S.subset_2 Hsub) => {Hsub} Hsub. move: (Hsub x Hin1) => Hin2.
+      move: (S.subset_2 Hsub) => {} Hsub. move: (Hsub x Hin1) => Hin2.
       exact: (Hall2 x Hin2).
     Qed.
 
@@ -1084,7 +1084,7 @@ Module FSetLemmas (S : FSetInterface.S).
       - apply: (S.for_all_1 compat). move=> y /memP Hiny.
         move: (mem_singleton1 Hiny) => Heqy. rewrite (compat Heqy). assumption.
       - apply/negP=> Hall. move/negP: H; apply.
-        move: (S.for_all_2 compat Hall) => {Hall} Hall.
+        move: (S.for_all_2 compat Hall) => {} Hall.
         move: (mem_singleton2 (S.E.eq_refl v)) => /memP Hin. exact: (Hall v Hin).
     Qed.
 
@@ -1093,12 +1093,12 @@ Module FSetLemmas (S : FSetInterface.S).
       S.for_all f vs2 = f v && S.for_all f vs1.
     Proof.
       move=> Hadd. case H: (f v && S.for_all f vs1).
-      - move/andP: H => [Hfv Hall]. move: (S.for_all_2 compat Hall) => {Hall} Hall.
+      - move/andP: H => [Hfv Hall]. move: (S.for_all_2 compat Hall) => {} Hall.
         apply: (S.for_all_1 compat) => y /(Hadd y) Hiny. case: Hiny => Hiny.
         + rewrite -(compat Hiny). assumption.
         + exact: (Hall y Hiny).
       - apply/negP=> Hall. move/negP: H; apply.
-        move: (S.for_all_2 compat Hall) => {Hall} Hall. apply/andP; split.
+        move: (S.for_all_2 compat Hall) => {} Hall. apply/andP; split.
         + move: (Hadd v) => [H1 H2]. exact: (Hall v (H2 (or_introl (S.E.eq_refl v)))).
         + apply: (S.for_all_1 compat) => y Hiny. move: (Hadd y) => [H1 H2].
           exact: (Hall y (H2 (or_intror Hiny))).
@@ -1111,7 +1111,7 @@ Module FSetLemmas (S : FSetInterface.S).
       S.for_all f vs1 -> S.for_all f vs2 -> S.for_all f (S.inter vs1 vs2).
     Proof.
       move=> H1 H2. move: (S.for_all_2 compat H1) (S.for_all_2 compat H2) =>
-                    {H1 H2} H1 H2. apply: (S.for_all_1 compat) => x Hin.
+                          {}H1 {}H2. apply: (S.for_all_1 compat) => x Hin.
       exact: (H1 x (S.inter_1 Hin)).
     Qed.
 
@@ -1192,7 +1192,7 @@ Module FSetLemmas (S : FSetInterface.S).
       exact: (mem_subset H1 H2)
     (* *)
     | H : is_true (S.mem ?x (S.singleton ?y)) |- is_true (S.mem ?x _) =>
-      move: (mem_singleton1 H) => {H} H; dp_mem
+      move: (mem_singleton1 H) => {} H; dp_mem
     | H : is_true (S.mem ?x (S.add ?y ?s)) |- is_true (S.mem ?x _) =>
       move: (mem_add1 H) => {H} [] H; dp_mem
     | H : is_true (S.mem ?x (S.union ?s1 ?s2)) |- is_true (S.mem ?x _) =>
@@ -1206,7 +1206,7 @@ Module FSetLemmas (S : FSetInterface.S).
       first [ apply: mem_union2; by dp_mem | apply: mem_union3; by dp_mem ]
     (* *)
     | H : is_true (S.subset (S.singleton _) _) |- _ =>
-      move: (subset_singleton1 H) => {H} H; dp_mem
+      move: (subset_singleton1 H) => {} H; dp_mem
     | H : is_true (S.subset (S.add _ _) _) |- _ =>
       let H1 := fresh in let H2 := fresh in
       move: (subset_add4 H) (subset_add5 H) => {H} H1 H2; dp_mem
@@ -1239,7 +1239,7 @@ Module FSetLemmas (S : FSetInterface.S).
       exact: (subset_trans H1 H2)
     (* *)
     | H : is_true (S.subset (S.singleton _) _) |- _ =>
-      move: (subset_singleton1 H) => {H} H; dp_subset
+      move: (subset_singleton1 H) => {} H; dp_subset
     | H : is_true (S.subset (S.add _ _) _) |- _ =>
       let H1 := fresh in let H2 := fresh in
       move: (subset_add4 H) (subset_add5 H) => {H} H1 H2; dp_subset
@@ -1449,7 +1449,7 @@ Module MakeElementGenerator (X : SsrFSet) (D : Types.HasDefault X.SE) (S : HasSu
     move=> s. apply/negP => Hmem. move/X.mem_2: Hmem.
     rewrite /new_elt. case H: (X.max_elt s) => Hin.
     - apply: (X.max_elt_2 H Hin). exact: L.ltn_succ.
-    - move: (X.max_elt_3 H) => {H} H. apply: (H D.default). assumption.
+    - move: (X.max_elt_3 H) => {} H. apply: (H D.default). assumption.
   Qed.
 
 End MakeElementGenerator.
@@ -1588,7 +1588,7 @@ Module Map2 (S1 S2 : SsrFSet).
       - apply/negP => Hmem2.
         move/negP: Hmem1; apply.
         move: (Lemmas2.mem_of_list1 Hmem2) => HinA.
-        move: (inA_map2 HinA) => {HinA} HinA.
+        move: (inA_map2 HinA) => {} HinA.
         apply/Lemmas1.memP.
         exact: (S1.elements_2 HinA).
     Qed.
@@ -1637,7 +1637,7 @@ Module Map2 (S1 S2 : SsrFSet).
     Proof.
       move=> x; split; move=> /Lemmas2.memP Hmem; apply/Lemmas2.memP.
       - move: (map2_mem2 Hmem) => [y [Hy Hmemy]].
-        case: (Lemmas1.mem_union1 Hmemy) => {Hmemy} Hmemy.
+        case: (Lemmas1.mem_union1 Hmemy) => {} Hmemy.
         + apply: Lemmas2.mem_union2. rewrite Hy map2_mem1. assumption.
         + apply: Lemmas2.mem_union3. rewrite Hy map2_mem1. assumption.
       - case: (Lemmas2.mem_union1 Hmem) => {Hmem} Hmemx.

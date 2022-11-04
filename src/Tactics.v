@@ -15,6 +15,10 @@ Ltac hyps_splitb :=
             let H1 := fresh in
             let H2 := fresh in
             move/andP: H => [H1 H2]
+          | H: _ && _ = true |- _ =>
+            let H1 := fresh in
+            let H2 := fresh in
+            move/andP: H => [H1 H2]
           end).
 
 Ltac leftb := apply/orP; left.

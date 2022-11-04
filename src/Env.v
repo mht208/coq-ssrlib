@@ -49,9 +49,9 @@ End SEnv.
 
 
 
-Module MakeSEnv (V : SsrOrderWithDefaultSucc) <: SEnv with Module V := V.
+Module MakeSEnv (VV : SsrOrderWithDefaultSucc) <: SEnv with Module V := VV.
 
-  Module V := V.
+  Module V := VV.
 
   Local Notation var := V.t.
 
@@ -177,9 +177,9 @@ End TEnv.
 
 
 
-Module MakeTEnv (Import V : SsrOrderWithDefaultSucc) <: TEnv with Module V := V.
+Module MakeTEnv (Import VV : SsrOrderWithDefaultSucc) <: TEnv with Module V := VV.
 
-  Module V := V.
+  Module V := VV.
 
   Local Notation var := V.t.
 
@@ -445,9 +445,9 @@ Module Type HEnv.
 End HEnv.
 
 
-Module MakeHEnv (V : SsrOrderWithDefaultSucc) <: HEnv with Module V := V.
+Module MakeHEnv (VV : SsrOrderWithDefaultSucc) <: HEnv with Module V := VV.
 
-  Module V := V.
+  Module V := VV.
   Module VM := MakeTreeMapWithNew V.
 
   Local Notation var := V.t.

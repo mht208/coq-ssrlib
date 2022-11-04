@@ -15,6 +15,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
+Declare Scope hlist_scope.
 Delimit Scope hlist_scope with hlist.
 
 Reserved Notation "x '=i' y" (at level 70, no associativity).

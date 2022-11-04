@@ -46,7 +46,7 @@ Module SSAVM <: SsrFMapWithNew := FMaps.MakeTreeMapWithNew SSAVarOrder.
 Definition svar (x : SSAVarOrder.t) := fst x.
 Definition sidx (x : SSAVarOrder.t) := snd x.
 
-Hint Unfold svar sidx.
+Global Hint Unfold svar sidx : core.
 
 Definition svar_notin v vs : Prop := forall i, ~~ SSAVS.mem (v, i) vs.
 
@@ -183,6 +183,9 @@ Ltac dp_svar_notin :=
         apply/svar_notin_add; split
     | |- svar_notin _ (SSAVS.union _ _) =>
         apply/svar_notin_union; split
+    | H1 : is_true (SSAVS.subset ?s1 ?s2), H2 : svar_notin ?v ?s2 |-
+        svar_notin ?v ?s1 =>
+        exact: (svar_notin_subset H1 H2)
     end.
 
 
