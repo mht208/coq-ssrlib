@@ -1,14 +1,13 @@
 
 (** * Variables *)
 
-From Coq Require Import FMaps FSets ZArith OrderedType.
+From Coq Require Import FMaps FSets ZArith OrderedType String.
 From mathcomp Require Import ssreflect ssrbool eqtype.
-From ssrlib Require Import SsrOrder FMaps FSets ZAriths.
+From ssrlib Require Import SsrOrder FMaps FSets ZAriths Strings.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
-
 
 
 Definition var : Set := N.
@@ -22,6 +21,12 @@ Module VarOrder <: SsrOrderWithDefaultSucc.
   Qed.
   Definition default : t := N0.
 End VarOrder.
+
+Module VarOrderPrinter <: Printer with Definition t := var.
+  Definition t := VarOrder.t.
+  Definition to_string (v : VarOrder.t) :=
+    ("v" ++ string_of_N v)%string.
+End VarOrderPrinter.
 
 
 
@@ -37,6 +42,12 @@ Module VM <: SsrFMapWithNew := FMaps.MakeTreeMapWithNew VarOrder.
 From ssrlib Require Import SsrOrder.
 
 Module SSAVarOrder := MakeProdOrderWithDefaultSucc VarOrder VarOrder.
+
+Module SSAVarOrderPrinter <: Printer with Definition t := SSAVarOrder.t.
+  Definition t := SSAVarOrder.t.
+  Definition to_string (v : SSAVarOrder.t) : string :=
+    ("v" ++ string_of_N (fst v) ++ "_" ++ string_of_N (snd v))%string.
+End SSAVarOrderPrinter.
 
 Definition ssavar := SSAVarOrder.t.
 
