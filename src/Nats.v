@@ -1,5 +1,5 @@
 
-From Coq Require Import Arith OrderedType.
+From Coq Require Import Arith OrderedType BinNat.
 From mathcomp Require Import ssreflect ssrbool ssrnat div eqtype.
 From ssrlib Require Import Types SsrOrder.
 

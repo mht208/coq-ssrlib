@@ -435,6 +435,53 @@ Section NLemmas.
   Lemma Npos_ge1 p : (1 <= N.pos p)%num.
   Proof. by elim: p. Qed.
 
+  Lemma pos_to_nat_odd n : Nat.odd (Pos.to_nat n) = N.odd (N.pos n).
+  Proof.
+    case: n => [n | n |].
+    - rewrite Pos2Nat.inj_xI Nat.odd_succ Nat.even_mul Nat.even_2 /=. reflexivity.
+    - rewrite Pos2Nat.inj_xO Nat.odd_mul Nat.odd_2 /=. reflexivity.
+    - reflexivity.
+  Qed.
+
+  Lemma pos_to_nat_even n : Nat.even (Pos.to_nat n) = N.even (N.pos n).
+  Proof.
+    case: n => [n | n |].
+    - rewrite Pos2Nat.inj_xI Nat.even_succ Nat.odd_mul Nat.odd_2 /=. reflexivity.
+    - rewrite Pos2Nat.inj_xO Nat.even_mul Nat.even_2 /=. reflexivity.
+    - reflexivity.
+  Qed.
+
+  Lemma N_of_nat_odd n : N.odd (N.of_nat n) = Nat.odd n
+  with N_of_nat_even n : N.even (N.of_nat n) = Nat.even n.
+  Proof.
+    (* N_of_nat_odd *)
+    - case: n => [| n]; [reflexivity | simpl]. rewrite Nat.odd_succ.
+      rewrite -N_of_nat_even. rewrite -N.odd_succ.
+      clear N_of_nat_odd N_of_nat_even. by elim: n => [| n IH] //=.
+    (* N_of_nat_even *)
+    - case: n => [| n]; first reflexivity. rewrite Nat.even_succ.
+      rewrite -N_of_nat_odd. rewrite -N.even_succ.
+      clear N_of_nat_odd N_of_nat_even. by elim: n => [| n IH] //=.
+  Qed.
+
+  Lemma N_to_nat_odd n : Nat.odd (N.to_nat n) = N.odd n.
+  Proof. case: n => [| n]; [reflexivity | exact: pos_to_nat_odd]. Qed.
+
+  Lemma N_to_nat_even n : Nat.even (N.to_nat n) = N.even n.
+  Proof. case: n => [| n]; [reflexivity | exact: pos_to_nat_even]. Qed.
+
+  Lemma Npos_xI_div2 n : (N.pos (n~1) / 2 = N.pos n)%num.
+  Proof.
+    rewrite -Z2N.inj_pos. rewrite Pos2Z.inj_xI. rewrite Z2N.inj_add => //.
+    rewrite Z2N.inj_mul => //. rewrite N.mul_comm. by rewrite N.div_add_l.
+  Qed.
+
+  Lemma Npos_xO_div2 n : (N.pos (n~0) / 2 = N.pos n)%num.
+  Proof.
+    rewrite -Z2N.inj_pos. rewrite Pos2Z.inj_xO. rewrite Z2N.inj_mul => //.
+    rewrite N.mul_comm. by rewrite N.div_mul.
+  Qed.
+
 End NLemmas.
 
 
