@@ -4,3 +4,5 @@
 *.vos
 *.aux
 *.glob
+.lia.cache
+.Makefile.d

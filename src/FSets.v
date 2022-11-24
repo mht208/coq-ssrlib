@@ -926,7 +926,7 @@ Module FSetLemmas (S : FSetInterface.S).
   Proof.
     move=> /andP [Hsub12 Hneq12] /andP [Hsub23 Hneq23]. rewrite /proper_subset.
     rewrite (subset_trans Hsub12 Hsub23) /=. apply/negP => /S.equal_2 Heq13.
-    rewrite Heq13 in Hsub12. move: (subset_antisym Hsub23 Hsub12) => Heq23.
+    rewrite -> Heq13 in Hsub12. move: (subset_antisym Hsub23 Hsub12) => Heq23.
     move/negP: Hneq23; rewrite Heq23. by apply.
   Qed.
 
@@ -935,7 +935,7 @@ Module FSetLemmas (S : FSetInterface.S).
   Proof.
     move=> /andP [Hsub12 Hneq12] Hsub23. rewrite /proper_subset.
     rewrite (subset_trans Hsub12 Hsub23) /=. apply/negP => /S.equal_2 Heq13.
-    rewrite Heq13 in Hsub12. move: (subset_antisym Hsub23 Hsub12) => /S.equal_2 Heq23.
+    rewrite -> Heq13 in Hsub12. move: (subset_antisym Hsub23 Hsub12) => /S.equal_2 Heq23.
     move/negP: Hneq12; apply. rewrite Heq13 Heq23. exact: equal_refl.
   Qed.
 
@@ -944,7 +944,7 @@ Module FSetLemmas (S : FSetInterface.S).
   Proof.
     move=> Hsub12 /andP [Hsub23 Hneq23]. rewrite /proper_subset.
     rewrite (subset_trans Hsub12 Hsub23) /=. apply/negP => /S.equal_2 Heq13.
-    rewrite Heq13 in Hsub12. move: (subset_antisym Hsub23 Hsub12) => Heq23.
+    rewrite -> Heq13 in Hsub12. move: (subset_antisym Hsub23 Hsub12) => Heq23.
     move/negP: Hneq23; apply. exact: Heq23.
   Qed.
 
