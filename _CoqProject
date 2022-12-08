@@ -3,6 +3,7 @@ src/Compatibility.v
 src/Strings.v
 src/Types.v
 src/SsrOrder.v
+src/Orders.v
 src/Tactics.v
 src/Lists.v
 src/Tuples.v
@@ -10,6 +11,7 @@ src/Bools.v
 src/Nats.v
 src/ZAriths.v
 src/FSets.v
+src/Sets.v
 src/FMaps.v
 src/HList.v
 src/Seqs.v

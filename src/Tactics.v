@@ -1,4 +1,5 @@
 
+From Coq Require Import Bool.
 From mathcomp Require Import ssreflect ssrbool eqtype.
 
 (** General tactics *)
@@ -302,6 +303,36 @@ Ltac case_hyps :=
           | H : is_true [&& _ & _] |- _ => case/andP: H; intros
           | H : is_true [|| _ | _] |- _ => case/orP: H; intros
           end).
+
+Ltac case_all :=
+  repeat match goal with
+         | |- _ -> _ => intros
+         | |- _ <-> _ => split
+         | |- _ /\ _ => split
+         | |- is_true (_ || _) => apply/orP
+         | |- _ || _ = true => apply/orP
+         | |- is_true (_ && _) => apply/andP
+         | |- _ && _ = true => apply/andP
+         | H : _ /\ _ |- _ => let H1 := fresh in
+                              let H2 := fresh in
+                              case: H => H1 H2
+         | H : _ && _ |- _ => move/andP: H => H
+         | H : is_true (_ && _) |- _ => move/andP: H => H
+         | H : _ && _ = true |- _ => move/andP: H => H
+         | H : _ \/ _ |- _ => case: H => H
+         | H : is_true (_ || _) |- _ => move/orP: H => H
+         | H : _ || _ = true |- _ => move/orP: H => H
+         | |- context [~~ ~~ _] => rewrite negb_involutive
+         | H : context [~~ ~~ _] |- _ => rewrite negb_involutive in H
+         | |- context [~~ (_ && _)] => rewrite negb_andb
+         | H : context [~~ (_ && _)] |- _ => rewrite negb_andb in H
+         | |- context [~~ (_ || _)] => rewrite negb_orb
+         | H : context [~~ (_ || _)] |- _ => rewrite negb_orb in H
+         | |- _ && _ = false => apply/andb_false_iff
+         | H : _ && _ = false |- _ => move/andb_false_iff: H => H
+         | |- _ || _ = false => apply/orb_false_iff
+         | H : _ || _ = false |- _ => move/orb_false_iff: H => H
+         end.
 
 Ltac t_decide_hook := fail.
 

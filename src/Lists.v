@@ -23,7 +23,6 @@ Definition nonempty_hd A (l : nonempty_list A) : A :=
   end.
 
 
-
 From Coq Require Import SetoidList.
 From mathcomp Require Import eqtype ssrbool seq.
 
@@ -96,5 +95,53 @@ Section ListLemmas.
     - move=> [l1_hd1 l1_hd2] l1_tl IH ls2 /=. rewrite IH.
       dcase (split l1_tl). move=> [l1_tl1 l1_tl2] Hspl1. reflexivity.
   Qed.
+
+  Lemma existsb_rcons (f : A -> bool) s x :
+    existsb f (rcons s x) = existsb f s || f x.
+  Proof.
+    elim: s x => [| a s IH] x /=.
+    - by rewrite orbF.
+    - rewrite IH orbA. reflexivity.
+  Qed.
+
+  Section InA.
+
+    Variable eqA eqB : A -> A -> Prop.
+
+    Definition is_eq (eqA : A -> A -> Prop) : Prop :=
+      forall x y, eqA x y -> x = y.
+
+    Variable eqA_is_eq : is_eq eqA.
+
+    Lemma InA_eqB x s :
+      (forall x y, eqA x y -> eqB x y) ->
+      InA eqA x s -> InA eqB x s.
+    Proof.
+      move=> H. elim: s x => [| a s IH] x Hin //=.
+      - by inversion_clear Hin.
+      - case/InA_cons : Hin => Hin.
+        + left. exact: (H _ _ Hin).
+        + right. exact: (IH _ Hin).
+    Qed.
+
+    Lemma InA_eq_In x (s : seq A) : InA Logic.eq x s -> In x s.
+    Proof.
+      elim: s x => [| a s IH] x Hin //=.
+      - by inversion_clear Hin.
+      - case/InA_cons : Hin => Hin.
+        + rewrite Hin; by left.
+        + right; exact: (IH _ Hin).
+    Qed.
+
+    Lemma InA_In x (s : seq A) : InA eqA x s -> In x s.
+    Proof.
+      elim: s x => [| a s IH] x Hin //=.
+      - by inversion_clear Hin.
+      - case/InA_cons : Hin => Hin.
+        + rewrite (eqA_is_eq Hin); by left.
+        + right; exact: (IH _ Hin).
+    Qed.
+
+  End InA.
 
 End ListLemmas.
