@@ -265,6 +265,13 @@ Section SeqLemmas.
     - move: (IH Hin) => [y [Hiny Hxy]]. exists y. tauto.
   Qed.
 
+  Lemma catrev_rev (s1 s2 : seq A) :
+    catrev (rev s1) s2 = s1 ++ s2.
+  Proof.
+    move: s1 s2. apply: last_ind => [| s1 x1 IH1] s2 //=.
+    rewrite rev_rcons /= IH1. rewrite cat_rcons. reflexivity.
+  Qed.
+
 End SeqLemmas.
 
 
@@ -529,10 +536,13 @@ Section EqSeqLemmas.
 
   Lemma in_rcons (x : A) s (y : A) :
     x \in rcons s y = (x \in s) || (x == y).
+  Proof. rewrite mem_rcons in_cons orbC. reflexivity. Qed.
+
+  Lemma in_rev (x : A) s :
+    (x \in rev s) = (x \in s).
   Proof.
-    elim: s => [| hd tl IH] /=.
-    - rewrite mem_seq1. reflexivity.
-    - rewrite !in_cons. rewrite IH. rewrite orbA. reflexivity.
+    elim: s => [| y s IH] //=. rewrite rev_cons in_rcons IH in_cons orbC.
+    reflexivity.
   Qed.
 
   Lemma in_split_rev_l {C : Type} (x : A) (s : seq (A * C)) :

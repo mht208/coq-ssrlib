@@ -3405,7 +3405,7 @@ Module FSetTypeLemmas.
       move: (H x (mem_inter_l Hmem)). move/negP; apply. exact: (mem_inter_r Hmem).
     Qed.
 
-    Lemma disjoint_singleton x (s : t) :
+    Lemma disjoint_singleton_r x (s : t) :
       disjoint s (singleton x) = ~~ mem x s.
     Proof.
       case H: (mem x s) => /=.
@@ -3416,7 +3416,10 @@ Module FSetTypeLemmas.
         rewrite -(mem_singleton_eq (mem_inter_r Hv)). exact: (mem_inter_l Hv).
     Qed.
 
-    Lemma disjoint_add x (s1 s2 : t) :
+    Lemma disjoint_singleton_l x s : disjoint (singleton x) s = ~~ mem x s.
+    Proof. rewrite disjoint_sym. exact: disjoint_singleton_r. Qed.
+
+    Lemma disjoint_add_r x (s1 s2 : t) :
       disjoint s1 (add x s2) = ~~ mem x s1 && disjoint s1 s2.
     Proof.
       case Hx: (mem x s1) => /=.
@@ -3436,7 +3439,13 @@ Module FSetTypeLemmas.
           apply: mem_add_r. exact: (mem_inter_r Hv).
     Qed.
 
-    Lemma disjoint_union (s1 s2 s3 : t) :
+    Lemma disjoint_add_l x s1 s2 :
+      disjoint (add x s1) s2 = ~~ mem x s2 && disjoint s1 s2.
+    Proof.
+      rewrite disjoint_sym disjoint_add_r disjoint_sym. reflexivity.
+    Qed.
+
+    Lemma disjoint_union_r (s1 s2 s3 : t) :
       disjoint s1 (union s2 s3) = disjoint s1 s2 && disjoint s1 s3.
     Proof.
       case H12: (disjoint s1 s2); case H13: (disjoint s1 s3) => /=.
@@ -3455,12 +3464,22 @@ Module FSetTypeLemmas.
         apply: mem_union_r. exact: Hmem3.
     Qed.
 
-    Lemma disjoint_diff (s1 s2 : t) : disjoint (diff s1 s2) s2.
+    Lemma disjoint_union_l s1 s2 s3 :
+      disjoint (union s1 s2) s3 = disjoint s1 s3 && disjoint s2 s3.
+    Proof.
+      rewrite disjoint_sym disjoint_union_r. rewrite !(@disjoint_sym s3).
+      reflexivity.
+    Qed.
+
+    Lemma disjoint_diff_l (s1 s2 : t) : disjoint (diff s1 s2) s2.
     Proof.
       rewrite /disjoint. apply: is_empty_1. move=> x Hin.
       move: (inter_1 Hin) (inter_2 Hin) => Hin1 Hin2.
       apply: (diff_2 Hin1). exact: Hin2.
     Qed.
+
+    Lemma disjoint_diff_r s1 s2 : disjoint s1 (diff s2 s1).
+    Proof. rewrite disjoint_sym. exact: disjoint_diff_l. Qed.
 
     Lemma subset_union_disjoint_r (s1 s2 s3 : t) :
       subset s1 (union s2 s3) -> disjoint s1 s3 -> subset s1 s2.
@@ -3484,7 +3503,23 @@ Module FSetTypeLemmas.
     Lemma disjoint_empty_r s : disjoint s empty.
     Proof. rewrite disjoint_sym. exact: disjoint_empty_l. Qed.
 
-    Hint Immediate disjoint_diff disjoint_empty_l disjoint_empty_r : set.
+    Lemma disjoint_subset_l s1 s2 s3 :
+      disjoint s1 s2 -> subset s3 s1 -> disjoint s3 s2.
+    Proof.
+      move=> Hdisj Hsub. apply: all_mem_disjoint. move=> x Hmem3. apply/negP => Hmem2.
+      move: (mem_disjoint_inr Hdisj Hmem2). move/negP; apply.
+      exact: (mem_subset Hmem3 Hsub).
+    Qed.
+
+    Lemma disjoint_subset_r s1 s2 s3 :
+      disjoint s1 s2 -> subset s3 s2 -> disjoint s1 s3.
+    Proof.
+      move=> Hdisj Hsub. apply: all_mem_disjoint. move=> x Hmem1. apply/negP => Hmem3.
+      move: (mem_disjoint_inl Hdisj Hmem1). move/negP; apply.
+      exact: (mem_subset Hmem3 Hsub).
+    Qed.
+
+    Hint Immediate disjoint_diff_l disjoint_diff_r disjoint_empty_l disjoint_empty_r : set.
 
 
     (* proper_subset *)
@@ -3782,7 +3817,7 @@ Module FSetTypeLemmas.
   Global Hint Resolve eq_not_mem_remove neq_mem_remove : set.
   Global Hint Resolve subset_union_diff_l subset_union_diff_r : set.
   Global Hint Resolve mem2_mem_inter : set.
-  Global Hint Immediate disjoint_diff disjoint_empty_l disjoint_empty_r : set.
+  Global Hint Immediate disjoint_diff_l disjoint_diff_r disjoint_empty_l disjoint_empty_r : set.
   Global Hint Immediate for_all_inter_l for_all_inter_r : set.
 
   (* Tactics *)
