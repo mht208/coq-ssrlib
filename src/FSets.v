@@ -750,6 +750,33 @@ Module FSetLemmas (S : FSetInterface.S).
       by rewrite H2.
   Qed.
 
+  Lemma subset_diff_same s1 s2 t :
+    S.subset s1 s2 ->
+    S.subset (S.diff s1 t) (S.diff s2 t).
+  Proof.
+    move/subsetP=> Hsub. apply/subsetP.
+    apply: (F.diff_s_m Hsub). exact: P.subset_refl.
+  Qed.
+
+  Lemma subset_diff s1 s2 t1 t2 :
+    S.subset s1 s2 ->
+    S.subset t2 t1 ->
+    S.subset (S.diff s1 t1) (S.diff s2 t2).
+  Proof.
+    move => /subsetP Hsubs /subsetP Hsubt. apply/subsetP.
+    exact: (F.diff_s_m Hsubs Hsubt).
+  Qed.
+
+  Lemma diff_empty_l s : S.Equal (S.diff S.empty s) S.empty.
+  Proof.
+    move=> x; split => H.
+    - by elim: (P.empty_diff_1 S.empty_1 H).
+    - by elim: (S.empty_1 H).
+  Qed.
+
+  Lemma diff_empty_r s : S.Equal (S.diff s S.empty) s.
+  Proof. by rewrite (P.empty_diff_2 s S.empty_1). Qed.
+
 
   (* inter *)
 

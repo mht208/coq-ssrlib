@@ -1,7 +1,7 @@
 
 From Coq Require Import OrderedType.
 From mathcomp Require Import ssreflect ssrbool ssrnat seq eqtype ssrfun.
-From ssrlib Require Import SsrOrder Compatibility.
+From ssrlib Require Import SsrOrder Compatibility Lists.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -265,11 +265,75 @@ Section SeqLemmas.
     - move: (IH Hin) => [y [Hiny Hxy]]. exists y. tauto.
   Qed.
 
+  Lemma in_flatten_map (f : B -> seq A) x e (s : seq B) :
+    In e s ->
+    In x (f e) ->
+    In x (flatten (map f s)).
+  Proof.
+    elim: s => [| a s IH] //=. case=> He.
+    - subst. move=> Hin. apply: in_cat_l. assumption.
+    - move=> Hin. apply: in_cat_r. exact: (IH He Hin).
+  Qed.
+
   Lemma catrev_rev (s1 s2 : seq A) :
     catrev (rev s1) s2 = s1 ++ s2.
   Proof.
     move: s1 s2. apply: last_ind => [| s1 x1 IH1] s2 //=.
     rewrite rev_rcons /= IH1. rewrite cat_rcons. reflexivity.
+  Qed.
+
+  (* all, has, Forall, and Exists *)
+
+  Lemma all_Forall (P : pred A) (s : seq A) :
+    all P s <-> Forall P s.
+  Proof.
+    split.
+    - elim: s => [| e s IH] //=. move/andP=> [H1 H2]. move: (IH H2) => {}H2.
+      by apply: Forall_cons.
+    - elim: s => [| e s IH] //=. move=> /Forall_cons_iff [H1 H2].
+      by rewrite H1 (IH H2).
+  Qed.
+
+  Lemma all_forall (P : pred A) (s : seq A) :
+    all P s <-> (forall e, In e s -> P e).
+  Proof.
+    split => H.
+    - apply/Forall_forall. apply/all_Forall. assumption.
+    - apply/all_Forall. apply/Forall_forall. assumption.
+  Qed.
+
+  Lemma has_Exists (P : pred A) (s : seq A) :
+    has P s <-> Exists P s.
+  Proof.
+    split.
+    - elim: s => [| e s IH] //=. case/orP=> H.
+      + apply: Exists_cons_hd. assumption.
+      + apply: Exists_cons_tl. exact: (IH H).
+    - elim: s => [| e s IH] //=.
+      + move/Exists_nil. by elim.
+      + case/Exists_cons => H.
+        * by rewrite H.
+        * by rewrite (IH H) orbT.
+  Qed.
+
+  Lemma has_exists (P : pred A) (s : seq A) :
+    has P s <-> exists e, In e s /\ P e.
+  Proof.
+    split.
+    - move/has_Exists. move/Exists_exists. by apply.
+    - move/Exists_exists. move/has_Exists. by apply.
+  Qed.
+
+  Lemma all_flatten (P : pred A) (ss : seq (seq A)) :
+    all P (flatten ss) = all (all P) ss.
+  Proof.
+    elim: ss => [| s ss IH] //=. rewrite all_cat IH. reflexivity.
+  Qed.
+
+  Lemma has_flatten (P : pred A) (ss : seq (seq A)) :
+    has P (flatten ss) = has (has P) ss.
+  Proof.
+    elim: ss => [| s ss IH] //=. rewrite has_cat IH. reflexivity.
   Qed.
 
 End SeqLemmas.
@@ -356,6 +420,14 @@ Section TailRecursiveFlatten.
     rewrite -filter_flatten. rewrite -filter_rev. rewrite -tflatten_flatten.
     reflexivity.
   Qed.
+
+  Lemma all_tflatten (p : pred A) ss :
+    all p (tflatten ss) = all (all p) ss.
+  Proof. rewrite tflatten_flatten. rewrite all_rev. exact: all_flatten. Qed.
+
+  Lemma has_tflatten (p : pred A) ss :
+    has p (tflatten ss) = has (has p) ss.
+  Proof. rewrite tflatten_flatten. rewrite has_rev. exact: has_flatten. Qed.
 
 End TailRecursiveFlatten.
 

@@ -290,6 +290,12 @@ Module FMapLemmas (M : FMapInterface.S).
         rewrite (find_add_neq Hne1). reflexivity.
     Qed.
 
+    Lemma add2_equal k1 k2 v (m1 m2 : M.t elt) :
+      M.E.eq k1 k2 ->
+      M.Equal m1 m2 ->
+      M.Equal (M.add k1 v m1) (M.add k2 v m2).
+    Proof. move=> Heq. by apply: F.add_m. Qed.
+
   End FMapLemmas.
 
   Section Proper.

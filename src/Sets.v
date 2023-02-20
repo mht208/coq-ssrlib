@@ -3340,6 +3340,33 @@ Module FSetTypeLemmas.
         apply/memP. by rewrite H2.
     Qed.
 
+    Lemma subset_diff_same (s1 s2 : t) u :
+      subset s1 s2 ->
+      subset (diff s1 u) (diff s2 u).
+    Proof.
+      move/subsetP=> Hsub. apply/subsetP.
+      apply: (diff_s_m Hsub). exact: Subset_refl.
+    Qed.
+
+    Lemma subset_diff (s1 s2 t1 t2 : t) :
+      subset s1 s2 ->
+      subset t2 t1 ->
+      subset (diff s1 t1) (diff s2 t2).
+    Proof.
+      move => /subsetP Hsubs /subsetP Hsubt. apply/subsetP.
+      exact: (diff_s_m Hsubs Hsubt).
+    Qed.
+
+    Lemma diff_empty_l (s : t) : Equal (diff empty s) empty.
+    Proof.
+      move=> x; split => H.
+      - by elim: (empty_diff_1 empty_1 H).
+      - by elim: (empty_1 H).
+    Qed.
+
+    Lemma diff_empty_r (s : t) : Equal (diff s empty) s.
+    Proof. by rewrite (empty_diff_2 s empty_1). Qed.
+
 
     (* inter *)
 

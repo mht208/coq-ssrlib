@@ -144,4 +144,125 @@ Section ListLemmas.
 
   End InA.
 
+  Lemma List_rev_rev (s : seq A) : List.rev s = rev s.
+  Proof. elim: s => [| x s IH] //=. rewrite rev_cons -cats1. by rewrite IH. Qed.
+
+  Lemma List_rev_rcons (s : seq A) (a : A) :
+    List.rev (rcons s a) = a::(List.rev s).
+  Proof.
+    elim: s a => [| x s IH] a //=. rewrite IH.
+    rewrite -cat_cons. reflexivity.
+  Qed.
+
+  Lemma List_rev_cat (s1 s2 : seq A) :
+    List.rev (s1 ++ s2) = List.rev s2 ++ List.rev s1.
+  Proof.
+    elim: s1 s2 => [| x1 s1 IH1] s2 //=.
+    - rewrite cats0. reflexivity.
+    - rewrite IH1. rewrite catA. reflexivity.
+  Qed.
+
+  Lemma Exists_rcons (P : A -> Prop) (s : seq A) (a : A) :
+    Exists P (rcons s a) <-> Exists P s \/ P a.
+  Proof.
+    elim: s => [| x s IH] //=.
+    - split => H.
+      + by case/Exists_cons: H => H; tauto.
+      + case: H => H.
+        * by inversion H.
+        * exact: Exists_cons_hd.
+    - move: IH => [IH1 IH2]. split => H.
+      + case/Exists_cons: H => H.
+        * left; exact: Exists_cons_hd.
+        * case: (IH1 H) => {}H.
+          -- left; exact: Exists_cons_tl.
+          -- by right.
+      + have H': P x \/ Exists P s \/ P a.
+        { case: H; [ move=> H | tauto ]. move/Exists_cons: H => {}H; by tauto. }
+        case: H' => H'.
+        * exact: Exists_cons_hd.
+        * apply: Exists_cons_tl. exact: IH2.
+  Qed.
+
+  Lemma Forall_rcons_iff (P : A -> Prop) (s : seq A) (a : A) :
+    Forall P (rcons s a) <-> Forall P s /\ P a.
+  Proof.
+    elim: s => [| x s IH] //=.
+    - split => H.
+      + move/Forall_cons_iff: H => [H1 H2]; tauto.
+      + apply: Forall_cons; tauto.
+    - move: IH => [IH1 IH2]. split => H.
+      + move/Forall_cons_iff: H => [H1 H2].
+        split; [ apply: Forall_cons |]; tauto.
+      + move: H => [H1 H2]. move/Forall_cons_iff: H1 => [H1 H3].
+        apply: Forall_cons; tauto.
+  Qed.
+
+  Lemma Forall_rcons (P : A -> Prop) (s : seq A) (a : A) :
+    Forall P s -> P a -> Forall P (rcons s a).
+  Proof. move=> ? ?; apply/Forall_rcons_iff; done. Qed.
+
+  Lemma Forall_rcons_hd (P : A -> Prop) (s : seq A) (a : A) :
+    Forall P (rcons s a) -> Forall P s.
+  Proof. by move/Forall_rcons_iff => [H1 H2]. Qed.
+
+  Lemma Forall_rcons_tl (P : A -> Prop) (s : seq A) (a : A) :
+    Forall P (rcons s a) -> P a.
+  Proof. by move/Forall_rcons_iff => [H1 H2]. Qed.
+
+  Lemma Exists_cat (P : A -> Prop) (s1 s2 : seq A) :
+    Exists P (s1 ++ s2) <-> Exists P s1 \/ Exists P s2.
+  Proof.
+    elim: s1 s2 => [| x1 s1 IH1] s2 //=.
+    - split => H; first tauto. case: H; last tauto. by inversion 1.
+    - split => H.
+      + case/Exists_cons: H => H.
+        * by left; apply: Exists_cons_hd.
+        * case/(IH1 _): H => H.
+          -- by left; apply: Exists_cons_tl.
+          -- by right.
+      + have H': P x1 \/ Exists P s1 \/ Exists P s2.
+        { case: H; [ move=> H | tauto ]. move/Exists_cons: H => {}H; by tauto. }
+        case: H' => H'.
+        * by apply: Exists_cons_hd.
+        * apply: Exists_cons_tl. apply/IH1. assumption.
+  Qed.
+
+  Lemma Forall_cat_iff (P : A -> Prop) (s1 s2 : seq A) :
+    Forall P (s1 ++ s2) <-> Forall P s1 /\ Forall P s2.
+  Proof. exact: Forall_app. Qed.
+
+  Lemma Forall_cat_l (P : A -> Prop) (s1 s2 : seq A) :
+    Forall P (s1 ++ s2) -> Forall P s1.
+  Proof. by move/Forall_cat_iff => [H1 H2]. Qed.
+
+  Lemma Forall_cat_r (P : A -> Prop) (s1 s2 : seq A) :
+    Forall P (s1 ++ s2) -> Forall P s2.
+  Proof. by move/Forall_cat_iff => [H1 H2]. Qed.
+
+  Lemma Forall_cat (P : A -> Prop) (s1 s2 : seq A) :
+    Forall P s1 -> Forall P s2 -> Forall P (s1 ++ s2).
+  Proof. by move=> H1 H2; apply/Forall_cat_iff. Qed.
+
+  Lemma Exists_rev (P : A -> Prop) (s : seq A) :
+    List.Exists P (rev s) <-> List.Exists P s.
+  Proof.
+    elim: s => [| x s IH] //=. move: IH => [IH1 IH2].
+    rewrite rev_cons. split.
+    - move/Exists_rcons => [] H.
+      + apply: Exists_cons_tl. exact: IH1.
+      + apply: Exists_cons_hd; assumption.
+    - move=> H. apply/Exists_rcons. case/Exists_cons: H => H.
+      + by right.
+      + by left; apply: IH2.
+  Qed.
+
+  Lemma Forall_rev (P : A -> Prop) (s : seq A) :
+    List.Forall P (rev s) <-> List.Forall P s.
+  Proof.
+    split => H.
+    - move: (Forall_rev H). rewrite List_rev_rev revK. by apply.
+    - move: (Forall_rev H). rewrite List_rev_rev. by apply.
+  Qed.
+
 End ListLemmas.
