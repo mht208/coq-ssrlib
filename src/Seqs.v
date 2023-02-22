@@ -265,14 +265,17 @@ Section SeqLemmas.
     - move: (IH Hin) => [y [Hiny Hxy]]. exists y. tauto.
   Qed.
 
-  Lemma in_flatten_map (f : B -> seq A) x e (s : seq B) :
-    In e s ->
-    In x (f e) ->
-    In x (flatten (map f s)).
+  Lemma In_rev x (s : seq A) :
+    In x (rev s) <-> In x s.
   Proof.
-    elim: s => [| a s IH] //=. case=> He.
-    - subst. move=> Hin. apply: in_cat_l. assumption.
-    - move=> Hin. apply: in_cat_r. exact: (IH He Hin).
+    elim: s => [| e s IH] //=. move: IH => [IH1 IH2].
+    rewrite rev_cons. split => H.
+    - case/In_rcons: H => H.
+      + right; exact: (IH1 H).
+      + left; rewrite H; reflexivity.
+    - apply/In_rcons. case: H => H.
+      + right; rewrite H; reflexivity.
+      + left; exact: (IH2 H).
   Qed.
 
   Lemma catrev_rev (s1 s2 : seq A) :
@@ -335,6 +338,10 @@ Section SeqLemmas.
   Proof.
     elim: ss => [| s ss IH] //=. rewrite has_cat IH. reflexivity.
   Qed.
+
+  Lemma all_in (P : pred A) (s : seq A) (x : A) :
+    all P s -> In x s -> P x.
+  Proof. move/all_forall. by apply. Qed.
 
 End SeqLemmas.
 
@@ -516,8 +523,56 @@ Section MapRev.
   Lemma tmap_map es : tmap es = map f es.
   Proof. rewrite /tmap mapr_rev. reflexivity. Qed.
 
+  Lemma in_tmap e es : In e es -> In (f e) (tmap es).
+  Proof.
+    rewrite tmap_map. exact: in_map.
+  Qed.
+
 End MapRev.
 
+Section FlattenMap.
+
+  Lemma in_flatten {A : Type} x (ss : seq (seq A)) :
+    In x (flatten ss) <-> exists s, In s ss /\ In x s.
+  Proof.
+    elim: ss => [| s ss IH] //=.
+    - split => //=. move=> [s H]. tauto.
+    - move: IH => [IH1 IH2]. split => H.
+      + case: (in_cat H) => {}H.
+        * exists s. split; [ by left | assumption ].
+        * move: (IH1 H) => [t [Hint Hinx]]. exists t; tauto.
+      + move: H => [t [Hint Hinx]]. case: Hint => Hint.
+        * subst. apply: in_cat_l. assumption.
+        * apply: in_cat_r. apply: IH2. exists t. tauto.
+  Qed.
+
+  Lemma in_tflatten {A : Type} x (ss : seq (seq A)) :
+    In x (tflatten ss) <-> exists s, In s ss /\ In x s.
+  Proof.
+    rewrite tflatten_flatten. move: (in_flatten x ss) => Hin. split => H.
+    - move/In_rev: H. tauto.
+    - apply/In_rev. tauto.
+  Qed.
+
+  Lemma in_flatten_map {A B : Type} (f : B -> seq A) x e (s : seq B) :
+    In e s ->
+    In x (f e) ->
+    In x (flatten (map f s)).
+  Proof.
+    move=> Hine Hinx. apply/in_flatten. exists (f e). split; [| assumption ].
+    apply: in_map. assumption.
+  Qed.
+
+  Lemma in_tflatten_tmap {A B : Type} (f : B -> seq A) x e (s : seq B) :
+    In e s ->
+    In x (f e) ->
+    In x (tflatten (tmap f s)).
+  Proof.
+    move=> H1 H2. rewrite tflatten_flatten tmap_map.
+    apply/In_rev. exact: (in_flatten_map H1 H2).
+  Qed.
+
+End FlattenMap.
 
 
 (** Tail-recursive append. *)

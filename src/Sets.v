@@ -1903,7 +1903,7 @@ Module FSetTypeWProperties.
         apply NoDupA_rev. auto with typeclass_instances. auto with set.
         split; intros.
         rewrite elements_iff; do 2 rewrite InA_alt.
-        split; destruct 1; generalize (In_rev (elements s) x0); exists x0; intuition.
+        split; destruct 1; generalize (List.In_rev (elements s) x0); exists x0; intuition.
         apply fold_spec_right.
       Qed.
 
