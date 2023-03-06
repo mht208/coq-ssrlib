@@ -1066,6 +1066,20 @@ Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet w
         + by rewrite Hmem orbT.
     Qed.
 
+    Lemma mem_key_set_find v m :
+      S.mem v (key_set m) ->
+      exists e, M.find v m = Some e.
+    Proof.
+      rewrite mem_key_set => Hmem. exact: (MLemmas.mem_find_some Hmem).
+    Qed.
+
+    Lemma not_mem_key_set_find v m :
+      ~~ S.mem v (key_set m) ->
+      M.find v m = None.
+    Proof.
+      rewrite mem_key_set => Hmem. exact: (MLemmas.not_mem_find_none Hmem).
+    Qed.
+
   End Aux.
 
 End MapKeySet.
