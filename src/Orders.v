@@ -487,6 +487,269 @@ Module OrderedTypeLemmas.
   Global Hint Immediate In_eq Inf_lt : ordered_type.
 
 
+  Module KeyOrderedType.
+
+    Section Elt.
+
+      Context {t : orderedType}.
+      Variable elt : Type.
+
+      Notation key := t.
+
+      Definition eqk (p p' : key * elt) := eq (fst p) (fst p').
+
+      Definition eqke (p p':key * elt) :=
+        eq (fst p) (fst p') /\ (snd p) = (snd p').
+
+      Definition ltk (p p' : key * elt) := lt (fst p) (fst p').
+
+      #[local]
+       Hint Unfold eqk eqke ltk : ordered_type.
+
+      #[local]
+       Hint Extern 2 (eqke ?a ?b) => split : ordered_type.
+
+      Lemma eqke_eqk : forall x x', eqke x x' -> eqk x x'.
+      Proof.
+        unfold eqk, eqke; intuition.
+      Qed.
+
+      Lemma ltk_right_r : forall x k e e', ltk x (k,e) -> ltk x (k,e').
+      Proof. auto. Qed.
+
+      Lemma ltk_right_l : forall x k e e', ltk (k,e) x -> ltk (k,e') x.
+      Proof. auto. Qed.
+
+      #[local]
+       Hint Immediate ltk_right_r ltk_right_l : ordered_type.
+
+      Lemma eqk_refl : forall e, eqk e e.
+      Proof. auto with ordered_type. Qed.
+
+      Lemma eqke_refl : forall e, eqke e e.
+      Proof. auto with ordered_type. Qed.
+
+      Lemma eqk_sym : forall e e', eqk e e' -> eqk e' e.
+      Proof. auto with ordered_type. Qed.
+
+      Lemma eqke_sym : forall e e', eqke e e' -> eqke e' e.
+      Proof. unfold eqke; intuition. Qed.
+
+      Lemma eqk_trans : forall e e' e'', eqk e e' -> eqk e' e'' -> eqk e e''.
+      Proof. eauto with ordered_type. Qed.
+
+      Lemma eqke_trans : forall e e' e'', eqke e e' -> eqke e' e'' -> eqke e e''.
+      Proof.
+        unfold eqke; intuition; [ eauto with ordered_type | congruence ].
+      Qed.
+
+      Lemma ltk_trans : forall e e' e'', ltk e e' -> ltk e' e'' -> ltk e e''.
+      Proof. eauto with ordered_type. Qed.
+
+      Lemma ltk_not_eqk : forall e e', ltk e e' -> ~ eqk e e'.
+      Proof. unfold eqk, ltk; auto with ordered_type. Qed.
+
+      Lemma ltk_not_eqke : forall e e', ltk e e' -> ~eqke e e'.
+      Proof.
+        unfold eqke, ltk; intuition; simpl in *; subst.
+        match goal with H : lt _ _, H1 : eq _ _ |- _ => exact (lt_not_eq H H1) end.
+      Qed.
+
+      #[local]
+       Hint Resolve eqk_trans eqke_trans eqk_refl eqke_refl : ordered_type.
+      #[local]
+       Hint Resolve ltk_trans ltk_not_eqk ltk_not_eqke : ordered_type.
+      #[local]
+       Hint Immediate eqk_sym eqke_sym : ordered_type.
+
+      Global Instance eqk_equiv : Equivalence eqk.
+      Proof. constructor; eauto with ordered_type. Qed.
+
+      Global Instance eqke_equiv : Equivalence eqke.
+      Proof. split; eauto with ordered_type. Qed.
+
+      Global Instance ltk_strorder : StrictOrder ltk.
+      Proof. constructor; eauto with ordered_type. intros x; apply (irreflexivity (x:=fst x)). Qed.
+
+      Global Instance ltk_compat : Proper (eqk==>eqk==>iff) ltk.
+      Proof.
+        intros (x,e) (x',e') Hxx' (y,f) (y',f') Hyy'; compute.
+        compute in Hxx'; compute in Hyy'.
+        rewrite -> Hxx', Hyy'; auto.
+      Qed.
+
+      Global Instance ltk_compat' : Proper (eqke==>eqke==>iff) ltk.
+      Proof.
+        intros (x,e) (x',e') (Hxx',_) (y,f) (y',f') (Hyy',_); compute.
+        compute in Hxx'; compute in Hyy'. rewrite -> Hxx', Hyy'; auto.
+      Qed.
+
+      (* Additional facts *)
+
+      Lemma eqk_not_ltk : forall x x', eqk x x' -> ~ltk x x'.
+      Proof.
+        unfold eqk, ltk; simpl; auto with ordered_type.
+      Qed.
+
+      Lemma ltk_eqk : forall e e' e'', ltk e e' -> eqk e' e'' -> ltk e e''.
+      Proof. eauto with ordered_type. Qed.
+
+      Lemma eqk_ltk : forall e e' e'', eqk e e' -> ltk e' e'' -> ltk e e''.
+      Proof.
+        intros (k,e) (k',e') (k'',e'').
+        unfold ltk, eqk; simpl; eauto with ordered_type.
+      Qed.
+
+      #[local]
+       Hint Resolve eqk_not_ltk : ordered_type.
+      #[local]
+       Hint Immediate ltk_eqk eqk_ltk : ordered_type.
+
+      Lemma InA_eqke_eqk :
+        forall x m, InA eqke x m -> InA eqk x m.
+      Proof.
+        unfold eqke; induction 1; intuition.
+      Qed.
+
+      #[local]
+       Hint Resolve InA_eqke_eqk : ordered_type.
+
+      Definition MapsTo (k : key) (e : elt) := InA eqke (k, e).
+
+      Definition In k m := exists e : elt, MapsTo k e m.
+
+      Notation Sort := (sort ltk).
+
+      Notation Inf := (lelistA ltk).
+
+      #[local]
+       Hint Unfold MapsTo In : ordered_type.
+
+      (* An alternative formulation for [In k l] is [exists e, InA eqk (k,e) l] *)
+
+      Lemma In_alt : forall k l, In k l <-> exists e, InA eqk (k,e) l.
+      Proof with auto with ordered_type.
+        intros k l; split; intros [y H].
+        exists y...
+        induction H as [a l eq|a l H IH].
+        destruct a as [k' y'].
+        exists y'...
+        destruct IH as [e H0].
+        exists e...
+      Qed.
+
+      Lemma MapsTo_eq : forall l x y e, eq x y -> MapsTo x e l -> MapsTo y e l.
+      Proof.
+        intros l x y e **; unfold MapsTo in *; apply InA_eqA with (x,e); eauto with *.
+      Qed.
+
+      Lemma In_eq : forall l x y, eq x y -> In x l -> In y l.
+      Proof.
+        destruct 2 as (e,E); exists e; eapply MapsTo_eq; eauto.
+      Qed.
+
+      Lemma Inf_eq : forall l x x', eqk x x' -> Inf x' l -> Inf x l.
+      Proof. exact (InfA_eqA eqk_equiv ltk_compat). Qed.
+
+      Lemma Inf_lt : forall l x x', ltk x x' -> Inf x' l -> Inf x l.
+      Proof. exact (InfA_ltA ltk_strorder). Qed.
+
+      #[local]
+       Hint Immediate Inf_eq : ordered_type.
+      #[local]
+       Hint Resolve Inf_lt : ordered_type.
+
+      Lemma Sort_Inf_In :
+        forall l p q, Sort l -> Inf q l -> InA eqk p l -> ltk q p.
+      Proof.
+        exact (SortA_InfA_InA eqk_equiv ltk_strorder ltk_compat).
+      Qed.
+
+      Lemma Sort_Inf_NotIn :
+        forall l k e, Sort l -> Inf (k,e) l ->  ~In k l.
+      Proof.
+        intros l k e H H0; red; intros H1.
+        destruct H1 as [e' H2].
+        elim (@ltk_not_eqk (k,e) (k,e')).
+        eapply Sort_Inf_In; eauto with ordered_type.
+        red; simpl; auto with ordered_type.
+      Qed.
+
+      Lemma Sort_NoDupA: forall l, Sort l -> NoDupA eqk l.
+      Proof.
+        exact (SortA_NoDupA eqk_equiv ltk_strorder ltk_compat).
+      Qed.
+
+      Lemma Sort_In_cons_1 : forall e l e', Sort (e::l) -> InA eqk e' l -> ltk e e'.
+      Proof.
+        inversion 1; intros; eapply Sort_Inf_In; eauto.
+      Qed.
+
+      Lemma Sort_In_cons_2 : forall l e e', Sort (e::l) -> InA eqk e' (e::l) ->
+                                            ltk e e' \/ eqk e e'.
+      Proof.
+        intros l; inversion_clear 2; auto with ordered_type.
+        left; apply Sort_In_cons_1 with l; auto.
+      Qed.
+
+      Lemma Sort_In_cons_3 :
+        forall x l k e, Sort ((k,e)::l) -> In x l -> ~eq x k.
+      Proof.
+        inversion_clear 1 as [|? ? H0 H1]; red; intros H H2.
+        destruct (Sort_Inf_NotIn H0 H1 (In_eq H2 H)).
+      Qed.
+
+      Lemma In_inv : forall k k' e l, In k ((k',e) :: l) -> eq k k' \/ In k l.
+      Proof.
+        inversion 1 as [? H0].
+        inversion_clear H0 as [? ? H1|]; eauto with ordered_type.
+        destruct H1; simpl in *; intuition.
+      Qed.
+
+      Lemma In_inv_2 : forall k k' e e' l,
+          InA eqk (k, e) ((k', e') :: l) -> ~ eq k k' -> InA eqk (k, e) l.
+      Proof.
+        inversion_clear 1 as [? ? H0|? ? H0]; compute in H0; intuition.
+      Qed.
+
+      Lemma In_inv_3 : forall x x' l,
+          InA eqke x (x' :: l) -> ~ eqk x x' -> InA eqke x l.
+      Proof.
+        inversion_clear 1 as [? ? H0|? ? H0]; compute in H0; intuition.
+      Qed.
+
+    End Elt.
+
+    #[global]
+     Hint Unfold eqk eqke ltk : ordered_type.
+    #[global]
+     Hint Extern 2 (eqke ?a ?b) => split : ordered_type.
+    #[global]
+     Hint Resolve eqk_trans eqke_trans eqk_refl eqke_refl : ordered_type.
+    #[global]
+     Hint Resolve ltk_trans ltk_not_eqk ltk_not_eqke : ordered_type.
+    #[global]
+     Hint Immediate eqk_sym eqke_sym : ordered_type.
+    #[global]
+     Hint Resolve eqk_not_ltk : ordered_type.
+    #[global]
+     Hint Immediate ltk_eqk eqk_ltk : ordered_type.
+    #[global]
+     Hint Resolve InA_eqke_eqk : ordered_type.
+    #[global]
+     Hint Unfold MapsTo In : ordered_type.
+    #[global]
+     Hint Immediate Inf_eq : ordered_type.
+    #[global]
+     Hint Resolve Inf_lt : ordered_type.
+    #[global]
+     Hint Resolve Sort_Inf_NotIn : ordered_type.
+    #[global]
+     Hint Resolve In_inv_2 In_inv_3 : ordered_type.
+
+  End KeyOrderedType.
+
+
   (* Lemmas from OrdersFacts *)
 
   Ltac iorder := intuition order.
