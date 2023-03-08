@@ -3,20 +3,39 @@ From Coq Require Import Arith FSets OrderedType Zerob.
 From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq.
 From ssrlib Require Import Tactics Orders Seqs.
 
+(** * Coq [FSetInterface] as a structure [fsetType] *)
+
 (**
-   This file provides fsetType - a structure of finite sets with interface
-   from FSetInterface.
+   A structure [fsetType] is defined in the module [FS]. The structure
+   [fsetType] contains the interface from Coq's [FSetInterface.S].
+   Elements in [fsetType] are of type [orderedType].
+   Functors for converting [FSetInterface.S] to [fsetType] are provided.
+   - [FSetInterface_as_FS]
+   - [FSetInterface_as_FS_WDS]
+   In [FSetInterface_as_FS_WDS], a default element and a successor function
+   must be provided to generate new elements with respect to a set by [new_elt].
+
+   Lemmas from Coq about [FSetInterface.S] are defined for [fsetType] in
+   the following modules.
+   - [F]: lemmas from [FSetFacts]
+   - [D]: lemmas and tactics from [FSetDecide]
+   - [P]: lemmas from [FSetProperties.Properties]
+   - [OP]: lemmas from [FSetProperties.OrdProperties]
+   - [EP]: lemmas from [FSetEqProperties]
+
+   Additional lemmas about [fsetType] are provided in the module [L], which
+   includes [F], [D], and [OP].
 
    Below is a list of conversions between various membership tests:
 <<
                memPs                        memP
   x \in s  ************    mem x s      ***********      In x s
                              *       *                *     *
-                             *          *          * inPo   *
+                             *          *          *  inPo  *
                              *             *    *           *
-                       memPo *                *             * inPa
+                      memPo  *                *             * inPa
                              *             *     *          *
-                             *    memPa *           *       *
+                             *   memPa  *           *       *
                              *       *                 *    *
                     x \in (elements s)  ************  InA oeq x (elements s)
                                             oinP
@@ -33,349 +52,359 @@ Delimit Scope fset_scope with FS.
 
 (** * fsetType: a finite set as a structure *)
 
-Module FSetType.
+Module FS.
 
   Local Open Scope ordered_scope.
 
-  Structure mixin_of (elt : orderedType) (t : Type) :=
-    Mixin { In : elt -> t -> Prop
-          ; Equal : t -> t -> Prop := fun (s s' : t) => forall (a : elt), In a s <-> In a s'
-          ; Subset : t -> t -> Prop := fun (s s' : t) => forall (a : elt), In a s -> In a s'
-          ; Empty : t -> Prop := fun (s : t) => forall (a : elt), ~ In a s
-          ; For_all : (elt -> Prop) -> t -> Prop :=
+  Module ClassDef.
+
+    Structure mixin_of (elt : orderedType) (t : Type) :=
+      Mixin { In : elt -> t -> Prop
+            ; Equal : t -> t -> Prop := fun (s s' : t) => forall (a : elt), In a s <-> In a s'
+            ; Subset : t -> t -> Prop := fun (s s' : t) => forall (a : elt), In a s -> In a s'
+            ; Empty : t -> Prop := fun (s : t) => forall (a : elt), ~ In a s
+            ; For_all : (elt -> Prop) -> t -> Prop :=
               fun (P : elt -> Prop) (s : t) => forall (x : elt), In x s -> P x
-          ; Exists : (elt -> Prop) -> t -> Prop :=
+            ; Exists : (elt -> Prop) -> t -> Prop :=
               fun (P : elt -> Prop) (s : t) => exists (x : elt), In x s /\ P x
-          ; empty : t
-          ; is_empty : t -> bool
-          ; mem : elt -> t -> bool
-          ; add : elt -> t -> t
-          ; singleton : elt -> t
-          ; remove : elt -> t -> t
-          ; union : t -> t -> t
-          ; inter : t -> t -> t
-          ; diff : t -> t -> t
-          ; eq : t -> t -> Prop := Equal
-          ; eq_dec : forall s s', { eq s s' } + { ~ eq s s' }
-          ; equal : t -> t -> bool
-          ; subset : t -> t -> bool
-          ; fold : forall A : Type, (elt -> A -> A) -> t -> A -> A
-          ; for_all : (elt -> bool) -> t -> bool
-          ; exists_ : (elt -> bool) -> t -> bool
-          ; filter : (elt -> bool) -> t -> t
-          ; partition : (elt -> bool) -> t -> t * t
-          ; cardinal : t -> nat
-          ; elements : t -> olist elt
-          ; choose : t -> option elt
-          ; In_1 : forall s x y, x == y -> In x s -> In y s
-          ; eq_refl : forall s, eq s s
-          ; eq_sym : forall s s', eq s s' -> eq s' s
-          ; eq_trans : forall s s' s'', eq s s' -> eq s' s'' -> eq s s''
-          ; mem_1 : forall s x, In x s -> mem x s = true
-          ; mem_2 : forall s x, mem x s = true -> In x s
-          ; equal_1 : forall s s', Equal s s' -> equal s s' = true
-          ; equal_2 : forall s s', equal s s' = true -> Equal s s'
-          ; subset_1 : forall s s', Subset s s' -> subset s s' = true
-          ; subset_2 : forall s s', subset s s' = true -> Subset s s'
-          ; empty_1 : Empty empty
-          ; is_empty_1 : forall s, Empty s -> is_empty s = true
-          ; is_empty_2 : forall s, is_empty s = true -> Empty s
-          ; add_1 : forall s x y, x == y -> In y (add x s)
-          ; add_2 : forall s x y, In y s -> In y (add x s)
-          ; add_3 : forall s x y, ~ x == y -> In y (add x s) -> In y s
-          ; remove_1 : forall s x y, x == y -> ~ In y (remove x s)
-          ; remove_2 : forall s x y, ~ x == y -> In y s -> In y (remove x s)
-          ; remove_3 : forall s x y, In y (remove x s) -> In y s
-          ; singleton_1 : forall x y, In y (singleton x) -> x == y
-          ; singleton_2 : forall x y, x == y -> In y (singleton x)
-          ; union_1 : forall s s' x, In x (union s s') -> In x s \/ In x s'
-          ; union_2 : forall s s' x, In x s -> In x (union s s')
-          ; union_3 : forall  s s' x, In x s' -> In x (union s s')
-          ; inter_1 : forall s s' x, In x (inter s s') -> In x s
-          ; inter_2 : forall s s' x, In x (inter s s') -> In x s'
-          ; inter_3 : forall s s' x, In x s -> In x s' -> In x (inter s s')
-          ; diff_1 : forall s s' x, In x (diff s s') -> In x s
-          ; diff_2 : forall s s' x, In x (diff s s') -> ~ In x s'
-          ; diff_3 : forall s s' x, In x s -> ~ In x s' -> In x (diff s s')
-          ; fold_1 : forall s (A : Type) (i : A) (f : elt -> A -> A),
-              fold f s i = fold_left (fun a e => f e a) (elements s) i
-          ; cardinal_1 : forall s, cardinal s = length (elements s)
-          ; filter_1 : forall s x f, compat_bool oeq f -> In x (filter f s) -> In x s
-          ; filter_2 : forall s x f, compat_bool oeq f -> In x (filter f s) -> f x = true
-          ; filter_3 : forall s x f,
-              compat_bool oeq f -> In x s -> f x = true -> In x (filter f s)
-          ; for_all_1 : forall s f,
-              compat_bool oeq f ->
-              For_all (fun x => f x = true) s -> for_all f s = true
-          ; for_all_2 : forall s f,
-              compat_bool oeq f ->
-              for_all f s = true -> For_all (fun x => f x = true) s
-          ; exists_1 : forall s f,
-              compat_bool oeq f ->
-              Exists (fun x => f x = true) s -> exists_ f s = true
-          ; exists_2 : forall s f,
-              compat_bool oeq f ->
-              exists_ f s = true -> Exists (fun x => f x = true) s
-          ; partition_1 : forall s f,
-              compat_bool oeq f -> Equal (fst (partition f s)) (filter f s)
-          ; partition_2 : forall s f,
-              compat_bool oeq f ->
-              Equal (snd (partition f s)) (filter (fun x => negb (f x)) s)
-          ; elements_1 : forall s x, In x s -> InA oeq x (elements s)
-          ; elements_2 : forall s x, InA oeq x (elements s) -> In x s
-          ; elements_3w : forall s, NoDupA oeq (elements s)
-          ; choose_1 : forall s x, choose s = Some x -> In x s
-          ; choose_2 : forall s, choose s = None -> Empty s
-          ; lt : t -> t -> Prop
-          ; compare : forall s s' : t, Compare lt eq s s'
-          ; min_elt : t -> option elt
-          ; max_elt : t -> option elt
-          ; lt_trans : forall s s' s'', lt s s' -> lt s' s'' -> lt s s''
-          ; lt_not_eq : forall s s', lt s s' -> ~ eq s s'
-          ; elements_3 : forall s, sort olt (elements s)
-          ; min_elt_1 : forall s x, min_elt s = Some x -> In x s
-          ; min_elt_2 : forall s x y, min_elt s = Some x -> In y s -> ~ y < x
-          ; min_elt_3 : forall s, min_elt s = None -> Empty s
-          ; max_elt_1 : forall s x, max_elt s = Some x -> In x s
-          ; max_elt_2 : forall s x y, max_elt s = Some x -> In y s -> ~ x < y
-          ; max_elt_3 : forall s, max_elt s = None -> Empty s
-          ; choose_3 : forall s s' x y,
-              choose s = Some x -> choose s' = Some y ->
-              Equal s s' -> x == y
-      }.
-  Notation class_of := mixin_of (only parsing).
+            ; empty : t
+            ; is_empty : t -> bool
+            ; mem : elt -> t -> bool
+            ; add : elt -> t -> t
+            ; singleton : elt -> t
+            ; remove : elt -> t -> t
+            ; union : t -> t -> t
+            ; inter : t -> t -> t
+            ; diff : t -> t -> t
+            ; eq : t -> t -> Prop := Equal
+            ; eq_dec : forall s s', { eq s s' } + { ~ eq s s' }
+            ; equal : t -> t -> bool
+            ; subset : t -> t -> bool
+            ; fold : forall A : Type, (elt -> A -> A) -> t -> A -> A
+            ; for_all : (elt -> bool) -> t -> bool
+            ; exists_ : (elt -> bool) -> t -> bool
+            ; filter : (elt -> bool) -> t -> t
+            ; partition : (elt -> bool) -> t -> t * t
+            ; cardinal : t -> nat
+            ; elements : t -> olist elt
+            ; choose : t -> option elt
+            ; In_1 : forall s x y, x == y -> In x s -> In y s
+            ; eq_refl : forall s, eq s s
+            ; eq_sym : forall s s', eq s s' -> eq s' s
+            ; eq_trans : forall s s' s'', eq s s' -> eq s' s'' -> eq s s''
+            ; mem_1 : forall s x, In x s -> mem x s = true
+            ; mem_2 : forall s x, mem x s = true -> In x s
+            ; equal_1 : forall s s', Equal s s' -> equal s s' = true
+            ; equal_2 : forall s s', equal s s' = true -> Equal s s'
+            ; subset_1 : forall s s', Subset s s' -> subset s s' = true
+            ; subset_2 : forall s s', subset s s' = true -> Subset s s'
+            ; empty_1 : Empty empty
+            ; is_empty_1 : forall s, Empty s -> is_empty s = true
+            ; is_empty_2 : forall s, is_empty s = true -> Empty s
+            ; add_1 : forall s x y, x == y -> In y (add x s)
+            ; add_2 : forall s x y, In y s -> In y (add x s)
+            ; add_3 : forall s x y, ~ x == y -> In y (add x s) -> In y s
+            ; remove_1 : forall s x y, x == y -> ~ In y (remove x s)
+            ; remove_2 : forall s x y, ~ x == y -> In y s -> In y (remove x s)
+            ; remove_3 : forall s x y, In y (remove x s) -> In y s
+            ; singleton_1 : forall x y, In y (singleton x) -> x == y
+            ; singleton_2 : forall x y, x == y -> In y (singleton x)
+            ; union_1 : forall s s' x, In x (union s s') -> In x s \/ In x s'
+            ; union_2 : forall s s' x, In x s -> In x (union s s')
+            ; union_3 : forall  s s' x, In x s' -> In x (union s s')
+            ; inter_1 : forall s s' x, In x (inter s s') -> In x s
+            ; inter_2 : forall s s' x, In x (inter s s') -> In x s'
+            ; inter_3 : forall s s' x, In x s -> In x s' -> In x (inter s s')
+            ; diff_1 : forall s s' x, In x (diff s s') -> In x s
+            ; diff_2 : forall s s' x, In x (diff s s') -> ~ In x s'
+            ; diff_3 : forall s s' x, In x s -> ~ In x s' -> In x (diff s s')
+            ; fold_1 : forall s (A : Type) (i : A) (f : elt -> A -> A),
+                fold f s i = fold_left (fun a e => f e a) (elements s) i
+            ; cardinal_1 : forall s, cardinal s = length (elements s)
+            ; filter_1 : forall s x f, compat_bool oeq f -> In x (filter f s) -> In x s
+            ; filter_2 : forall s x f, compat_bool oeq f -> In x (filter f s) -> f x = true
+            ; filter_3 : forall s x f,
+                compat_bool oeq f -> In x s -> f x = true -> In x (filter f s)
+            ; for_all_1 : forall s f,
+                compat_bool oeq f ->
+                For_all (fun x => f x = true) s -> for_all f s = true
+            ; for_all_2 : forall s f,
+                compat_bool oeq f ->
+                for_all f s = true -> For_all (fun x => f x = true) s
+            ; exists_1 : forall s f,
+                compat_bool oeq f ->
+                Exists (fun x => f x = true) s -> exists_ f s = true
+            ; exists_2 : forall s f,
+                compat_bool oeq f ->
+                exists_ f s = true -> Exists (fun x => f x = true) s
+            ; partition_1 : forall s f,
+                compat_bool oeq f -> Equal (fst (partition f s)) (filter f s)
+            ; partition_2 : forall s f,
+                compat_bool oeq f ->
+                Equal (snd (partition f s)) (filter (fun x => negb (f x)) s)
+            ; elements_1 : forall s x, In x s -> InA oeq x (elements s)
+            ; elements_2 : forall s x, InA oeq x (elements s) -> In x s
+            ; elements_3w : forall s, NoDupA oeq (elements s)
+            ; choose_1 : forall s x, choose s = Some x -> In x s
+            ; choose_2 : forall s, choose s = None -> Empty s
+            ; lt : t -> t -> Prop
+            ; compare : forall s s' : t, Compare lt eq s s'
+            ; min_elt : t -> option elt
+            ; max_elt : t -> option elt
+            ; lt_trans : forall s s' s'', lt s s' -> lt s' s'' -> lt s s''
+            ; lt_not_eq : forall s s', lt s s' -> ~ eq s s'
+            ; elements_3 : forall s, sort olt (elements s)
+            ; min_elt_1 : forall s x, min_elt s = Some x -> In x s
+            ; min_elt_2 : forall s x y, min_elt s = Some x -> In y s -> ~ y < x
+            ; min_elt_3 : forall s, min_elt s = None -> Empty s
+            ; max_elt_1 : forall s x, max_elt s = Some x -> In x s
+            ; max_elt_2 : forall s x y, max_elt s = Some x -> In y s -> ~ x < y
+            ; max_elt_3 : forall s, max_elt s = None -> Empty s
+            ; choose_3 : forall s s' x y,
+                choose s = Some x -> choose s' = Some y ->
+                Equal s s' -> x == y
+        }.
 
-  Section ClassDef.
+    Notation class_of := mixin_of (only parsing).
 
-    Structure type (elt : orderedType) : Type :=
-      Pack { sort; _ : class_of elt sort }.
+    Section Def.
 
-    Local Coercion sort : type >-> Sortclass.
+      Structure type (elt : orderedType) : Type :=
+        Pack { sort; _ : class_of elt sort }.
 
-    Variables (elt : orderedType) (cT : type elt).
+      Local Coercion sort : type >-> Sortclass.
 
-    Definition class := let: Pack _ c := cT return class_of elt cT in c.
+      Variables (elt : orderedType) (cT : type elt).
+
+      Definition class := let: Pack _ c := cT return class_of elt cT in c.
+
+    End Def.
 
   End ClassDef.
 
-  Module Exports.
-    Coercion sort : type >-> Sortclass.
-    Notation fsetType := type.
-    Notation FSetMixin := Mixin.
-    Notation FSetType elt set m := (@Pack elt set m).
+  Import ClassDef.
 
-    Section Definitions.
-      Context {elt : orderedType}.
-      Context {t : fsetType elt}.
+  Coercion sort : type >-> Sortclass.
+  Notation fsetType := type.
+  Notation FSetMixin := Mixin.
+  Notation FSetType elt set m := (@Pack elt set m).
 
-      Definition In := In (class t).
-      Definition Equal := fun (s s' : t) => forall (a : elt), In a s <-> In a s'.
-      Definition Subset := fun (s s' : t) => forall (a : elt), In a s -> In a s'.
-      Definition Empty := fun (s : t) => forall (a : elt), ~ In a s.
-      Definition For_all := fun (P : elt -> Prop) (s : t) => forall (x : elt), In x s -> P x.
-      Definition Exists := fun (P : elt -> Prop) (s : t) => exists (x : elt), In x s /\ P x.
-      Definition empty := empty (class t).
-      Definition is_empty := is_empty (class t).
-      Definition mem := mem (class t).
-      Definition add := add (class t).
-      Definition singleton := singleton (class t).
-      Definition remove := remove (class t).
-      Definition union := union (class t).
-      Definition inter := inter (class t).
-      Definition diff := diff (class t).
-      Definition eq := Equal.
-      Definition eq_dec := eq_dec (class t).
-      Definition equal := equal (class t).
-      Definition subset := subset (class t).
-      Definition fold := fold (class t).
-      Definition for_all := for_all (class t).
-      Definition exists_ := exists_ (class t).
-      Definition filter := filter (class t).
-      Definition partition := partition (class t).
-      Definition cardinal := cardinal (class t).
-      Definition elements := elements (class t).
-      Definition choose := choose (class t).
-      Lemma In_1 : forall s x y, x == y -> In x s -> In y s.
-      Proof. exact: In_1. Qed.
-      Lemma eq_refl : forall s, eq s s.
-      Proof. exact: eq_refl. Qed.
-      Lemma eq_sym : forall s s', eq s s' -> eq s' s.
-      Proof. exact: eq_sym. Qed.
-      Lemma eq_trans : forall s s' s'', eq s s' -> eq s' s'' -> eq s s''.
-      Proof. exact: eq_trans. Qed.
-      Lemma mem_1 : forall s x, In x s -> mem x s = true.
-      Proof. exact: mem_1. Qed.
-      Lemma mem_2 : forall s x, mem x s = true -> In x s.
-      Proof. exact: mem_2. Qed.
-      Lemma equal_1 : forall s s', Equal s s' -> equal s s' = true.
-      Proof. exact: equal_1. Qed.
-      Lemma equal_2 : forall s s', equal s s' = true -> Equal s s'.
-      Proof. exact: equal_2. Qed.
-      Lemma subset_1 : forall s s', Subset s s' -> subset s s' = true.
-      Proof. exact: subset_1. Qed.
-      Lemma subset_2 : forall s s', subset s s' = true -> Subset s s'.
-      Proof. exact: subset_2. Qed.
-      Lemma empty_1 : Empty empty.
-      Proof. exact: empty_1. Qed.
-      Lemma is_empty_1 : forall s, Empty s -> is_empty s = true.
-      Proof. exact: is_empty_1. Qed.
-      Lemma is_empty_2 : forall s, is_empty s = true -> Empty s.
-      Proof. exact: is_empty_2. Qed.
-      Lemma add_1 : forall s x y, x == y -> In y (add x s).
-      Proof. exact: add_1. Qed.
-      Lemma add_2 : forall s x y, In y s -> In y (add x s).
-      Proof. exact: add_2. Qed.
-      Lemma add_3 : forall s x y, ~ x == y -> In y (add x s) -> In y s.
-      Proof. exact: add_3. Qed.
-      Lemma remove_1 : forall s x y, x == y -> ~ In y (remove x s).
-      Proof. exact: remove_1. Qed.
-      Lemma remove_2 : forall s x y, ~ x == y -> In y s -> In y (remove x s).
-      Proof. exact: remove_2. Qed.
-      Lemma remove_3 : forall s x y, In y (remove x s) -> In y s.
-      Proof. exact: remove_3. Qed.
-      Lemma singleton_1 : forall x y, In y (singleton x) -> x == y.
-      Proof. exact: singleton_1. Qed.
-      Lemma singleton_2 : forall x y, x == y -> In y (singleton x).
-      Proof. exact: singleton_2. Qed.
-      Lemma union_1 : forall s s' x, In x (union s s') -> In x s \/ In x s'.
-      Proof. exact: union_1. Qed.
-      Lemma union_2 : forall s s' x, In x s -> In x (union s s').
-      Proof. exact: union_2. Qed.
-      Lemma union_3 : forall  s s' x, In x s' -> In x (union s s').
-      Proof. exact: union_3. Qed.
-      Lemma inter_1 : forall s s' x, In x (inter s s') -> In x s.
-      Proof. exact: inter_1. Qed.
-      Lemma inter_2 : forall s s' x, In x (inter s s') -> In x s'.
-      Proof. exact: inter_2. Qed.
-      Lemma inter_3 : forall s s' x, In x s -> In x s' -> In x (inter s s').
-      Proof. exact: inter_3. Qed.
-      Lemma diff_1 : forall s s' x, In x (diff s s') -> In x s.
-      Proof. exact: diff_1. Qed.
-      Lemma diff_2 : forall s s' x, In x (diff s s') -> ~ In x s'.
-      Proof. exact: diff_2. Qed.
-      Lemma diff_3 : forall s s' x, In x s -> ~ In x s' -> In x (diff s s').
-      Proof. exact: diff_3. Qed.
-      Lemma fold_1 :
-        forall s (A : Type) (i : A) (f : elt -> A -> A),
-          fold f s i = fold_left (fun a e => f e a) (elements s) i.
-      Proof. exact: fold_1. Qed.
-      Lemma cardinal_1 : forall s, cardinal s = length (elements s).
-      Proof. exact: cardinal_1. Qed.
-      Lemma filter_1 : forall s x f, compat_bool oeq f -> In x (filter f s) -> In x s.
-      Proof. exact: filter_1. Qed.
-      Lemma filter_2 : forall s x f, compat_bool oeq f -> In x (filter f s) -> f x = true.
-      Proof. exact: filter_2. Qed.
-      Lemma filter_3 :
-        forall s x f,
-          compat_bool oeq f -> In x s -> f x = true -> In x (filter f s).
-      Proof. exact: filter_3. Qed.
-      Lemma for_all_1 :
-        forall s f,
-          compat_bool oeq f ->
-          For_all (fun x => f x = true) s -> for_all f s = true.
-      Proof. exact: for_all_1. Qed.
-      Lemma for_all_2 :
-        forall s f,
-          compat_bool oeq f ->
-          for_all f s = true -> For_all (fun x => f x = true) s.
-      Proof. exact: for_all_2. Qed.
-      Lemma exists_1 :
-        forall s f,
-          compat_bool oeq f ->
-          Exists (fun x => f x = true) s -> exists_ f s = true.
-      Proof. exact: exists_1. Qed.
-      Lemma exists_2 :
-        forall s f,
-          compat_bool oeq f ->
-          exists_ f s = true -> Exists (fun x => f x = true) s.
-      Proof. exact: exists_2. Qed.
-      Lemma partition_1 :
-        forall s f,
-          compat_bool oeq f -> Equal (fst (partition f s)) (filter f s).
-      Proof. exact: partition_1. Qed.
-      Lemma partition_2 :
-        forall s f,
-          compat_bool oeq f ->
-          Equal (snd (partition f s)) (filter (fun x => negb (f x)) s).
-      Proof. exact: partition_2. Qed.
-      Lemma elements_1 : forall s x, In x s -> InA oeq x (elements s).
-      Proof. exact: elements_1. Qed.
-      Lemma elements_2 : forall s x, InA oeq x (elements s) -> In x s.
-      Proof. exact: elements_2. Qed.
-      Lemma elements_3w : forall s, NoDupA oeq (elements s).
-      Proof. exact: elements_3w. Qed.
-      Lemma choose_1 : forall s x, choose s = Some x -> In x s.
-      Proof. exact: choose_1. Qed.
-      Lemma choose_2 : forall s, choose s = None -> Empty s.
-      Proof. exact: choose_2. Qed.
-      Definition lt := lt (class t).
-      Lemma compare : forall s s', Compare lt eq s s'.
-      Proof. exact: compare. Qed.
-      Definition min_elt := min_elt (class t).
-      Definition max_elt := max_elt (class t).
-      Lemma lt_trans : forall s s' s'', lt s s' -> lt s' s'' -> lt s s''.
-      Proof. exact: lt_trans. Qed.
-      Lemma lt_not_eq : forall s s', lt s s' -> ~ eq s s'.
-      Proof. exact: lt_not_eq. Qed.
-      Lemma elements_3 : forall s, Sorting.Sorted.sort olt (elements s).
-      Proof. exact: elements_3. Qed.
-      Lemma min_elt_1 : forall s x, min_elt s = Some x -> In x s.
-      Proof. exact: min_elt_1. Qed.
-      Lemma min_elt_2 : forall s x y, min_elt s = Some x -> In y s -> ~ y < x.
-      Proof. exact: min_elt_2. Qed.
-      Lemma min_elt_3 : forall s, min_elt s = None -> Empty s.
-      Proof. exact: min_elt_3. Qed.
-      Lemma max_elt_1 : forall s x, max_elt s = Some x -> In x s.
-      Proof. exact: max_elt_1. Qed.
-      Lemma max_elt_2 : forall s x y, max_elt s = Some x -> In y s -> ~ x < y.
-      Proof. exact: max_elt_2. Qed.
-      Lemma max_elt_3 : forall s, max_elt s = None -> Empty s.
-      Proof. exact: max_elt_3. Qed.
-      Lemma choose_3 :
-        forall s s' x y,
-          choose s = Some x -> choose s' = Some y ->
-          Equal s s' -> x == y.
-      Proof. exact: choose_3. Qed.
+  Section Definitions.
+    Context {elt : orderedType}.
+    Context {t : fsetType elt}.
 
-    End Definitions.
+    Definition In := In (class t).
+    Definition Equal := fun (s s' : t) => forall (a : elt), In a s <-> In a s'.
+    Definition Subset := fun (s s' : t) => forall (a : elt), In a s -> In a s'.
+    Definition Empty := fun (s : t) => forall (a : elt), ~ In a s.
+    Definition For_all := fun (P : elt -> Prop) (s : t) => forall (x : elt), In x s -> P x.
+    Definition Exists := fun (P : elt -> Prop) (s : t) => exists (x : elt), In x s /\ P x.
+    Definition empty := empty (class t).
+    Definition is_empty := is_empty (class t).
+    Definition mem := mem (class t).
+    Definition add := add (class t).
+    Definition singleton := singleton (class t).
+    Definition remove := remove (class t).
+    Definition union := union (class t).
+    Definition inter := inter (class t).
+    Definition diff := diff (class t).
+    Definition eq := Equal.
+    Definition eq_dec := eq_dec (class t).
+    Definition equal := equal (class t).
+    Definition subset := subset (class t).
+    Definition fold := fold (class t).
+    Definition for_all := for_all (class t).
+    Definition exists_ := exists_ (class t).
+    Definition filter := filter (class t).
+    Definition partition := partition (class t).
+    Definition cardinal := cardinal (class t).
+    Definition elements := elements (class t).
+    Definition choose := choose (class t).
+    Lemma In_1 : forall s x y, x == y -> In x s -> In y s.
+    Proof. exact: In_1. Qed.
+    Lemma eq_refl : forall s, eq s s.
+    Proof. exact: eq_refl. Qed.
+    Lemma eq_sym : forall s s', eq s s' -> eq s' s.
+    Proof. exact: eq_sym. Qed.
+    Lemma eq_trans : forall s s' s'', eq s s' -> eq s' s'' -> eq s s''.
+    Proof. exact: eq_trans. Qed.
+    Lemma mem_1 : forall s x, In x s -> mem x s = true.
+    Proof. exact: mem_1. Qed.
+    Lemma mem_2 : forall s x, mem x s = true -> In x s.
+    Proof. exact: mem_2. Qed.
+    Lemma equal_1 : forall s s', Equal s s' -> equal s s' = true.
+    Proof. exact: equal_1. Qed.
+    Lemma equal_2 : forall s s', equal s s' = true -> Equal s s'.
+    Proof. exact: equal_2. Qed.
+    Lemma subset_1 : forall s s', Subset s s' -> subset s s' = true.
+    Proof. exact: subset_1. Qed.
+    Lemma subset_2 : forall s s', subset s s' = true -> Subset s s'.
+    Proof. exact: subset_2. Qed.
+    Lemma empty_1 : Empty empty.
+    Proof. exact: empty_1. Qed.
+    Lemma is_empty_1 : forall s, Empty s -> is_empty s = true.
+    Proof. exact: is_empty_1. Qed.
+    Lemma is_empty_2 : forall s, is_empty s = true -> Empty s.
+    Proof. exact: is_empty_2. Qed.
+    Lemma add_1 : forall s x y, x == y -> In y (add x s).
+    Proof. exact: add_1. Qed.
+    Lemma add_2 : forall s x y, In y s -> In y (add x s).
+    Proof. exact: add_2. Qed.
+    Lemma add_3 : forall s x y, ~ x == y -> In y (add x s) -> In y s.
+    Proof. exact: add_3. Qed.
+    Lemma remove_1 : forall s x y, x == y -> ~ In y (remove x s).
+    Proof. exact: remove_1. Qed.
+    Lemma remove_2 : forall s x y, ~ x == y -> In y s -> In y (remove x s).
+    Proof. exact: remove_2. Qed.
+    Lemma remove_3 : forall s x y, In y (remove x s) -> In y s.
+    Proof. exact: remove_3. Qed.
+    Lemma singleton_1 : forall x y, In y (singleton x) -> x == y.
+    Proof. exact: singleton_1. Qed.
+    Lemma singleton_2 : forall x y, x == y -> In y (singleton x).
+    Proof. exact: singleton_2. Qed.
+    Lemma union_1 : forall s s' x, In x (union s s') -> In x s \/ In x s'.
+    Proof. exact: union_1. Qed.
+    Lemma union_2 : forall s s' x, In x s -> In x (union s s').
+    Proof. exact: union_2. Qed.
+    Lemma union_3 : forall  s s' x, In x s' -> In x (union s s').
+    Proof. exact: union_3. Qed.
+    Lemma inter_1 : forall s s' x, In x (inter s s') -> In x s.
+    Proof. exact: inter_1. Qed.
+    Lemma inter_2 : forall s s' x, In x (inter s s') -> In x s'.
+    Proof. exact: inter_2. Qed.
+    Lemma inter_3 : forall s s' x, In x s -> In x s' -> In x (inter s s').
+    Proof. exact: inter_3. Qed.
+    Lemma diff_1 : forall s s' x, In x (diff s s') -> In x s.
+    Proof. exact: diff_1. Qed.
+    Lemma diff_2 : forall s s' x, In x (diff s s') -> ~ In x s'.
+    Proof. exact: diff_2. Qed.
+    Lemma diff_3 : forall s s' x, In x s -> ~ In x s' -> In x (diff s s').
+    Proof. exact: diff_3. Qed.
+    Lemma fold_1 :
+      forall s (A : Type) (i : A) (f : elt -> A -> A),
+        fold f s i = fold_left (fun a e => f e a) (elements s) i.
+    Proof. exact: fold_1. Qed.
+    Lemma cardinal_1 : forall s, cardinal s = length (elements s).
+    Proof. exact: cardinal_1. Qed.
+    Lemma filter_1 : forall s x f, compat_bool oeq f -> In x (filter f s) -> In x s.
+    Proof. exact: filter_1. Qed.
+    Lemma filter_2 : forall s x f, compat_bool oeq f -> In x (filter f s) -> f x = true.
+    Proof. exact: filter_2. Qed.
+    Lemma filter_3 :
+      forall s x f,
+        compat_bool oeq f -> In x s -> f x = true -> In x (filter f s).
+    Proof. exact: filter_3. Qed.
+    Lemma for_all_1 :
+      forall s f,
+        compat_bool oeq f ->
+        For_all (fun x => f x = true) s -> for_all f s = true.
+    Proof. exact: for_all_1. Qed.
+    Lemma for_all_2 :
+      forall s f,
+        compat_bool oeq f ->
+        for_all f s = true -> For_all (fun x => f x = true) s.
+    Proof. exact: for_all_2. Qed.
+    Lemma exists_1 :
+      forall s f,
+        compat_bool oeq f ->
+        Exists (fun x => f x = true) s -> exists_ f s = true.
+    Proof. exact: exists_1. Qed.
+    Lemma exists_2 :
+      forall s f,
+        compat_bool oeq f ->
+        exists_ f s = true -> Exists (fun x => f x = true) s.
+    Proof. exact: exists_2. Qed.
+    Lemma partition_1 :
+      forall s f,
+        compat_bool oeq f -> Equal (fst (partition f s)) (filter f s).
+    Proof. exact: partition_1. Qed.
+    Lemma partition_2 :
+      forall s f,
+        compat_bool oeq f ->
+        Equal (snd (partition f s)) (filter (fun x => negb (f x)) s).
+    Proof. exact: partition_2. Qed.
+    Lemma elements_1 : forall s x, In x s -> InA oeq x (elements s).
+    Proof. exact: elements_1. Qed.
+    Lemma elements_2 : forall s x, InA oeq x (elements s) -> In x s.
+    Proof. exact: elements_2. Qed.
+    Lemma elements_3w : forall s, NoDupA oeq (elements s).
+    Proof. exact: elements_3w. Qed.
+    Lemma choose_1 : forall s x, choose s = Some x -> In x s.
+    Proof. exact: choose_1. Qed.
+    Lemma choose_2 : forall s, choose s = None -> Empty s.
+    Proof. exact: choose_2. Qed.
+    Definition lt := lt (class t).
+    Lemma compare : forall s s', Compare lt eq s s'.
+    Proof. exact: compare. Qed.
+    Definition min_elt := min_elt (class t).
+    Definition max_elt := max_elt (class t).
+    Lemma lt_trans : forall s s' s'', lt s s' -> lt s' s'' -> lt s s''.
+    Proof. exact: lt_trans. Qed.
+    Lemma lt_not_eq : forall s s', lt s s' -> ~ eq s s'.
+    Proof. exact: lt_not_eq. Qed.
+    Lemma elements_3 : forall s, Sorting.Sorted.sort olt (elements s).
+    Proof. exact: elements_3. Qed.
+    Lemma min_elt_1 : forall s x, min_elt s = Some x -> In x s.
+    Proof. exact: min_elt_1. Qed.
+    Lemma min_elt_2 : forall s x y, min_elt s = Some x -> In y s -> ~ y < x.
+    Proof. exact: min_elt_2. Qed.
+    Lemma min_elt_3 : forall s, min_elt s = None -> Empty s.
+    Proof. exact: min_elt_3. Qed.
+    Lemma max_elt_1 : forall s x, max_elt s = Some x -> In x s.
+    Proof. exact: max_elt_1. Qed.
+    Lemma max_elt_2 : forall s x y, max_elt s = Some x -> In y s -> ~ x < y.
+    Proof. exact: max_elt_2. Qed.
+    Lemma max_elt_3 : forall s, max_elt s = None -> Empty s.
+    Proof. exact: max_elt_3. Qed.
+    Lemma choose_3 :
+      forall s s' x y,
+        choose s = Some x -> choose s' = Some y ->
+        Equal s s' -> x == y.
+    Proof. exact: choose_3. Qed.
 
-    Notation "s [=] t" := (Equal s t) (at level 70, no associativity) : fset_scope.
-    Notation "s [<=] t" := (Subset s t) (at level 70, no associativity) : fset_scope.
-    Notation "s [=?] t" := (equal s t) (at level 70, no associativity) : fset_scope.
-    Notation "s [<=?] t" := (subset s t) (at level 70, no associativity) : fset_scope.
-    Notation "s [\] t" := (diff s t) (at level 70, no associativity) : fset_scope.
-    Notation "s [+] t" := (union s t) (at level 70, no associativity) : fset_scope.
-    Notation "s [*] t" := (inter s t) (at level 70, no associativity) : fset_scope.
-    Notation "a [::] s" := (add a s) (at level 70, no associativity) : fset_scope.
-    Notation "s [-] a" := (remove a s) (at level 70, no associativity) : fset_scope.
+  End Definitions.
 
-    Global Hint Resolve mem_1 equal_1 subset_1 empty_1
-           is_empty_1 choose_1 choose_2 add_1 add_2 remove_1
-           remove_2 singleton_2 union_1 union_2 union_3
-           inter_3 diff_3 fold_1 filter_3 for_all_1 exists_1
-           partition_1 partition_2 elements_1 elements_3w
-      : set.
+  Notation "s [=] t" := (Equal s t) (at level 70, no associativity) : fset_scope.
+  Notation "s [<=] t" := (Subset s t) (at level 70, no associativity) : fset_scope.
+  Notation "s [=?] t" := (equal s t) (at level 70, no associativity) : fset_scope.
+  Notation "s [<=?] t" := (subset s t) (at level 70, no associativity) : fset_scope.
+  Notation "s [\] t" := (diff s t) (at level 70, no associativity) : fset_scope.
+  Notation "s [|] t" := (union s t) (at level 70, no associativity) : fset_scope.
+  Notation "s [&] t" := (inter s t) (at level 70, no associativity) : fset_scope.
+  Notation "a [+] s" := (add a s) (at level 70, no associativity) : fset_scope.
+  Notation "s [-] a" := (remove a s) (at level 70, no associativity) : fset_scope.
 
-    Global Hint Immediate In_1 mem_2 equal_2 subset_2 is_empty_2 add_3
-           remove_3 singleton_1 inter_1 inter_2 diff_1 diff_2
-           filter_1 filter_2 for_all_2 exists_2 elements_2
-      : set.
+  #[global]
+   Hint Resolve mem_1 equal_1 subset_1 empty_1
+   is_empty_1 choose_1 choose_2 add_1 add_2 remove_1
+   remove_2 singleton_2 union_1 union_2 union_3
+   inter_3 diff_3 fold_1 filter_3 for_all_1 exists_1
+   partition_1 partition_2 elements_1 elements_3w
+    : set.
 
-    Global Hint Resolve elements_3 : set.
+  #[global]
+   Hint Immediate In_1 mem_2 equal_2 subset_2 is_empty_2 add_3
+   remove_3 singleton_1 inter_1 inter_2 diff_1 diff_2
+   filter_1 filter_2 for_all_2 exists_2 elements_2
+    : set.
 
-    Global Hint Immediate
-           min_elt_1 min_elt_2 min_elt_3 max_elt_1 max_elt_2 max_elt_3 : set.
+  #[global]
+   Hint Resolve elements_3 : set.
 
-  End Exports.
+  #[global]
+   Hint Immediate
+   min_elt_1 min_elt_2 min_elt_3 max_elt_1 max_elt_2 max_elt_3 : set.
 
-End FSetType.
+End FS.
 
-Export FSetType.Exports.
+Export FS.
 
 
 (** * Lemmas from FSetFacts. *)
 
-Module FSetTypeFacts.
+Module F.
+
+  Import Orders.F.
 
   Local Open Scope ordered_scope.
   Local Open Scope fset_scope.
@@ -389,7 +418,7 @@ Module FSetTypeFacts.
     Variable x y z : elt.
 
     Lemma In_eq_iff : x == y -> (In x s <-> In y s).
-    Proof. split; apply In_1; by order. Qed.
+    Proof. split; apply In_1; auto with ordered_type. Qed.
 
     Lemma mem_iff : In x s <-> mem x s = true.
     Proof. split; [by apply mem_1 | by apply mem_2]. Qed.
@@ -418,7 +447,7 @@ Module FSetTypeFacts.
     Lemma add_iff : In y (add x s) <-> x == y \/ In y s.
     Proof.
       split; [ | destruct 1; [ apply add_1 | apply add_2 ] ]; auto.
-      destruct (OrderedTypeLemmas.eq_dec x y) as [ E | E ]; auto.
+      destruct (eq_dec x y) as [ E | E ]; auto.
       intro H; right; exact (add_3 E H).
     Qed.
 
@@ -505,8 +534,7 @@ Module FSetTypeFacts.
     Lemma add_b : mem y (add x s) = eqb x y || mem y s.
     Proof.
       generalize (mem_iff (add x s) y) (mem_iff s y) (add_iff s x y); unfold eqb.
-      destruct (OrderedTypeLemmas.eq_dec x y); destruct (mem y s); destruct (mem y (add x s)); intuition.
-      by elim: (n H0).
+      destruct (eq_dec x y); destruct (mem y s); destruct (mem y (add x s)); intuition.
     Qed.
 
     Lemma add_neq_b : ~ x == y -> mem y (add x s) = mem y s.
@@ -518,7 +546,7 @@ Module FSetTypeFacts.
     Lemma remove_b : mem y (remove x s) = mem y s && negb (eqb x y).
     Proof.
       generalize (mem_iff (remove x s) y) (mem_iff s y) (remove_iff s x y); unfold eqb.
-      destruct (OrderedTypeLemmas.eq_dec x y); destruct (mem y s); destruct (mem y (remove x s)); simpl; intuition.
+      destruct (eq_dec x y); destruct (mem y s); destruct (mem y (remove x s)); simpl; intuition.
     Qed.
 
     Lemma remove_neq_b : ~ x == y -> mem y (remove x s) = mem y s.
@@ -530,8 +558,7 @@ Module FSetTypeFacts.
     Lemma singleton_b : mem (t:=t) y (singleton x) = eqb x y.
     Proof.
       generalize (mem_iff (t:=t) (singleton x) y) (singleton_iff (t:=t) x y); unfold eqb.
-      destruct (OrderedTypeLemmas.eq_dec x y); destruct (mem y (singleton x)); intuition.
-      by elim: (n H1).
+      destruct (eq_dec x y); destruct (mem y (singleton x)); intuition.
     Qed.
 
     Lemma union_b : mem x (union s s') = mem x s || mem x s'.
@@ -562,13 +589,13 @@ Module FSetTypeFacts.
       destruct H0 as (H0,_).
       destruct H0 as (a,(Ha1,Ha2)); [ intuition |].
       exists a; intuition.
-      unfold eqb; destruct (OrderedTypeLemmas.eq_dec x a); auto.
+      unfold eqb; destruct (eq_dec x a); auto.
       rewrite <- H.
       rewrite H0.
       destruct H1 as (H1,_).
       destruct H1 as (a,(Ha1,Ha2)); [intuition|].
       exists a; intuition.
-      unfold eqb in *; destruct (OrderedTypeLemmas.eq_dec x a); auto; discriminate.
+      unfold eqb in *; destruct (eq_dec x a); auto; discriminate.
     Qed.
 
     Variable f : elt -> bool.
@@ -600,7 +627,7 @@ Module FSetTypeFacts.
         apply H1; auto.
         rewrite H2.
         rewrite InA_alt.
-        exists x0. split; auto. exact: OrderedType.eq_refl.
+        exists x0. split; auto. exact: O.eq_refl.
     Qed.
 
     Lemma exists_b : compat_bool oeq f ->
@@ -616,7 +643,7 @@ Module FSetTypeFacts.
         exists a; split; auto.
         rewrite H2; rewrite InA_alt.
         exists a.
-        split; auto. exact: OrderedType.eq_refl.
+        split; auto. exact: O.eq_refl.
       - symmetry.
         rewrite H0.
         destruct H1 as (_,H1).
@@ -635,18 +662,21 @@ Module FSetTypeFacts.
     Context {elt : orderedType}.
     Context {t : fsetType elt}.
 
-    Global Instance Equal_ST : Equivalence (Equal (t:=t)).
+    #[global]
+     Instance Equal_ST : Equivalence (Equal (t:=t)).
     Proof.
       constructor ; red; [apply eq_refl | apply eq_sym | apply eq_trans].
     Qed.
 
-    Global Instance In_m : Proper (oeq ==> Equal (t:=t) ==> iff) In.
+    #[global]
+     Instance In_m : Proper (oeq ==> Equal (t:=t) ==> iff) In.
     Proof.
       unfold Equal; intros x y H s s' H0.
       rewrite (In_eq_iff s H); auto.
     Qed.
 
-    Global Instance is_empty_m : Proper (Equal (t:=t) ==> Logic.eq) is_empty.
+    #[global]
+     Instance is_empty_m : Proper (Equal (t:=t) ==> Logic.eq) is_empty.
     Proof.
       unfold Equal; intros s s' H.
       generalize (is_empty_iff s) (is_empty_iff s').
@@ -663,12 +693,14 @@ Module FSetTypeFacts.
         exact (H1 Logic.eq_refl _ Ha).
     Qed.
 
-    Global Instance Empty_m : Proper (Equal (t:=t) ==> iff) Empty.
+    #[global]
+     Instance Empty_m : Proper (Equal (t:=t) ==> iff) Empty.
     Proof.
       repeat red; intros; do 2 rewrite is_empty_iff; rewrite H; intuition.
     Qed.
 
-    Global Instance mem_m : Proper (oeq ==> Equal (t:=t) ==> Logic.eq) mem.
+    #[global]
+     Instance mem_m : Proper (oeq ==> Equal (t:=t) ==> Logic.eq) mem.
     Proof.
       unfold Equal; intros x y H s s' H0.
       generalize (H0 x); clear H0; rewrite (In_eq_iff s' H).
@@ -676,50 +708,58 @@ Module FSetTypeFacts.
       destruct (mem x s); destruct (mem y s'); intuition.
     Qed.
 
-    Global Instance singleton_m : Proper (oeq ==> Equal (t:=t)) singleton.
+    #[global]
+     Instance singleton_m : Proper (oeq ==> Equal (t:=t)) singleton.
     Proof.
       unfold Equal; intros x y H a.
       do 2 rewrite singleton_iff; split; intros.
-      - exact: (OrderedType.eq_trans (OrderedType.eq_sym H) H0).
-      - exact: (OrderedType.eq_trans H H0).
+      - exact: (O.eq_trans (O.eq_sym H) H0).
+      - exact: (O.eq_trans H H0).
     Qed.
 
-    Global Instance add_m : Proper (oeq ==> Equal (t:=t) ==> Equal) add.
+    #[global]
+     Instance add_m : Proper (oeq ==> Equal (t:=t) ==> Equal) add.
     Proof.
       unfold Equal; intros x y H s s' H0 a.
       do 2 rewrite add_iff; rewrite H; rewrite H0; intuition.
     Qed.
 
-    Global Instance remove_m : Proper (oeq ==> Equal (t:=t) ==> Equal) remove.
+    #[global]
+     Instance remove_m : Proper (oeq ==> Equal (t:=t) ==> Equal) remove.
     Proof.
       unfold Equal; intros x y H s s' H0 a.
       do 2 rewrite remove_iff; rewrite H; rewrite H0; intuition.
     Qed.
 
-    Global Instance union_m : Proper (Equal (t:=t) ==> Equal ==> Equal) union.
+    #[global]
+     Instance union_m : Proper (Equal (t:=t) ==> Equal ==> Equal) union.
     Proof.
       unfold Equal; intros s s' H s'' s''' H0 a.
       do 2 rewrite union_iff; rewrite H; rewrite H0; intuition.
     Qed.
 
-    Global Instance inter_m : Proper (Equal (t:=t) ==> Equal ==> Equal) inter.
+    #[global]
+     Instance inter_m : Proper (Equal (t:=t) ==> Equal ==> Equal) inter.
     Proof.
       unfold Equal; intros s s' H s'' s''' H0 a.
       do 2 rewrite inter_iff; rewrite H; rewrite H0; intuition.
     Qed.
 
-    Global Instance diff_m : Proper (Equal (t:=t) ==> Equal ==> Equal) diff.
+    #[global]
+     Instance diff_m : Proper (Equal (t:=t) ==> Equal ==> Equal) diff.
     Proof.
       unfold Equal; intros s s' H s'' s''' H0 a.
       do 2 rewrite diff_iff; rewrite H; rewrite H0; intuition.
     Qed.
 
-    Global Instance Subset_m : Proper (Equal (t:=t) ==> Equal ==> iff) Subset.
+    #[global]
+     Instance Subset_m : Proper (Equal (t:=t) ==> Equal ==> iff) Subset.
     Proof.
       unfold Equal, Subset; firstorder.
     Qed.
 
-    Global Instance subset_m : Proper (Equal (t:=t) ==> Equal ==> Logic.eq) subset.
+    #[global]
+     Instance subset_m : Proper (Equal (t:=t) ==> Equal ==> Logic.eq) subset.
     Proof.
       intros s s' H s'' s''' H0.
       generalize (subset_iff s s'') (subset_iff s' s''').
@@ -728,7 +768,8 @@ Module FSetTypeFacts.
       rewrite H in H1; rewrite H0 in H1; intuition.
     Qed.
 
-    Global Instance equal_m : Proper (Equal (t:=t) ==> Equal ==> Logic.eq) equal.
+    #[global]
+     Instance equal_m : Proper (Equal (t:=t) ==> Equal ==> Logic.eq) equal.
     Proof.
       intros s s' H s'' s''' H0.
       generalize (equal_iff s s'') (equal_iff s' s''').
@@ -748,7 +789,8 @@ Module FSetTypeFacts.
         transitivity proved by Subset_trans
         as SubsetSetoid.
 
-    Global Instance In_s_m : Morphisms.Proper (oeq ==> Subset (t:=t) ++> Basics.impl) In | 1.
+    #[global]
+     Instance In_s_m : Morphisms.Proper (oeq ==> Subset (t:=t) ++> Basics.impl) In | 1.
     Proof.
       move=> x y Hxy s u Hsu Hxs. rewrite <- Hxy. exact: (Hsu _ Hxs).
     Qed.
@@ -810,18 +852,19 @@ Module FSetTypeFacts.
 
   End Setoid.
 
-  Global Hint Resolve add_neq_b : set.
+  #[global]
+   Hint Resolve add_neq_b : set.
 
-End FSetTypeFacts.
-
-Export FSetTypeFacts.
+End F.
 
 
 (** * Tactics from FSetDecide *)
 
 From Coq Require Import Decidable.
 
-Module FSetTypeDecide.
+Module D.
+
+  Import Orders.F F.
 
   Local Open Scope fset_scope.
 
@@ -1113,12 +1156,13 @@ Module FSetTypeDecide.
       Lemma dec_eq : forall (x y : elt),
           decidable (oeq x y).
       Proof.
-        red; intros x y; destruct (OrderedTypeLemmas.eq_dec x y); auto.
+        red; intros x y; destruct (eq_dec x y); auto.
       Qed.
 
     End FSetDecideAuxiliary.
 
-    Global Hint Constructors FSet_elt_Prop FSet_Prop : FSet_Prop.
+    #[global]
+     Hint Constructors FSet_elt_Prop FSet_Prop : FSet_Prop.
 
     Ltac discard_nonFSet :=
       repeat (
@@ -1134,13 +1178,16 @@ Module FSetTypeDecide.
           else clear H
         end).
 
-    Global Hint Rewrite
-           @empty_iff @singleton_iff @add_iff @remove_iff
-           @union_iff @inter_iff @diff_iff
+    #[global]
+     Hint Rewrite
+     @empty_iff @singleton_iff @add_iff @remove_iff
+     @union_iff @inter_iff @diff_iff
       : set_simpl.
 
-    Global Hint Rewrite @eq_refl_iff : set_eq_simpl.
-    Global Hint Resolve dec_In dec_eq : FSet_decidability.
+    #[global]
+     Hint Rewrite @eq_refl_iff : set_eq_simpl.
+    #[global]
+     Hint Resolve dec_In dec_eq : FSet_decidability.
 
     Ltac change_to_E_t :=
       repeat (
@@ -1213,50 +1260,50 @@ Module FSetTypeDecide.
     Ltac inst_FSet_hypotheses :=
       repeat (
         match goal with
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _,
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _,
           _ : context [ In ?x _ ] |- _ =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _
           |- context [ In ?x _ ] =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _,
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _,
           _ : context [ oeq ?x _ ] |- _ =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _,
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _,
           _ : context [ (?x == _)%OT ] |- _ =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _
           |- context [ oeq ?x _ ] =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _
           |- context [ (?x == _)%OT ] =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _,
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _,
           _ : context [ oeq _ ?x ] |- _ =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _,
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _,
           _ : context [ (_ == ?x)%OT ] |- _ =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _
           |- context [ oeq _ ?x ] =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _
           |- context [ (_ == ?x)%OT ] =>
           let P := type of (H x) in
           assert new P by (exact (H x))
         end);
       repeat (
         match goal with
-        | t : fsetType ?elt, H : forall a : OrderedType.sort ?elt, _ |- _ =>
+        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _ |- _ =>
           clear H
         end).
 
@@ -1448,19 +1495,21 @@ Module FSetTypeDecide.
 
     End FSetDecideTestCases.
 
-End FSetTypeDecide.
-
-Export FSetTypeDecide.
+End D.
 
 
 (** * Lemmas from FSetProperties *)
 
-Module FSetTypeWProperties.
+Module P.
+
+  Import F D.
 
   Local Open Scope fset_scope.
 
-  Global Hint Unfold transpose compat_op Proper respectful : fset.
-  Global Hint Extern 1 (Equivalence _) => constructor; congruence : fset.
+  #[global]
+   Hint Unfold transpose compat_op Proper respectful : fset.
+  #[global]
+   Hint Extern 1 (Equivalence _) => constructor; congruence : fset.
 
   Section WProperties.
 
@@ -1496,22 +1545,22 @@ Module FSetTypeWProperties.
     Variable s s' s'' s1 s2 s3 : t.
     Variable x x' : elt.
 
-    Lemma Equal_refl : s[=]s.
+    Lemma equal_refl : s[=]s.
     Proof. fsetdec. Qed.
 
-    Lemma Equal_sym : s[=]s' -> s'[=]s.
+    Lemma equal_sym : s[=]s' -> s'[=]s.
     Proof. fsetdec. Qed.
 
-    Lemma Equal_trans : s1[=]s2 -> s2[=]s3 -> s1[=]s3.
+    Lemma equal_trans : s1[=]s2 -> s2[=]s3 -> s1[=]s3.
     Proof. fsetdec. Qed.
 
-    Lemma Subset_refl : s[<=]s.
+    Lemma subset_refl : s[<=]s.
     Proof. fsetdec. Qed.
 
-    Lemma Subset_trans : s1[<=]s2 -> s2[<=]s3 -> s1[<=]s3.
+    Lemma subset_trans : s1[<=]s2 -> s2[<=]s3 -> s1[<=]s3.
     Proof. fsetdec. Qed.
 
-    Lemma Subset_antisym : s[<=]s' -> s'[<=]s -> s[=]s'.
+    Lemma subset_antisym : s[<=]s' -> s'[<=]s -> s[=]s'.
     Proof. fsetdec. Qed.
 
     Lemma subset_equal : s[=]s' -> s[<=]s'.
@@ -1544,13 +1593,13 @@ Module FSetTypeWProperties.
     Lemma empty_is_empty_2 : s[=]empty -> Empty s.
     Proof. fsetdec. Qed.
 
-    Lemma add_Equal : In x s -> add x s [=] s.
+    Lemma add_equal : In x s -> add x s [=] s.
     Proof. fsetdec. Qed.
 
     Lemma add_add : add x (add x' s) [=] add x' (add x s).
     Proof. fsetdec. Qed.
 
-    Lemma remove_Equal : ~ In x s -> remove x s [=] s.
+    Lemma remove_equal : ~ In x s -> remove x s [=] s.
     Proof. fsetdec. Qed.
 
     Lemma Equal_remove : s[=]s' -> remove x s [=] remove x s'.
@@ -1572,13 +1621,13 @@ Module FSetTypeWProperties.
     Lemma union_sym : union s s' [=] union s' s.
     Proof. fsetdec. Qed.
 
-    Lemma union_Subset_Equal : s[<=]s' -> union s s' [=] s'.
+    Lemma union_subset_equal : s[<=]s' -> union s s' [=] s'.
     Proof. fsetdec. Qed.
 
-    Lemma union_Equal_1 : s[=]s' -> union s s'' [=] union s' s''.
+    Lemma union_equal_1 : s[=]s' -> union s s'' [=] union s' s''.
     Proof. fsetdec. Qed.
 
-    Lemma union_Equal_2 : s'[=]s'' -> union s s' [=] union s s''.
+    Lemma union_equal_2 : s'[=]s'' -> union s s' [=] union s s''.
     Proof. fsetdec. Qed.
 
     Lemma union_assoc : union (union s s') s'' [=] union s (union s' s'').
@@ -1598,19 +1647,19 @@ Module FSetTypeWProperties.
                                union (remove x s) (add x s') [=] union s s'.
     Proof. fsetdec. Qed.
 
-    Lemma union_Subset_1 : s [<=] union s s'.
+    Lemma union_subset_1 : s [<=] union s s'.
     Proof. fsetdec. Qed.
 
-    Lemma union_Subset_2 : s' [<=] union s s'.
+    Lemma union_subset_2 : s' [<=] union s s'.
     Proof. fsetdec. Qed.
 
-    Lemma union_Subset_3 : s[<=]s'' -> s'[<=]s'' -> union s s' [<=] s''.
+    Lemma union_subset_3 : s[<=]s'' -> s'[<=]s'' -> union s s' [<=] s''.
     Proof. fsetdec. Qed.
 
-    Lemma union_Subset_4 : s[<=]s' -> union s s'' [<=] union s' s''.
+    Lemma union_subset_4 : s[<=]s' -> union s s'' [<=] union s' s''.
     Proof. fsetdec. Qed.
 
-    Lemma union_Subset_5 : s[<=]s' -> union s'' s [<=] union s'' s'.
+    Lemma union_subset_5 : s[<=]s' -> union s'' s [<=] union s'' s'.
     Proof. fsetdec. Qed.
 
     Lemma empty_union_1 : Empty s -> union s s' [=] s'.
@@ -1625,13 +1674,13 @@ Module FSetTypeWProperties.
     Lemma inter_sym : inter s s' [=] inter s' s.
     Proof. fsetdec. Qed.
 
-    Lemma inter_Subset_Equal : s[<=]s' -> inter s s' [=] s.
+    Lemma inter_subset_equal : s[<=]s' -> inter s s' [=] s.
     Proof. fsetdec. Qed.
 
-    Lemma inter_Equal_1 : s[=]s' -> inter s s'' [=] inter s' s''.
+    Lemma inter_equal_1 : s[=]s' -> inter s s'' [=] inter s' s''.
     Proof. fsetdec. Qed.
 
-    Lemma inter_Equal_2 : s'[=]s'' -> inter s s' [=] inter s s''.
+    Lemma inter_equal_2 : s'[=]s'' -> inter s s' [=] inter s s''.
     Proof. fsetdec. Qed.
 
     Lemma inter_assoc : inter (inter s s') s'' [=] inter s (inter s' s'').
@@ -1655,13 +1704,13 @@ Module FSetTypeWProperties.
     Lemma empty_inter_2 : Empty s' -> Empty (inter s s').
     Proof. fsetdec. Qed.
 
-    Lemma inter_Subset_1 : inter s s' [<=] s.
+    Lemma inter_subset_1 : inter s s' [<=] s.
     Proof. fsetdec. Qed.
 
-    Lemma inter_Subset_2 : inter s s' [<=] s'.
+    Lemma inter_subset_2 : inter s s' [<=] s'.
     Proof. fsetdec. Qed.
 
-    Lemma inter_Subset_3 :
+    Lemma inter_subset_3 :
       s''[<=]s -> s''[<=]s' -> s''[<=] inter s s'.
     Proof. fsetdec. Qed.
 
@@ -1671,10 +1720,10 @@ Module FSetTypeWProperties.
     Lemma empty_diff_2 : Empty s -> diff s' s [=] s'.
     Proof. fsetdec. Qed.
 
-    Lemma diff_Subset : diff s s' [<=] s.
+    Lemma diff_subset : diff s s' [<=] s.
     Proof. fsetdec. Qed.
 
-    Lemma diff_Subset_Equal : s[<=]s' -> diff s s' [=] empty.
+    Lemma diff_subset_equal : s[<=]s' -> diff s s' [=] empty.
     Proof. fsetdec. Qed.
 
     Lemma remove_diff_singleton :
@@ -1710,19 +1759,21 @@ Module FSetTypeWProperties.
 
   End BasicProperties.
 
-  Global Hint Immediate Equal_sym add_remove remove_add union_sym inter_sym: set.
-  Global Hint Resolve Equal_refl Equal_trans Subset_refl subset_equal Subset_antisym
-         Subset_trans subset_empty subset_remove_3 subset_diff subset_add_3
-         subset_add_2 in_subset empty_is_empty_1 empty_is_empty_2 add_Equal
-         remove_Equal singleton_equal_add union_Subset_Equal union_Equal_1
-         union_Equal_2 union_assoc add_union_singleton union_add union_Subset_1
-         union_Subset_2 union_Subset_3 inter_Subset_Equal inter_Equal_1 inter_Equal_2
-         inter_assoc union_inter_1 union_inter_2 inter_add_1 inter_add_2
-         empty_inter_1 empty_inter_2 empty_union_1 empty_union_2 empty_diff_1
-         empty_diff_2 union_Add inter_Add union_Equal inter_Add_2 not_in_union
-         inter_Subset_1 inter_Subset_2 inter_Subset_3 diff_Subset diff_Subset_Equal
-         remove_diff_singleton diff_inter_empty diff_inter_all Add_add Add_remove
-         Equal_remove add_add : set.
+  #[global]
+   Hint Immediate equal_sym add_remove remove_add union_sym inter_sym: set.
+  #[global]
+   Hint Resolve equal_refl equal_trans subset_refl subset_equal subset_antisym
+   subset_trans subset_empty subset_remove_3 subset_diff subset_add_3
+   subset_add_2 in_subset empty_is_empty_1 empty_is_empty_2 add_equal
+   remove_equal singleton_equal_add union_subset_equal union_equal_1
+   union_equal_2 union_assoc add_union_singleton union_add union_subset_1
+   union_subset_2 union_subset_3 inter_subset_equal inter_equal_1 inter_equal_2
+   inter_assoc union_inter_1 union_inter_2 inter_add_1 inter_add_2
+   empty_inter_1 empty_inter_2 empty_union_1 empty_union_2 empty_diff_1
+   empty_diff_2 union_Add inter_Add union_Equal inter_Add_2 not_in_union
+   inter_subset_1 inter_subset_2 inter_subset_3 diff_subset diff_subset_equal
+   remove_diff_singleton diff_inter_empty diff_inter_all Add_add Add_remove
+   Equal_remove add_add : set.
 
   Section Properties.
 
@@ -1941,7 +1992,7 @@ Module FSetTypeWProperties.
           Empty s -> (fold f s i) = i.
       Proof.
         intros.
-        rewrite FSetType.Exports.fold_1.
+        rewrite FS.fold_1.
         rewrite elements_Empty in H; rewrite H; simpl; auto.
       Qed.
 
@@ -1966,7 +2017,7 @@ Module FSetTypeWProperties.
           intros; apply Comp; auto with *.
         Qed.
 
-        Lemma fold_Equal :
+        Lemma fold_equal :
           forall i (s s' : t), s[=]s' -> eqA (fold f s i) (fold f s' i).
         Proof.
           intros i s; pattern s; apply set_induction; clear s; intros.
@@ -1995,7 +2046,7 @@ Module FSetTypeWProperties.
         Lemma add_fold : forall i (s : t) x, In x s ->
                                              eqA (fold f (add x s) i) (fold f s i).
         Proof.
-          intros; apply fold_Equal; auto with set.
+          intros; apply fold_equal; auto with set.
         Qed.
 
         Lemma remove_fold_1: forall i (s : t) x, In x s ->
@@ -2010,7 +2061,7 @@ Module FSetTypeWProperties.
                                                  eqA (fold f (remove x s) i) (fold f s i).
         Proof.
           intros.
-          apply fold_Equal; auto with set.
+          apply fold_equal; auto with set.
         Qed.
 
         Lemma fold_union_inter : forall i (s s' : t),
@@ -2019,7 +2070,7 @@ Module FSetTypeWProperties.
         Proof.
           intros; pattern s; apply set_induction; clear s; intros.
           transitivity (fold f s' (fold f (inter s s') i)).
-          apply fold_Equal; auto with set.
+          apply fold_equal; auto with set.
           transitivity (fold f s' i).
           apply fold_init; auto.
           apply fold_1; auto with set.
@@ -2033,8 +2084,8 @@ Module FSetTypeWProperties.
           rewrite inter_iff; intuition.
           transitivity (f x (fold f s (fold f s' i))).
           transitivity (fold f (union s s') (f x (fold f (inter s s') i))).
-          apply fold_Equal; auto.
-          apply Equal_sym; apply union_Equal with x; auto with set.
+          apply fold_equal; auto.
+          apply equal_sym; apply union_Equal with x; auto with set.
           transitivity (f x (fold f (union s s') (fold f (inter s s') i))).
           apply fold_commutes; auto.
           apply Comp; auto with *.
@@ -2045,8 +2096,8 @@ Module FSetTypeWProperties.
           transitivity (f x (fold f (union s s') (fold f (inter s s') i))).
           apply Comp;auto with *.
           apply fold_init;auto.
-          apply fold_Equal;auto.
-          apply Equal_sym; apply inter_Add_2 with x; auto with set.
+          apply fold_equal;auto.
+          apply equal_sym; apply inter_Add_2 with x; auto with set.
           transitivity (f x (fold f s (fold f s' i))).
           apply Comp; auto with *.
           symmetry; apply fold_2 with (eqA:=eqA); auto.
@@ -2060,7 +2111,7 @@ Module FSetTypeWProperties.
                              (fold f (inter (diff s s') (inter s s')) i)).
           symmetry; apply fold_union_inter; auto.
           transitivity (fold f s (fold f (inter (diff s s') (inter s s')) i)).
-          apply fold_Equal; auto with set.
+          apply fold_equal; auto with set.
           apply fold_init; auto.
           apply fold_1; auto with set.
         Qed.
@@ -2090,7 +2141,7 @@ Module FSetTypeWProperties.
 
     Lemma cardinal_fold : forall (s : t), cardinal s = fold (fun _ => S) s 0.
     Proof.
-      intros; rewrite cardinal_1; rewrite FSetType.Exports.fold_1; auto with *.
+      intros; rewrite cardinal_1; rewrite FS.fold_1; auto with *.
       symmetry; apply fold_left_length; auto.
     Qed.
 
@@ -2119,7 +2170,7 @@ Module FSetTypeWProperties.
     Lemma cardinal_Empty : forall (s : t), Empty s <-> cardinal s = 0.
     Proof.
       intros.
-      rewrite -> elements_Empty, FSetType.Exports.cardinal_1.
+      rewrite -> elements_Empty, FS.cardinal_1.
       destruct (elements s); intuition; discriminate.
     Qed.
 
@@ -2130,7 +2181,8 @@ Module FSetTypeWProperties.
 
   End Properties.
 
-  Global Hint Resolve cardinal_inv_1 : fset.
+  #[global]
+   Hint Resolve cardinal_inv_1 : fset.
 
   Section Properties.
 
@@ -2140,7 +2192,7 @@ Module FSetTypeWProperties.
     Lemma cardinal_inv_2 :
       forall (s : t) n, cardinal s = S n -> { x : elt | In x s }.
     Proof.
-      intros; rewrite FSetType.Exports.cardinal_1 in H.
+      intros; rewrite FS.cardinal_1 in H.
       generalize (elements_2 (s:=s)).
       destruct (elements s); try discriminate.
       exists s0; auto with *.
@@ -2165,7 +2217,8 @@ Module FSetTypeWProperties.
       rewrite (cardinal_2 (s:=remove x s') (s':=s') (x:=x)); eauto with *.
     Qed.
 
-    Global Add Morphism cardinal with signature (Equal (t:=t) ==> Logic.eq) as cardinal_m.
+    #[global]
+     Add Morphism cardinal with signature (Equal (t:=t) ==> Logic.eq) as cardinal_m.
     Proof.
       exact Equal_cardinal.
     Qed.
@@ -2177,9 +2230,11 @@ Module FSetTypeWProperties.
 
   End Properties.
 
-  Global Hint Resolve Add_add Add_remove Equal_remove cardinal_inv_1 Equal_cardinal : fset.
+  #[global]
+   Hint Resolve Add_add Add_remove Equal_remove cardinal_inv_1 Equal_cardinal : fset.
 
-  Global Hint Immediate empty_cardinal cardinal_1 : set.
+  #[global]
+   Hint Immediate empty_cardinal cardinal_1 : set.
 
   Section Properties.
 
@@ -2197,7 +2252,8 @@ Module FSetTypeWProperties.
 
   End Properties.
 
-  Global Hint Resolve singleton_cardinal: set.
+  #[global]
+   Hint Resolve singleton_cardinal: set.
 
   Section Properties.
 
@@ -2227,7 +2283,7 @@ Module FSetTypeWProperties.
       intros.
       rewrite <- (diff_inter_cardinal s' s).
       rewrite (inter_sym s' s).
-      rewrite (inter_Subset_Equal H).
+      rewrite (inter_subset_equal H).
       exact: leq_addl.
     Qed.
 
@@ -2237,7 +2293,7 @@ Module FSetTypeWProperties.
       intros.
       rewrite <- (diff_inter_cardinal s' s).
       rewrite (inter_sym s' s).
-      rewrite (inter_Subset_Equal H).
+      rewrite (inter_subset_equal H).
       generalize (@cardinal_inv_1 _ _ (diff s' s)).
       destruct (cardinal (diff s' s)).
       intro H2; destruct (H2 Logic.eq_refl x).
@@ -2305,18 +2361,17 @@ Module FSetTypeWProperties.
 
   End Properties.
 
-  Global Hint Resolve subset_cardinal union_cardinal add_cardinal_1 add_cardinal_2 : fset.
+  #[global]
+   Hint Resolve subset_cardinal union_cardinal add_cardinal_1 add_cardinal_2 : fset.
 
-End FSetTypeWProperties.
-
-Export FSetTypeWProperties.
+End P.
 
 
-Module FSetTypeOrdProperties.
+Module OP.
+
+  Import Orders.OT Orders.F F P.
 
   Local Open Scope fset_scope.
-
-  Import FSetTypeWProperties.
 
   Section OrdProperties.
 
@@ -2329,7 +2384,7 @@ Module FSetTypeOrdProperties.
       apply SortA_equivlistA_eqlistA; auto with typeclass_instances.
     Qed.
 
-    Definition gtb (x y : elt) := match OrderedType.Exports.compare x y with GT _ => true | _ => false end.
+    Definition gtb (x y : elt) := match O.compare x y with GT _ => true | _ => false end.
     Definition leb x := fun y => negb (gtb x y).
 
     Definition elements_lt x (s : t) := List.filter (gtb x) (elements s).
@@ -2337,12 +2392,12 @@ Module FSetTypeOrdProperties.
 
     Lemma gtb_1 : forall x y, gtb x y = true <-> olt y x.
     Proof.
-      intros; unfold gtb; destruct (OrderedType.Exports.compare x y); intuition; try discriminate; order.
+      intros; unfold gtb; destruct (O.compare x y); intuition; try discriminate; order.
     Qed.
 
     Lemma leb_1 : forall x y, leb x y = true <-> ~olt y x.
     Proof.
-      intros; unfold leb, gtb; destruct (OrderedType.Exports.compare x y); intuition; try discriminate; order.
+      intros; unfold leb, gtb; destruct (O.compare x y); intuition; try discriminate; order.
     Qed.
 
     Lemma gtb_compat : forall x, Proper (oeq==>Logic.eq) (gtb x).
@@ -2367,7 +2422,8 @@ Module FSetTypeOrdProperties.
 
   End OrdProperties.
 
-  Global Hint Resolve gtb_compat leb_compat : fset.
+  #[global]
+   Hint Resolve gtb_compat leb_compat : fset.
 
   Section OrdProperties.
 
@@ -2382,7 +2438,7 @@ Module FSetTypeOrdProperties.
       intros.
       rewrite gtb_1 in H.
       assert (~olt y x).
-      unfold gtb in *; destruct (OrderedType.Exports.compare x y); intuition;
+      unfold gtb in *; destruct (O.compare x y); intuition;
         try discriminate; order.
       order.
     Qed.
@@ -2417,7 +2473,7 @@ Module FSetTypeOrdProperties.
       rewrite -> InA_app_iff, InA_cons, !filter_InA, <-elements_iff,
         leb_1, gtb_1, (H0 a) by auto with fset.
       intuition.
-      destruct (OrderedType.Exports.compare a x); intuition.
+      destruct (O.compare a x); intuition.
       fold (~olt a x); auto with ordered_type set.
     Qed.
 
@@ -2524,7 +2580,7 @@ Module FSetTypeOrdProperties.
         Below x s -> Add x s s' -> eqA (fold f s' i) (fold f s (f x i)).
     Proof.
       intros.
-      rewrite -> 2 FSetType.Exports.fold_1.
+      rewrite -> 2 FS.fold_1.
       set (g:=fun (a : A) (e : elt) => f e a).
       change (eqA (fold_left g (elements s') i) (fold_left g (x::elements s) i)).
       unfold g.
@@ -2539,7 +2595,7 @@ Module FSetTypeOrdProperties.
       Variables (A:Type) (eqA:A->A->Prop) (st:Equivalence eqA).
       Variables (f:elt->A->A) (Comp:compat_op oeq eqA f).
 
-      Lemma fold_Equal :
+      Lemma fold_equal :
         forall i (s s' : t), s[=]s' -> eqA (fold f s i) (fold f s' i).
       Proof.
         intros. rewrite -> 2 fold_spec_right.
@@ -2553,7 +2609,7 @@ Module FSetTypeOrdProperties.
           In x s ->
           eqA (fold f (add x s) i) (fold f s i).
       Proof.
-        intros; apply fold_Equal; auto with set.
+        intros; apply fold_equal; auto with set.
       Qed.
 
       Lemma remove_fold_2 : forall i (s : t) x,
@@ -2561,7 +2617,7 @@ Module FSetTypeOrdProperties.
           eqA (fold f (remove x s) i) (fold f s i).
       Proof.
         intros.
-        apply fold_Equal; auto with set.
+        apply fold_equal; auto with set.
       Qed.
 
     End FoldOpt.
@@ -2584,14 +2640,14 @@ Module FSetTypeOrdProperties.
 
   End OrdProperties.
 
-End FSetTypeOrdProperties.
-
-Export FSetTypeOrdProperties.
+End OP.
 
 
 (** * Lemmas from FSetEqProperties *)
 
-Module FSetTypeEqProperties.
+Module EP.
+
+  Import Orders.F Orders.OT F P D.
 
   Section BasicProperties.
 
@@ -2675,7 +2731,7 @@ Module FSetTypeEqProperties.
       apply remove_neq_b.
     Qed.
 
-    Lemma singleton_equal_addb:
+    Lemma singleton_equal_add:
       equal (t:=t) (singleton x) (add x empty)=true.
     Proof.
       rewrite (singleton_equal_add x); auto with set.
@@ -2800,17 +2856,17 @@ Module FSetTypeEqProperties.
     Lemma remove_equal:
       mem x s=false -> equal (remove x s) s=true.
     Proof.
-      intros; apply equal_1; apply remove_Equal.
+      intros; apply equal_1; apply remove_equal.
       rewrite not_mem_iff; auto.
     Qed.
 
-    Lemma add_remove_equal:
+    Lemma add_remove:
       mem x s=true -> equal (add x (remove x s)) s=true.
     Proof.
       intros; apply equal_1; apply add_remove; auto with set.
     Qed.
 
-    Lemma remove_add_equal:
+    Lemma remove_add:
       mem x s=false -> equal (remove x (add x s)) s=true.
     Proof.
       intros; apply equal_1; apply remove_add; auto.
@@ -2833,7 +2889,7 @@ Module FSetTypeEqProperties.
     Lemma singleton_mem_2: ~ oeq x y -> mem (t:=t) y (singleton x)=false.
     Proof.
       intros; rewrite singleton_b.
-      unfold eqb; destruct (OrderedTypeLemmas.eq_dec x y); intuition.
+      unfold eqb; destruct (eq_dec x y); intuition.
     Qed.
 
     Lemma singleton_mem_3: mem (t:=t) y (singleton x)=true -> oeq x y.
@@ -2841,7 +2897,7 @@ Module FSetTypeEqProperties.
       intros; apply: singleton_1; eauto with set fset ordered_type.
     Qed.
 
-    Lemma union_sym_equal:
+    Lemma union_sym:
       equal (union s s') (union s' s)=true.
     Proof.
       auto with set.
@@ -2865,30 +2921,30 @@ Module FSetTypeEqProperties.
       auto with set.
     Qed.
 
-    Lemma union_assoc_equal:
+    Lemma union_assoc:
       equal (union (union s s') s'') (union s (union s' s''))=true.
     Proof.
       auto with set.
     Qed.
 
-    Lemma add_union_singleton_equal :
+    Lemma add_union_singleton:
       equal (add x s) (union (singleton x) s)=true.
     Proof.
       auto with set.
     Qed.
 
-    Lemma union_add_equal :
+    Lemma union_add:
       equal (union (add x s) s') (add x (union s s'))=true.
     Proof.
       auto with set.
     Qed.
 
-    Lemma union_subset_1 : subset s (union s s')=true.
+    Lemma union_subset_1: subset s (union s s')=true.
     Proof.
       auto with set.
     Qed.
 
-    Lemma union_subset_2 : subset s' (union s s')=true.
+    Lemma union_subset_2: subset s' (union s s')=true.
     Proof.
       auto with set.
     Qed.
@@ -2897,10 +2953,10 @@ Module FSetTypeEqProperties.
       subset s s''=true -> subset s' s''=true ->
       subset (union s s') s''=true.
     Proof.
-      intros; apply subset_1; apply union_Subset_3; auto with set.
+      intros; apply subset_1; apply union_subset_3; auto with set.
     Qed.
 
-    Lemma inter_sym_equal : equal (inter s s') (inter s' s)=true.
+    Lemma inter_sym : equal (inter s s') (inter s' s)=true.
     Proof.
       auto with set.
     Qed.
@@ -2923,31 +2979,31 @@ Module FSetTypeEqProperties.
       auto with set.
     Qed.
 
-    Lemma inter_assoc_equal :
+    Lemma inter_assoc :
       equal (inter (inter s s') s'') (inter s (inter s' s''))=true.
     Proof.
       auto with set.
     Qed.
 
-    Lemma union_inter_1_equal :
+    Lemma union_inter_1 :
       equal (inter (union s s') s'') (union (inter s s'') (inter s' s''))=true.
     Proof.
       auto with set.
     Qed.
 
-    Lemma union_inter_2_equal :
+    Lemma union_inter_2 :
       equal (union (inter s s') s'') (inter (union s s'') (union s' s''))=true.
     Proof.
       auto with set.
     Qed.
 
-    Lemma inter_add_1_equal : mem x s'=true ->
+    Lemma inter_add_1 : mem x s'=true ->
                               equal (inter (add x s) s') (add x (inter s s'))=true.
     Proof.
       auto with set.
     Qed.
 
-    Lemma inter_add_2_eqaul : mem x s'=false ->
+    Lemma inter_add_2 : mem x s'=false ->
                               equal (inter (add x s) s') (inter s s')=true.
     Proof.
       intros; apply equal_1; apply inter_add_2.
@@ -2968,7 +3024,7 @@ Module FSetTypeEqProperties.
       subset s'' s=true -> subset s'' s'=true ->
       subset s'' (inter s s')=true.
     Proof.
-      intros; apply subset_1; apply inter_Subset_3; auto with set.
+      intros; apply subset_1; apply inter_subset_3; auto with set.
     Qed.
 
     Lemma diff_subset: subset (diff s s') s=true.
@@ -2988,13 +3044,13 @@ Module FSetTypeEqProperties.
       auto with set.
     Qed.
 
-    Lemma diff_inter_empty_equal :
+    Lemma diff_inter_empty:
       equal (inter (diff s s') (inter s s')) empty=true.
     Proof.
       auto with set.
     Qed.
 
-    Lemma diff_inter_all_equal:
+    Lemma diff_inter_all:
       equal (union (diff s s') (inter s s')) s=true.
     Proof.
       auto with set.
@@ -3005,7 +3061,7 @@ Module FSetTypeEqProperties.
   #[global]
    Hint Immediate empty_mem is_empty_equal_empty add_mem_1
    remove_mem_1 singleton_equal_add union_mem inter_mem
-   diff_mem equal_sym add_remove_equal remove_add_equal : set.
+   diff_mem equal_sym add_remove remove_add : set.
   #[global]
    Hint Resolve equal_mem_1 subset_mem_1 choose_mem_1
    choose_mem_2 add_mem_2 remove_mem_2 equal_refl equal_equal
@@ -3064,7 +3120,7 @@ Module FSetTypeEqProperties.
     Lemma fold_equal:
       equal s s'=true -> eqA (fold f s i) (fold f s' i).
     Proof.
-      intros; apply fold_Equal with (eqA:=eqA); auto with set.
+      intros; apply fold_equal with (eqA:=eqA); auto with set.
     Qed.
 
     Lemma fold_add:
@@ -3141,7 +3197,7 @@ Module FSetTypeEqProperties.
       rewrite exclusive_set; auto.
     Qed.
 
-    Lemma subset_cardinalb:
+    Lemma subset_cardinal:
       forall (s s' : t), subset s s'=true -> cardinal s<=cardinal s'.
     Proof.
       intros; apply subset_cardinal; auto with set.
@@ -3430,9 +3486,9 @@ Module FSetTypeEqProperties.
       assert (st : Equivalence (@Logic.eq nat)) by (split; congruence).
       intros s;pattern s; apply set_rec.
       intros.
-      rewrite <- (fold_equal st fc 0 H).
-      rewrite <- (fold_equal st gc 0 H).
-      rewrite <- (fold_equal st fgc 0 H); auto.
+      rewrite <- (fold_equal st fc ft 0 H).
+      rewrite <- (fold_equal st gc gt 0 H).
+      rewrite <- (fold_equal st fgc fgt 0 H); auto.
       intros; do 3 (rewrite (fold_add st);auto).
       rewrite H0;simpl.
       rewrite <- !(PeanoNat.Nat.add_assoc (f x)); f_equal.
@@ -3457,7 +3513,7 @@ Module FSetTypeEqProperties.
       apply PeanoNat.Nat.add_comm.
       intros s;pattern s; apply set_rec.
       intros.
-      rewrite <- (fold_equal st cc 0 H).
+      rewrite <- (fold_equal st cc ct 0 H).
       rewrite <- (Equal_cardinal (filter_equal Hf (equal_2 H))); auto.
       intros; rewrite (fold_add st cc ct); auto.
       generalize (@add_filter_1 elt t f Hf s0 (add x s0) x) (@add_filter_2 elt t f Hf s0 (add x s0) x) .
@@ -3511,14 +3567,24 @@ Module FSetTypeEqProperties.
 
   End Sum.
 
-End FSetTypeEqProperties.
-
-Export FSetTypeEqProperties.
+End EP.
 
 
 (** * Additional Lemmas *)
 
-Module FSetTypeLemmas.
+Module L.
+
+  Module F := F.
+  Module D := D.
+  Module P := P.
+  Module OP := OP.
+  Module EP := EP.
+
+  Include F.
+  Include D.
+  Include OP.
+
+  Import P Orders.L.
 
   Local Open Scope fset_scope.
 
@@ -3561,7 +3627,8 @@ Module FSetTypeLemmas.
 
     (* fsetType and predType *)
 
-    Global Canonical fsetPredType := Eval hnf in @PredType elt t (flip mem).
+    #[global]
+     Canonical fsetPredType := Eval hnf in @PredType elt t (flip mem).
 
     Lemma oin_set x s : x \in s = mem x s.
     Proof. done. Qed.
@@ -3594,12 +3661,12 @@ Module FSetTypeLemmas.
 
     Lemma mem_singleton_eq (x y : elt) : mem (t:=t) x (singleton y) -> oeq x y.
     Proof.
-      move=> /memP Hin. move: (singleton_1 Hin) => Heq. exact: (OrderedType.eq_sym Heq).
+      move=> /memP Hin. move: (singleton_1 Hin) => Heq. exact: (O.eq_sym Heq).
     Qed.
 
     Lemma eq_mem_singleton (x y : elt) : oeq x y -> mem (t:=t) x (singleton y).
     Proof.
-      move=> Heq. apply/memP. move: (OrderedType.eq_sym Heq) => {} Heq.
+      move=> Heq. apply/memP. move: (O.eq_sym Heq) => {} Heq.
       exact: (singleton_2 Heq).
     Qed.
 
@@ -3640,20 +3707,20 @@ Module FSetTypeLemmas.
     Proof.
       move=> /memP Hin. move: (add_iff s y x) => [H _].
       move: (H Hin); case => {Hin H}.
-      - move=> Heq; left. exact: OrderedType.eq_sym.
+      - move=> Heq; left. exact: O.eq_sym.
       - move=> Hin; right. apply/memP; assumption.
     Qed.
 
-    Lemma mem_add_l x y (s : t) : oeq x y -> mem x (add y s).
+    Lemma mem_add_eq x y (s : t) : oeq x y -> mem x (add y s).
     Proof. by auto with set ordered_type. Qed.
 
-    Lemma mem_add_r x y (s : t) : mem x s -> mem x (add y s).
+    Lemma mem_add_mem x y (s : t) : mem x s -> mem x (add y s).
     Proof. by auto with set ordered_type. Qed.
 
     Lemma mem_add_neq {x y s} : ~ (oeq x y) -> mem x (add y s) = mem (t:=t) x s.
     Proof. by auto with set ordered_type. Qed.
 
-    Hint Resolve mem_add_or mem_add_l mem_add_r : set.
+    Hint Resolve mem_add_or mem_add_eq mem_add_mem : set.
 
     Lemma mem_add_iff x y (s : t) : mem x (add y s) <-> oeq x y \/ mem x s.
     Proof. by case_all; auto with set. Qed.
@@ -3665,14 +3732,14 @@ Module FSetTypeLemmas.
         + by left; apply/oeqP.
         + by right.
       - apply: orb_false_intro.
-        + apply/negP => H. apply/negPf: Hmem. exact: (mem_add_l _ (oeqP H)).
-        + apply/negP => H. apply/negPf: Hmem. exact: (mem_add_r _ H).
+        + apply/negP => H. apply/negPf: Hmem. exact: (mem_add_eq _ (oeqP H)).
+        + apply/negP => H. apply/negPf: Hmem. exact: (mem_add_mem _ H).
     Qed.
 
-    Lemma not_mem_add_l x y (s : t) : ~~ mem x (add y s) -> ~ oeq x y.
+    Lemma not_mem_add_neq x y (s : t) : ~~ mem x (add y s) -> ~ oeq x y.
     Proof. move=> /negP Hmem; by auto with set. Qed.
 
-    Lemma not_mem_add_r x y (s : t) : ~~ mem x (add y s) -> ~~ mem x s.
+    Lemma not_mem_add_not_mem x y (s : t) : ~~ mem x (add y s) -> ~~ mem x s.
     Proof.
       move=> /negP Hmem. apply/negP => H; apply: Hmem. by auto with set.
     Qed.
@@ -3690,7 +3757,7 @@ Module FSetTypeLemmas.
       ~~ mem x (add y s) <-> ~ oeq x y /\ ~~ mem x s.
     Proof.
       split.
-      - split; by eauto using not_mem_add_l, not_mem_add_r.
+      - split; by eauto using not_mem_add_neq, not_mem_add_not_mem.
       - move=> [H1 H2]. by auto with set.
     Qed.
 
@@ -3827,22 +3894,23 @@ Module FSetTypeLemmas.
     (* equal *)
 
     Lemma equal_refl (s : t) : equal s s.
-    Proof. apply: equal_1. exact: Equal_refl. Qed.
+    Proof. apply: equal_1. exact: equal_refl. Qed.
 
     Lemma equal_sym (s1 s2 : t) : equal s1 s2 = equal s2 s1.
     Proof.
       case H: (equal s2 s1).
-      - apply/equalP. move/equalP: H. exact: Equal_sym.
-      - apply/negP=> /equalP H1. apply/negPf/equalP: H. exact: Equal_sym.
+      - apply/equalP. move/equalP: H. exact: equal_sym.
+      - apply/negP=> /equalP H1. apply/negPf/equalP: H. exact: equal_sym.
     Qed.
 
     Lemma equal_trans (s1 s2 s3 : t) : equal s1 s2 -> equal s2 s3 -> equal s1 s3.
     Proof.
       move=> /equal_2 H12 /equal_2 H23. apply: equal_1.
-      exact: (Equal_trans H12 H23).
+      exact: (equal_trans H12 H23).
     Qed.
 
-    Global Instance equal_ST : Equivalence (equal (t:=t)).
+    #[global]
+     Instance equal_ST : Equivalence (equal (t:=t)).
     Proof.
       split.
       - exact: equal_refl.
@@ -3916,10 +3984,10 @@ Module FSetTypeLemmas.
 
     Lemma union_subset_Equal (s1 s2 : t) :
       subset s1 s2 -> Equal (union s1 s2) s2.
-    Proof. move=> /subset_2 Hsub. exact: (union_Subset_Equal Hsub). Qed.
+    Proof. move=> /subset_2 Hsub. exact: (union_subset_equal Hsub). Qed.
 
     Lemma union_same (s : t) : Equal (union s s) s.
-    Proof. apply: union_Subset_Equal. exact: Subset_refl. Qed.
+    Proof. apply: union_subset_equal. exact: Subset_refl. Qed.
 
     Lemma union_distr_l (s1 s2 s3 : t) :
       Equal (union (union s1 s2) (union s1 s3))
@@ -3959,10 +4027,10 @@ Module FSetTypeLemmas.
     Qed.
 
     Lemma subset_l_union (s1 s2 : t) : subset s1 (union s2 s1).
-    Proof. apply/subset_1. exact: union_Subset_2. Qed.
+    Proof. apply/subset_1. exact: union_subset_2. Qed.
 
     Lemma subset_r_union (s1 s2 : t) : subset s1 (union s1 s2).
-    Proof. apply/subset_1. exact: union_Subset_1. Qed.
+    Proof. apply/subset_1. exact: union_subset_1. Qed.
 
     Hint Immediate subset_l_union subset_r_union : set.
 
@@ -4101,7 +4169,7 @@ Module FSetTypeLemmas.
     Lemma subset_antisym (s1 s2 : t) : subset s1 s2 -> subset s2 s1 -> equal s1 s2.
     Proof.
       move=> /subset_2 Hsub12 /subset_2 Hsub21. apply/equal_1.
-      exact: Subset_antisym.
+      exact: subset_antisym.
     Qed.
 
     Hint Resolve subset_add_l subset_add_r : set.
@@ -4113,7 +4181,7 @@ Module FSetTypeLemmas.
     Proof.
       rewrite (@elements_Add_Above _ _ (empty) (singleton x) x).
       - rewrite elements_empty /=. apply: eqlistA_cons.
-        + exact: OrderedType.eq_refl.
+        + exact: O.eq_refl.
         + exact: eqlistA_nil.
       - move=> y Hin. apply: False_ind. move/empty_iff: Hin. by apply.
       - move=> y. split.
@@ -4168,7 +4236,7 @@ Module FSetTypeLemmas.
     Lemma mem_remove_neq x y (s : t) :
       mem x (remove y s) -> ~ oeq x y.
     Proof.
-      move=> Hmem Heq. move: (OrderedType.eq_sym Heq) => {} Heq.
+      move=> Hmem Heq. move: (O.eq_sym Heq) => {} Heq.
       apply: (@remove_1 _ _ s y x Heq). apply/memP. assumption.
     Qed.
 
@@ -4188,7 +4256,7 @@ Module FSetTypeLemmas.
       ~ oeq x y -> mem x s -> mem x (remove y s).
     Proof.
       move=> Hne Hmem. apply/memP; apply: remove_2.
-      - move=> Heq; apply: Hne; apply: OrderedType.eq_sym; assumption.
+      - move=> Heq; apply: Hne; apply: O.eq_sym; assumption.
       - apply/memP; assumption.
     Qed.
 
@@ -4217,7 +4285,7 @@ Module FSetTypeLemmas.
           move=> [H _].
           move=> H1; case: (H H1) => {H H1}.
           * move=> Heq.
-            move: (OrderedType.eq_sym Heq) => {} Heq.
+            move: (O.eq_sym Heq) => {} Heq.
             exact: (in_remove_neq Hin Heq).
           * move=> Hins2.
             exact: (diff_2 (remove_3 Hin) Hins2).
@@ -4333,10 +4401,11 @@ Module FSetTypeLemmas.
       ~~ is_empty s -> disjoint s s = false.
     Proof.
       move=> Hemp. apply/negP => H. move/negP: Hemp; apply.
-      move: H. by rewrite /disjoint inter_Subset_Equal.
+      move: H. by rewrite /disjoint inter_subset_equal.
     Qed.
 
-    Global Instance disjoint_compat : Proper (Equal ==> Equal ==> Logic.eq) disjoint.
+    #[global]
+     Instance disjoint_compat : Proper (Equal ==> Equal ==> Logic.eq) disjoint.
     Proof.
       move=> s1 s2 Heq1 s3 s4 Heq2. rewrite /disjoint. rewrite Heq1 Heq2. reflexivity.
     Qed.
@@ -4365,7 +4434,7 @@ Module FSetTypeLemmas.
       case H: (mem x s) => /=.
       - apply/negP => Hd. move: (is_empty_2 Hd) => Hemp. apply: (Hemp x).
         apply/memP. apply: (mem2_mem_inter H). apply: eq_mem_singleton.
-        exact: OrderedType.eq_refl.
+        exact: O.eq_refl.
       - move/negP: H => H. apply: is_empty_1 => v /memP Hv. apply: H.
         rewrite -(mem_singleton_eq (mem_inter_r Hv)). exact: (mem_inter_l Hv).
     Qed.
@@ -4378,8 +4447,8 @@ Module FSetTypeLemmas.
     Proof.
       case Hx: (mem x s1) => /=.
       - apply/negP => Hd. move: (is_empty_2 Hd) => Hemp. apply: (Hemp x).
-        apply/memP. apply: (mem2_mem_inter Hx). apply: mem_add_l.
-        exact: OrderedType.eq_refl.
+        apply/memP. apply: (mem2_mem_inter Hx). apply: mem_add_eq.
+        exact: O.eq_refl.
       - case Hd12: (disjoint s1 s2) => /=.
         + apply: is_empty_1 => v /memP Hv.
           move: (mem_inter_l Hv) (mem_inter_r Hv) => {Hv} Hv1 Hv2.
@@ -4390,7 +4459,7 @@ Module FSetTypeLemmas.
         + apply/negP => Hd. move/negP: Hd12; apply.
           apply: is_empty_1 => v /memP Hv. move: (is_empty_2 Hd) => {Hd} Hemp.
           apply: (Hemp v). apply/memP. apply: (mem2_mem_inter (mem_inter_l Hv)).
-          apply: mem_add_r. exact: (mem_inter_r Hv).
+          apply: mem_add_mem. exact: (mem_inter_r Hv).
     Qed.
 
     Lemma disjoint_add_l x s1 s2 :
@@ -4536,7 +4605,8 @@ Module FSetTypeLemmas.
       - by apply.
     Qed.
 
-    Global Instance proper_subset_compat : Proper (Equal ==> Equal ==> Logic.eq) proper_subset.
+    #[global]
+     Instance proper_subset_compat : Proper (Equal ==> Equal ==> Logic.eq) proper_subset.
     Proof.
       move=> s1 s2 Heq12 s3 s4 Heq34. rewrite /proper_subset.
       rewrite Heq12 Heq34. reflexivity.
@@ -4570,12 +4640,12 @@ Module FSetTypeLemmas.
 
     Lemma proper_subset_inter s1 s2 : proper_subset s1 s2 -> equal (inter s1 s2) s1.
     Proof.
-      move=> /andP [/subsetP Hsub _]. apply/equalP. exact: (inter_Subset_Equal Hsub).
+      move=> /andP [/subsetP Hsub _]. apply/equalP. exact: (inter_subset_equal Hsub).
     Qed.
 
     Lemma proper_subset_union s1 s2 : proper_subset s1 s2 -> equal (union s1 s2) s2.
     Proof.
-      move=> /andP [/subsetP Hsub _]. apply/equalP. exact: (union_Subset_Equal Hsub).
+      move=> /andP [/subsetP Hsub _]. apply/equalP. exact: (union_subset_equal Hsub).
     Qed.
 
     Lemma proper_subset_subset_union s1 s2 s3 s4 :
@@ -4651,7 +4721,7 @@ Module FSetTypeLemmas.
         - apply: (for_all_1 compat). move=> y /memP Hiny.
           move: (mem_singleton_eq Hiny) => Heqy. rewrite (compat Heqy). assumption.
         - apply/negP=> Hall. apply/negPf: H. move: (for_all_2 compat Hall) => {} Hall.
-          move: (eq_mem_singleton (OrderedType.eq_refl _ x)) => /memP Hin.
+          move: (eq_mem_singleton (O.eq_refl x)) => /memP Hin.
           exact: (Hall x Hin).
       Qed.
 
@@ -4665,7 +4735,7 @@ Module FSetTypeLemmas.
           + exact: (Hall y Hiny).
         - apply/negP=> Hall. apply/negPf: H.
           move: (for_all_2 compat Hall) => {} Hall. apply/andP; split.
-          + move: (Hadd x) => [H1 H2]. exact: (Hall x (H2 (or_introl (OrderedType.eq_refl _ x)))).
+          + move: (Hadd x) => [H1 H2]. exact: (Hall x (H2 (or_introl (O.eq_refl x)))).
           + apply: (for_all_1 compat) => y Hiny. move: (Hadd y) => [H1 H2].
             exact: (Hall y (H2 (or_intror Hiny))).
       Qed.
@@ -4758,21 +4828,36 @@ Module FSetTypeLemmas.
 
   Notation "s [o] t" := (disjoint s t) (at level 70, no associativity) : fset_scope.
   Notation "s [<?] t" := (proper_subset s t) (at level 70, no associativity) : fset_scope.
-  Global Hint Resolve mem_singleton_eq eq_mem_singleton : set.
-  Global Hint Resolve not_mem_singleton_neq neq_not_mem_singleton : set.
-  Global Hint Resolve mem_add_or mem_add_l mem_add_r : set.
-  Global Hint Resolve neq_not_mem_add : set.
-  Global Hint Resolve mem_union_l mem_union_r : set.
-  Global Hint Resolve not_mem_union : set.
-  Global Hint Immediate subset_l_union subset_r_union : set.
-  Global Hint Resolve mem_subset_singleton : set.
-  Global Hint Resolve subset_unions subset_union_l subset_union_r subset_union_2l : set.
-  Global Hint Resolve subset_add_l subset_add_r : set.
-  Global Hint Resolve eq_not_mem_remove neq_mem_remove : set.
-  Global Hint Resolve subset_union_diff_l subset_union_diff_r : set.
-  Global Hint Resolve mem2_mem_inter : set.
-  Global Hint Immediate disjoint_diff_l disjoint_diff_r disjoint_empty_l disjoint_empty_r : set.
-  Global Hint Immediate for_all_inter_l for_all_inter_r : set.
+  #[global]
+   Hint Resolve mem_singleton_eq eq_mem_singleton : set.
+  #[global]
+   Hint Resolve not_mem_singleton_neq neq_not_mem_singleton : set.
+  #[global]
+   Hint Resolve mem_add_or mem_add_eq mem_add_mem : set.
+  #[global]
+   Hint Resolve neq_not_mem_add : set.
+  #[global]
+   Hint Resolve mem_union_l mem_union_r : set.
+  #[global]
+   Hint Resolve not_mem_union : set.
+  #[global]
+   Hint Immediate subset_l_union subset_r_union : set.
+  #[global]
+   Hint Resolve mem_subset_singleton : set.
+  #[global]
+   Hint Resolve subset_unions subset_union_l subset_union_r subset_union_2l : set.
+  #[global]
+   Hint Resolve subset_add_l subset_add_r : set.
+  #[global]
+   Hint Resolve eq_not_mem_remove neq_mem_remove : set.
+  #[global]
+   Hint Resolve subset_union_diff_l subset_union_diff_r : set.
+  #[global]
+   Hint Resolve mem2_mem_inter : set.
+  #[global]
+   Hint Immediate disjoint_diff_l disjoint_diff_r disjoint_empty_l disjoint_empty_r : set.
+  #[global]
+   Hint Immediate for_all_inter_l for_all_inter_r : set.
 
   (* Tactics *)
 
@@ -4814,7 +4899,7 @@ Module FSetTypeLemmas.
     | H : oeq ?x ?y |- oeq ?x ?y => exact: H
     | |- ?x = ?x => reflexivity
     | |- is_true (?x == ?x) => exact: eqxx
-    | |- oeq ?x ?x => exact: OrderedType.eq_refl
+    | |- oeq ?x ?x => exact: O.eq_refl
     | H1 : is_true (mem ?x ?s1), H2 : is_true (subset ?s1 ?s2) |-
         is_true (mem ?x ?s2) =>
         exact: (mem_subset H1 H2)
@@ -4829,7 +4914,7 @@ Module FSetTypeLemmas.
     | |- is_true (mem ?x (singleton ?y)) =>
         apply: eq_mem_singleton; dp_mem
     | |- is_true (mem ?x (add ?y ?s)) =>
-        first [ apply: mem_add_l; by dp_mem | apply: mem_add_r; by dp_mem ]
+        first [ apply: mem_add_eq; by dp_mem | apply: mem_add_mem; by dp_mem ]
     | |- is_true (mem ?x (union ?s1 ?s2)) =>
         first [ apply: mem_union_l; by dp_mem | apply: mem_union_r; by dp_mem ]
     (* *)
@@ -4910,7 +4995,7 @@ Module FSetTypeLemmas.
     end.
 
   Ltac dp_Equal :=
-    apply: Subset_antisym; apply: subset_2; dp_subset.
+    apply: subset_antisym; apply: subset_2; dp_subset.
 
   Ltac simpl_union :=
     repeat
@@ -4999,7 +5084,7 @@ Module FSetTypeLemmas.
       - by inversion Hin.
       - case/InA_cons: Hin => Hin.
         + exists a; split; first assumption. apply: InA_cons_hd.
-          exact: OrderedType.eq_refl.
+          exact: O.eq_refl.
         + move: (IH _ Hin) => [y [Heq HinA]].
           exists y; split; first assumption. exact: InA_cons_tl.
     Qed.
@@ -5055,12 +5140,12 @@ Module FSetTypeLemmas.
       move=> x; split; move=> /memP Hmem; apply/memP.
       - move: (mem_fsetmap_exists Hmem) => [y [Hfy Hmemy]].
         case: (mem_add_or Hmemy) => {Hmemy} Hy.
-        + rewrite Hfy. apply: mem_add_l. exact: (f_compat _ Hy).
-        + apply: mem_add_r. rewrite Hfy mem_fsetmap. assumption.
+        + rewrite Hfy. apply: mem_add_eq. exact: (f_compat _ Hy).
+        + apply: mem_add_mem. rewrite Hfy mem_fsetmap. assumption.
       - case: (mem_add_or Hmem) => {Hmem} Hx.
-        + rewrite Hx mem_fsetmap. apply: mem_add_l. reflexivity.
+        + rewrite Hx mem_fsetmap. apply: mem_add_eq. reflexivity.
         + move: (mem_fsetmap_exists Hx) => [y [Hfy Hmemy]]. rewrite Hfy mem_fsetmap.
-          apply: mem_add_r. assumption.
+          apply: mem_add_mem. assumption.
     Qed.
 
     Lemma fsetmap_union s1 s2 :
@@ -5117,29 +5202,17 @@ Module FSetTypeLemmas.
                                        (at level 0, E at level 99, i name,
                                          format "{ '[hv'  'set'  E '/'  |  i  <-  s  } ']'") : fset_scope.
 
-  Global Hint Resolve Empty_Empty_fsetmap : set.
-  Global Hint Immediate mem_fsetmap_union_l mem_fsetmap_union_r : set.
+  #[global]
+   Hint Resolve Empty_Empty_fsetmap : set.
+  #[global]
+   Hint Immediate mem_fsetmap_union_l mem_fsetmap_union_r : set.
 
-End FSetTypeLemmas.
-
-
-(** * Collection of definitions and lemmas *)
-
-Module FSets.
-  Module D := FSetType.Exports.
-  Module F := FSetTypeFacts.
-  Module P := FSetTypeWProperties.
-  Module OP := FSetTypeOrdProperties.
-  Module L := FSetTypeLemmas.
-  Include D.
-  Include F.
-  Include L.
-End FSets.
+End L.
 
 
 (** * FSetInterface.S is a fsetType *)
 
-Module FSet_as_FSetType
+Module FSetInterface_as_FS
        (E : Ordered)
        (S : FSetInterface.S with Module E := E).
 
@@ -5160,18 +5233,19 @@ Module FSet_as_FSetType
                S.elements_3 S.min_elt_1 S.min_elt_2 S.min_elt_3
                S.max_elt_1 S.max_elt_2 S.max_elt_3 S.choose_3.
 
-  Global Canonical fset_type := Eval hnf in @FSetType E.T S.t fset_mixin.
+  #[global]
+   Canonical fset_type := Eval hnf in @FSetType E.T S.t fset_mixin.
 
-End FSet_as_FSetType.
+End FSetInterface_as_FS.
 
 
 (* Sets that can generate new elements. *)
 
-Module FSet_as_FSetTypeWithDefaultSucc
+Module FSetInterface_as_FS_WDS
        (E : OrderedWithDefaultSucc)
        (S : FSetInterface.S with Module E := E).
 
-  Module SS := FSet_as_FSetType E S.
+  Module SS := FSetInterface_as_FS E S.
   Include SS.
 
   Definition new_elt (s : S.t) : E.t :=
@@ -5188,4 +5262,4 @@ Module FSet_as_FSetTypeWithDefaultSucc
     - move: (max_elt_3 H) => {} H. apply: (H E.default). assumption.
   Qed.
 
-End FSet_as_FSetTypeWithDefaultSucc.
+End FSetInterface_as_FS_WDS.
