@@ -3584,7 +3584,7 @@ Module L.
   Include D.
   Include OP.
 
-  Import P Orders.L.
+  Import P.
 
   Local Open Scope fset_scope.
 
@@ -5047,7 +5047,7 @@ Module L.
 
     Definition compatA : Prop := Proper (oeq ==> oeq) f.
 
-    Definition injectiveA : Prop := oinjective f.
+    Definition injectiveA : Prop := L.oinjective f.
 
     Record wf_fsetmap : Prop :=
       mkWfFSetMap { f_compat : compatA
@@ -5214,7 +5214,10 @@ End L.
 
 Module FSetInterface_as_FS
        (E : Ordered)
-       (S : FSetInterface.S with Module E := E).
+       (S : FSetInterface.S
+        with Definition E.t := E.t
+        with Definition E.eq := E.eq
+        with Definition E.lt := E.lt).
 
   Definition fset_mixin :=
     @FSetMixin E.T S.t S.In S.empty S.is_empty S.mem S.add S.singleton
@@ -5234,16 +5237,48 @@ Module FSetInterface_as_FS
                S.max_elt_1 S.max_elt_2 S.max_elt_3 S.choose_3.
 
   #[global]
-   Canonical fset_type := Eval hnf in @FSetType E.T S.t fset_mixin.
+   Canonical t := Eval hnf in @FSetType E.T S.t fset_mixin.
 
 End FSetInterface_as_FS.
+
+Module FSetInterface_as_DFS
+       (E : DecidableOrdered)
+       (S : FSetInterface.S
+        with Definition E.t := E.t
+        with Definition E.eq := E.eq
+        with Definition E.lt := E.lt).
+
+  Definition fset_mixin :=
+    @FSetMixin E.T S.t S.In S.empty S.is_empty S.mem S.add S.singleton
+               S.remove S.union S.inter S.diff S.eq_dec S.equal S.subset
+               S.fold S.for_all S.exists_ S.filter S.partition S.cardinal
+               S.elements S.choose S.In_1 S.eq_refl S.eq_sym S.eq_trans
+               S.mem_1 S.mem_2 S.equal_1 S.equal_2 S.subset_1 S.subset_2
+               S.empty_1 S.is_empty_1 S.is_empty_2 S.add_1 S.add_2 S.add_3
+               S.remove_1 S.remove_2 S.remove_3 S.singleton_1 S.singleton_2
+               S.union_1 S.union_2 S.union_3 S.inter_1 S.inter_2 S.inter_3
+               S.diff_1 S.diff_2 S.diff_3 S.fold_1 S.cardinal_1
+               S.filter_1 S.filter_2 S.filter_3 S.for_all_1 S.for_all_2
+               S.exists_1 S.exists_2 S.partition_1 S.partition_2
+               S.elements_1 S.elements_2 S.elements_3w S.choose_1 S.choose_2
+               S.lt S.compare S.min_elt S.max_elt S.lt_trans S.lt_not_eq
+               S.elements_3 S.min_elt_1 S.min_elt_2 S.min_elt_3
+               S.max_elt_1 S.max_elt_2 S.max_elt_3 S.choose_3.
+
+  #[global]
+   Canonical t := Eval hnf in @FSetType E.T S.t fset_mixin.
+
+End FSetInterface_as_DFS.
 
 
 (* Sets that can generate new elements. *)
 
 Module FSetInterface_as_FS_WDS
        (E : OrderedWithDefaultSucc)
-       (S : FSetInterface.S with Module E := E).
+       (S : FSetInterface.S
+        with Definition E.t := E.t
+        with Definition E.eq := E.eq
+        with Definition E.lt := E.lt).
 
   Module SS := FSetInterface_as_FS E S.
   Include SS.
@@ -5263,3 +5298,29 @@ Module FSetInterface_as_FS_WDS
   Qed.
 
 End FSetInterface_as_FS_WDS.
+
+Module FSetInterface_as_DFS_WDS
+       (E : DecidableOrderedWithDefaultSucc)
+       (S : FSetInterface.S
+        with Definition E.t := E.t
+        with Definition E.eq := E.eq
+        with Definition E.lt := E.lt).
+
+  Module SS := FSetInterface_as_DFS E S.
+  Include SS.
+
+  Definition new_elt (s : S.t) : E.t :=
+    match max_elt s with
+    | Some x => E.succ x
+    | None => E.default
+    end.
+
+  Lemma new_elt_is_new : forall (s : S.t), ~~ mem (new_elt s) s.
+  Proof.
+    move=> s. apply/negP => Hmem. move/mem_2: Hmem.
+    rewrite /new_elt. case H: (max_elt s) => Hin.
+    - apply: (max_elt_2 H Hin). exact: E.lt_succ.
+    - move: (max_elt_3 H) => {} H. apply: (H E.default). assumption.
+  Qed.
+
+End FSetInterface_as_DFS_WDS.
