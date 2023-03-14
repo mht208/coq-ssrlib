@@ -1,7 +1,7 @@
 
-From Coq Require Import OrderedType.
-From mathcomp Require Import ssreflect ssrbool eqtype.
-From ssrlib Require Import Types.
+From Coq Require Import OrderedType ZArith.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype.
+From ssrlib Require Import Types Nats ZAriths.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -11,16 +11,16 @@ Import Prenex Implicits.
 
 (** Coq OrderedType with Boolean equality. *)
 
-Module Type SsrOrderMinimal.
+Module Type EqOrderMinimal.
   Parameter t : eqType.
   Definition eqn : t -> t -> bool := fun x y => x == y.
   Parameter ltn : t -> t -> bool.
   Axiom ltn_trans : forall x y z : t, ltn x y -> ltn y z -> ltn x z.
   Axiom ltn_not_eqn : forall x y : t, ltn x y -> x != y.
   Parameter compare : forall x y : t, Compare ltn eqn x y.
-End SsrOrderMinimal.
+End EqOrderMinimal.
 
-Module Type SsrOrder <: OrderedType.
+Module Type EqOrder <: OrderedType.
   Parameter T : eqType.
   Definition t : Type := T.
   Definition eq : t -> t -> Prop := fun x y => x == y.
@@ -41,9 +41,9 @@ Module Type SsrOrder <: OrderedType.
   Axiom nltn_eqVlt : forall (x y : t), (~~ ltn x y) = ((x == y) || ltn y x).
   Axiom ltn_neqAlt : forall (x y : t), ltn x y = (x != y) && ~~ (ltn y x).
   Axiom neq_ltn : forall (x y : t), (x != y) = (ltn x y) || (ltn y x).
-End SsrOrder.
+End EqOrder.
 
-Module MakeSsrOrder (M : SsrOrderMinimal) <: SsrOrder.
+Module MakeEqOrder (M : EqOrderMinimal) <: EqOrder.
 
   Definition T : eqType := M.t.
 
@@ -117,33 +117,33 @@ Module MakeSsrOrder (M : SsrOrderMinimal) <: SsrOrder.
     - by rewrite H eqtype.eq_sym (ltn_eqF H) orbT.
   Qed.
 
-End MakeSsrOrder.
+End MakeEqOrder.
 
 
 
 (* OrderedType with a default value and a successor function,
    useful for generating new values *)
 
-Module Type HasSucc (Import T : SsrOrder).
+Module Type HasSucc (Import T : EqOrder).
   Parameter succ : t -> t.
 End HasSucc.
 
-Module Type HasLtn (Import T : SsrOrder).
+Module Type HasLtn (Import T : EqOrder).
   Parameter ltn : t -> t -> bool.
 End HasLtn.
 
-Module Type HasLtnSucc (Import T : SsrOrder) (Import L : HasLtn T) (Import S : HasSucc T).
+Module Type HasLtnSucc (Import T : EqOrder) (Import L : HasLtn T) (Import S : HasSucc T).
   Parameter ltn_succ : forall (x : t), ltn x (succ x).
 End HasLtnSucc.
 
-Module Type SsrOrderWithDefaultSucc <: SsrOrder :=
-  SsrOrder <+ HasDefault <+ HasSucc <+ HasLtnSucc.
+Module Type EqOrderWithDefaultSucc <: EqOrder :=
+  EqOrder <+ HasDefault <+ HasSucc <+ HasLtnSucc.
 
 
 
 (** Product of ordered types. *)
 
-Module MakeProdOrderMinimal (O1 O2 : SsrOrder) <: SsrOrderMinimal with Definition t := prod_eqType O1.T O2.T.
+Module MakeProdOrderMinimal (O1 O2 : EqOrder) <: EqOrderMinimal with Definition t := prod_eqType O1.T O2.T.
 
   Definition t : eqType := prod_eqType O1.T O2.T.
 
@@ -184,17 +184,17 @@ Module MakeProdOrderMinimal (O1 O2 : SsrOrder) <: SsrOrderMinimal with Definitio
 
 End MakeProdOrderMinimal.
 
-Module MakeProdOrder (O1 O2 : SsrOrder) <: SsrOrder
+Module MakeProdOrder (O1 O2 : EqOrder) <: EqOrder
     with Definition T := prod_eqType O1.T O2.T.
   Module M := MakeProdOrderMinimal O1 O2.
-  Module P := MakeSsrOrder M.
+  Module P := MakeEqOrder M.
   Include P.
 End MakeProdOrder.
 
-Module MakeProdOrderWithDefaultSucc (O1 O2 : SsrOrderWithDefaultSucc) <: SsrOrderWithDefaultSucc
+Module MakeProdOrderWithDefaultSucc (O1 O2 : EqOrderWithDefaultSucc) <: EqOrderWithDefaultSucc
     with Definition T := prod_eqType O1.T O2.T.
   Module M := MakeProdOrderMinimal O1 O2.
-  Module P := MakeSsrOrder M.
+  Module P := MakeEqOrder M.
   Include P.
   Definition default : t := (O1.default, O2.default).
   Definition succ (x : t) : t := (O1.succ (fst x), O2.default).
@@ -210,7 +210,7 @@ End MakeProdOrderWithDefaultSucc.
 (** Union of ordered types. *)
 
 Module MakeUnionOrderMinimal
-       (V1 : SsrOrder) (V2 : SsrOrder) <: SsrOrderMinimal.
+       (V1 : EqOrder) (V2 : EqOrder) <: EqOrderMinimal.
 
   Inductive ut : Type :=
   | C1 : V1.t -> ut
@@ -296,9 +296,9 @@ Module MakeUnionOrderMinimal
 End MakeUnionOrderMinimal.
 
 Module MakeUnionOrder
-       (V1 : SsrOrder) (V2 : SsrOrder) <: SsrOrder.
+       (V1 : EqOrder) (V2 : EqOrder) <: EqOrder.
   Module M := MakeUnionOrderMinimal V1 V2.
-  Module O := MakeSsrOrder M.
+  Module O := MakeEqOrder M.
   Include O.
   Definition c1 (x : V1.t) : t := M.C1 x.
   Definition c2 (x : V2.t) : t := M.C2 x.
@@ -308,7 +308,7 @@ End MakeUnionOrder.
 
 (** A singleton ordered type. *)
 
-Module UnitOrderMinimal <: SsrOrderMinimal.
+Module UnitOrderMinimal <: EqOrderMinimal.
 
   Definition t : eqType := unit_eqType.
 
@@ -327,13 +327,13 @@ Module UnitOrderMinimal <: SsrOrderMinimal.
 
 End UnitOrderMinimal.
 
-Module UnitOrder <: SsrOrder.
-  Module O := MakeSsrOrder UnitOrderMinimal.
+Module UnitOrder <: EqOrder.
+  Module O := MakeEqOrder UnitOrderMinimal.
   Include O.
 End UnitOrder.
 
 
-(** Convert orderType to SsrOrder. *)
+(** Convert orderType to EqOrder. *)
 
 From mathcomp Require Import order.
 Import Order.Theory.
@@ -343,7 +343,7 @@ Module Type OrderType.
   Parameter t : orderType d.
 End OrderType.
 
-Module SsrOrderMinimalOfOrderType (O : OrderType) <: SsrOrderMinimal.
+Module EqOrderMinimalOfOrderType (O : OrderType) <: EqOrderMinimal.
   Local Open Scope order_scope.
   Definition t := Order.Total.eqType O.t.
   Definition eqn (x y : t) : bool := x == y.
@@ -364,10 +364,177 @@ Module SsrOrderMinimalOfOrderType (O : OrderType) <: SsrOrderMinimal.
       + exact: (LT Hlt).
       + apply: GT. rewrite /ltn lt_def. rewrite Heq /=. rewrite leNgt Hlt. reflexivity.
   Defined.
-End SsrOrderMinimalOfOrderType.
+End EqOrderMinimalOfOrderType.
 
-Module SsrOrderOfOrderType (O : OrderType) <: SsrOrder.
-  Module M := SsrOrderMinimalOfOrderType O.
-  Module P := MakeSsrOrder M.
+Module EqOrderOfOrderType (O : OrderType) <: EqOrder.
+  Module M := EqOrderMinimalOfOrderType O.
+  Module P := MakeEqOrder M.
   Include P.
-End SsrOrderOfOrderType.
+End EqOrderOfOrderType.
+
+
+(** An ordered type for nat with a Boolean equality in mathcomp. *)
+
+Module NatOrderMinimal <: EqOrderMinimal.
+
+  Definition t : eqType := nat_eqType.
+
+  Definition eqn : t -> t -> bool := fun x y : t => x == y.
+
+  Definition ltn : t -> t -> bool := fun x y => x < y.
+
+  Global Hint Unfold eqn ltn : core.
+
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
+  Proof. exact: ltn_trans. Qed.
+
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
+  Proof. move=> H. by rewrite (ltn_eqF H). Qed.
+
+  Lemma compare (x y : t) : Compare ltn eqn x y.
+  Proof.
+    case H: (Nat.compare x y).
+    - apply: EQ. move: (PeanoNat.Nat.compare_eq_iff x y) => [Hc _].
+      apply/eqP. exact: (Hc H).
+    - apply: LT. move: (PeanoNat.Nat.compare_lt_iff x y) => [Hc _].
+      apply/ssrnat.ltP. exact: (Hc H).
+    - apply: GT. move: (PeanoNat.Nat.compare_gt_iff x y) => [Hc _].
+      apply/ssrnat.ltP. exact: (Hc H).
+  Defined.
+
+End NatOrderMinimal.
+
+Module NatOrder <: EqOrder := MakeEqOrder NatOrderMinimal.
+
+
+(** An ordered type for positive with a Boolean equality in mathcomp. *)
+
+Module PositiveOrderMinimal <: EqOrderMinimal.
+
+  Local Open Scope positive_scope.
+
+  Definition t : eqType := pos_eqType.
+
+  Definition eqn : t -> t -> bool := fun x y : t => x == y.
+
+  Definition ltn : t -> t -> bool := fun x y => Pos.ltb x y.
+
+  Global Hint Unfold eqn ltn : core.
+
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
+  Proof.
+    move=> Hxy Hyz. move/pos_ltP: Hxy; move/pos_ltP: Hyz => Hyz Hxy.
+    apply/pos_ltP. exact: (Pos.lt_trans _ _ _ Hxy Hyz).
+  Qed.
+
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
+  Proof.
+    move=> Hlt. apply/negP => Heq. rewrite (eqP Heq) in Hlt.
+    apply: (Pos.lt_irrefl y). apply/pos_ltP. assumption.
+  Qed.
+
+  Lemma compare (x y : t) : Compare ltn eqn x y.
+  Proof.
+    case H: (Pos.compare x y).
+    - apply: EQ. move: (Pos.compare_eq_iff x y) => [Hc _].
+      apply/eqP. exact: (Hc H).
+    - apply: LT. move: (Pos.compare_lt_iff x y) => [Hc _].
+      apply/pos_ltP. exact: (Hc H).
+    - apply: GT. move: (Pos.compare_gt_iff x y) => [Hc _].
+      apply/pos_ltP. exact: (Hc H).
+  Defined.
+
+  Local Close Scope positive_scope.
+
+End PositiveOrderMinimal.
+
+Module PositiveOrder <: EqOrder := MakeEqOrder PositiveOrderMinimal.
+
+
+(** An ordered type for N with a Boolean equality in mathcomp. *)
+
+Module NOrderMinimal <: EqOrderMinimal.
+
+  Local Open Scope N_scope.
+
+  Definition t : eqType := N_eqType.
+
+  Definition eqn : t -> t -> bool := fun x y : t => x == y.
+
+  Definition ltn : t -> t -> bool := fun x y => N.ltb x y.
+
+  Global Hint Unfold eqn ltn : core.
+
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
+  Proof.
+    move=> Hxy Hyz. move/N_ltP: Hxy; move/N_ltP: Hyz => Hyz Hxy.
+    apply/N_ltP. exact: (N.lt_trans _ _ _ Hxy Hyz).
+  Qed.
+
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
+  Proof.
+    move=> Hlt. apply/negP => Heq. rewrite (eqP Heq) in Hlt.
+    apply: (N.lt_irrefl y). apply/N_ltP. assumption.
+  Qed.
+
+  Lemma compare (x y : t) : Compare ltn eqn x y.
+  Proof.
+    case H: (N.compare x y).
+    - apply: EQ. move: (N.compare_eq_iff x y) => [Hc _].
+      apply/eqP. exact: (Hc H).
+    - apply: LT. move: (N.compare_lt_iff x y) => [Hc _].
+      apply/N_ltP. exact: (Hc H).
+    - apply: GT. move: (N.compare_gt_iff x y) => [Hc _].
+      apply/N_ltP. exact: (Hc H).
+  Defined.
+
+  Local Close Scope N_scope.
+
+End NOrderMinimal.
+
+Module NOrder <: EqOrder := MakeEqOrder NOrderMinimal.
+
+
+(** An ordered type for Z with a Boolean equality in mathcomp. *)
+
+Module ZOrderMinimal <: EqOrderMinimal.
+
+  Local Open Scope Z_scope.
+
+  Definition t : eqType := Z_eqType.
+
+  Definition eqn : t -> t -> bool := fun x y : t => x == y.
+
+  Definition ltn : t -> t -> bool := fun x y => Z.ltb x y.
+
+  Global Hint Unfold eqn ltn : core.
+
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
+  Proof.
+    move=> Hxy Hyz. move/Z_ltP: Hxy; move/Z_ltP: Hyz => Hyz Hxy.
+    apply/Z_ltP. exact: (Z.lt_trans _ _ _ Hxy Hyz).
+  Qed.
+
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
+  Proof.
+    move=> Hlt. apply/negP => Heq. rewrite (eqP Heq) in Hlt.
+    apply: (Z.lt_irrefl y). apply/Z_ltP. assumption.
+  Qed.
+
+  Lemma compare (x y : t) : Compare ltn eqn x y.
+  Proof.
+    case H: (Z.compare x y).
+    - apply: EQ. move: (Z.compare_eq_iff x y) => [Hc _].
+      apply/eqP. exact: (Hc H).
+    - apply: LT. move: (Z.compare_lt_iff x y) => [Hc _].
+      apply/Z_ltP. exact: (Hc H).
+    - apply: GT. move: (Z.compare_gt_iff x y) => [Hc _].
+      apply/Z_ltP. exact: (Hc H).
+  Defined.
+
+  Local Close Scope Z_scope.
+
+End ZOrderMinimal.
+
+Module ZOrder <: EqOrder := MakeEqOrder ZOrderMinimal.
+

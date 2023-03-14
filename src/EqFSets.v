@@ -3,7 +3,7 @@
 
 From Coq Require Import FSets OrderedType.
 From mathcomp Require Import ssreflect ssrbool ssrnat eqtype seq.
-From ssrlib Require Import SsrOrder Lists Seqs Nats.
+From ssrlib Require Import EqOrder Lists Seqs Nats.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -13,8 +13,8 @@ Import Prenex Implicits.
 
 (* Finite sets of elements with decidable equality. *)
 
-Module Type SsrFSet <: FSetInterface.S.
-  Declare Module SE : SsrOrder.
+Module Type EqFSet <: FSetInterface.S.
+  Declare Module SE : EqOrder.
   Module E : OrderedType.OrderedType
       with Definition t := SE.t
       with Definition eq := SE.eq
@@ -28,7 +28,7 @@ Module Type SsrFSet <: FSetInterface.S.
       with Definition eq_dec := SE.eq_dec
     := SE.
   Include Sfun E.
-End SsrFSet.
+End EqFSet.
 
 
 
@@ -1389,9 +1389,9 @@ End FSetLemmas.
 
 
 
-(* Extra lemmas for SsrFSet *)
+(* Extra lemmas for EqFSet *)
 
-Module SsrFSetLemmas (S : SsrFSet).
+Module EqFSetLemmas (S : EqFSet).
 
   Include FSetLemmas S.
 
@@ -1471,41 +1471,41 @@ Module SsrFSetLemmas (S : SsrFSet).
     apply/(Heq x). apply/memP. apply/In_elements_mem. exact: Hin1.
   Qed.
 
-End SsrFSetLemmas.
+End EqFSetLemmas.
 
 
 
-(* Functors for making SsrFSet *)
+(* Functors for making EqFSet *)
 
-Module MakeListSet' (X : SsrOrder) <: SsrFSet with Module SE := X.
+Module MakeListSet' (X : EqOrder) <: EqFSet with Module SE := X.
   Module SE := X.
   Include FSetList.Make X.
 End MakeListSet'.
 
-Module MakeListSet (X : SsrOrder) <: SsrFSet with Module SE := X.
+Module MakeListSet (X : EqOrder) <: EqFSet with Module SE := X.
   Module LS := MakeListSet' X.
-  Module Lemmas := SsrFSetLemmas LS.
+  Module Lemmas := EqFSetLemmas LS.
   Include LS.
 End MakeListSet.
 
-Module MakeTreeSet' (X : SsrOrder) <: SsrFSet with Module SE := X.
+Module MakeTreeSet' (X : EqOrder) <: EqFSet with Module SE := X.
   Module SE := X.
   Include FSetAVL.Make X.
 End MakeTreeSet'.
 
-Module MakeTreeSet (X : SsrOrder) <: SsrFSet with Module SE := X.
+Module MakeTreeSet (X : EqOrder) <: EqFSet with Module SE := X.
   Module TS := MakeTreeSet' X.
-  Module Lemmas := SsrFSetLemmas TS.
+  Module Lemmas := EqFSetLemmas TS.
   Include TS.
 End MakeTreeSet.
 
-Module Make (X : SsrOrder) <: SsrFSet with Module SE := X := MakeListSet X.
+Module Make (X : EqOrder) <: EqFSet with Module SE := X := MakeListSet X.
 
 
 
 (* Sets that can generate new elements. *)
 
-Module MakeElementGenerator (X : SsrFSet) (D : Types.HasDefault X.SE) (S : HasSucc X.SE) (L : HasLtnSucc X.SE X.SE S).
+Module MakeElementGenerator (X : EqFSet) (D : Types.HasDefault X.SE) (S : HasSucc X.SE) (L : HasLtnSucc X.SE X.SE S).
 
   Definition new_elt (s : X.t) : X.elt :=
     match X.max_elt s with
@@ -1524,20 +1524,20 @@ Module MakeElementGenerator (X : SsrFSet) (D : Types.HasDefault X.SE) (S : HasSu
 
 End MakeElementGenerator.
 
-Module Type SsrFSetWithNew <: SsrFSet.
-  Include SsrFSet.
+Module Type EqFSetWithNew <: EqFSet.
+  Include EqFSet.
   Parameter new_elt : t -> elt.
   Parameter new_elt_is_new : forall (s : t), ~~ mem (new_elt s) s.
-End SsrFSetWithNew.
+End EqFSetWithNew.
 
-Module MakeListSetWithNew (X : SsrOrderWithDefaultSucc) <: SsrFSetWithNew.
+Module MakeListSetWithNew (X : EqOrderWithDefaultSucc) <: EqFSetWithNew.
   Module S := MakeListSet X.
   Include S.
   Module G := MakeElementGenerator S X X X.
   Include G.
 End MakeListSetWithNew.
 
-Module MakeTreeSetWithNew (X : SsrOrderWithDefaultSucc) <: SsrFSetWithNew.
+Module MakeTreeSetWithNew (X : EqOrderWithDefaultSucc) <: EqFSetWithNew.
   Module S := MakeTreeSet X.
   Include S.
   Module G := MakeElementGenerator S X X X.
@@ -1548,7 +1548,7 @@ End MakeTreeSetWithNew.
 
 (* Map a set of type A to another set of type B *)
 
-Module Map2 (S1 S2 : SsrFSet).
+Module Map2 (S1 S2 : EqFSet).
 
   Module Lemmas1 := FSetLemmas(S1).
   Module Lemmas2 := FSetLemmas(S2).

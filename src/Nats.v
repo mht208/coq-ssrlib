@@ -1,7 +1,7 @@
 
-From Coq Require Import Arith OrderedType BinNat.
+From Coq Require Import Arith BinNat.
 From mathcomp Require Import ssreflect ssrbool ssrnat div eqtype.
-From ssrlib Require Import Types SsrOrder.
+From ssrlib Require Import Types.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -498,42 +498,6 @@ Module OptionNatEqtype <: EQTYPE.
   Module OptionNat := MakeOptionReflectable(NatEqtype).
   Definition t := OptionNat.option_eqType.
 End OptionNatEqtype.
-
-
-
-(** An ordered type for nat with a Boolean equality in mathcomp. *)
-
-Module NatOrderMinimal <: SsrOrderMinimal.
-
-  Definition t : eqType := nat_eqType.
-
-  Definition eqn : t -> t -> bool := fun x y : t => x == y.
-
-  Definition ltn : t -> t -> bool := fun x y => x < y.
-
-  Global Hint Unfold eqn ltn : core.
-
-  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
-  Proof. exact: ltn_trans. Qed.
-
-  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
-  Proof. move=> H. by rewrite (ltn_eqF H). Qed.
-
-  Lemma compare (x y : t) : Compare ltn eqn x y.
-  Proof.
-    case H: (Nat.compare x y).
-    - apply: EQ. move: (PeanoNat.Nat.compare_eq_iff x y) => [Hc _].
-      apply/eqP. exact: (Hc H).
-    - apply: LT. move: (PeanoNat.Nat.compare_lt_iff x y) => [Hc _].
-      apply/ltP. exact: (Hc H).
-    - apply: GT. move: (PeanoNat.Nat.compare_gt_iff x y) => [Hc _].
-      apply/ltP. exact: (Hc H).
-  Defined.
-
-End NatOrderMinimal.
-
-Module NatOrder <: SsrOrder := MakeSsrOrder NatOrderMinimal.
-
 
 
 Ltac deduce_compare_cases H :=

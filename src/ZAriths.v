@@ -1,7 +1,7 @@
 
-From Coq Require Import Arith ZArith OrderedType Lia.
+From Coq Require Import Arith ZArith Lia.
 From mathcomp Require Import ssreflect eqtype ssrbool ssrnat ssralg ssrfun choice.
-From ssrlib Require Import Types SsrOrder Nats Compatibility.
+From ssrlib Require Import Types Nats Compatibility.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -53,9 +53,12 @@ Section PositiveEqType.
   Definition pos_eqMixin := EqMixin pos_eqP.
   Definition pos_countMixin := CountMixin pos_count.
   Definition pos_choiceMixin := CountChoiceMixin pos_countMixin.
-  Canonical pos_eqType := Eval hnf in EqType positive pos_eqMixin.
-  Canonical pos_choiceType := Eval hnf in ChoiceType positive pos_choiceMixin.
-  Canonical pos_countType := Eval hnf in CountType positive pos_countMixin.
+  #[global]
+   Canonical pos_eqType := Eval hnf in EqType positive pos_eqMixin.
+  #[global]
+   Canonical pos_choiceType := Eval hnf in ChoiceType positive pos_choiceMixin.
+  #[global]
+   Canonical pos_countType := Eval hnf in CountType positive pos_countMixin.
 
 End PositiveEqType.
 
@@ -236,9 +239,12 @@ Section NEqType.
   Definition N_eqMixin := EqMixin N_eqP.
   Definition N_countMixin := CountMixin N_count.
   Definition N_choiceMixin := CountChoiceMixin N_countMixin.
-  Canonical N_eqType := Eval hnf in EqType N N_eqMixin.
-  Canonical N_choiceType := Eval hnf in ChoiceType N N_choiceMixin.
-  Canonical N_countType := Eval hnf in CountType N N_countMixin.
+  #[global]
+   Canonical N_eqType := Eval hnf in EqType N N_eqMixin.
+  #[global]
+   Canonical N_choiceType := Eval hnf in ChoiceType N N_choiceMixin.
+  #[global]
+   Canonical N_countType := Eval hnf in CountType N N_countMixin.
 
 End NEqType.
 
@@ -539,9 +545,12 @@ Section ZEqType.
   Definition Z_eqMixin := EqMixin Z_eqP.
   Definition Z_countMixin := CanCountMixin natsum_of_ZK.
   Definition Z_choiceMixin := CountChoiceMixin Z_countMixin.
-  Canonical Z_eqType := Eval hnf in EqType Z Z_eqMixin.
-  Canonical Z_choiceType := Eval hnf in ChoiceType Z Z_choiceMixin.
-  Canonical Z_countType := Eval hnf in CountType Z Z_countMixin.
+  #[global]
+   Canonical Z_eqType := Eval hnf in EqType Z Z_eqMixin.
+  #[global]
+   Canonical Z_choiceType := Eval hnf in ChoiceType Z Z_choiceMixin.
+  #[global]
+   Canonical Z_countType := Eval hnf in CountType Z Z_countMixin.
 
 End ZEqType.
 
@@ -1071,142 +1080,6 @@ Section ZLemmas.
   Local Close Scope Z_scope.
 
 End ZLemmas.
-
-
-
-(** An ordered type for positive with a Boolean equality in mathcomp. *)
-
-Module PositiveOrderMinimal <: SsrOrderMinimal.
-
-  Local Open Scope positive_scope.
-
-  Definition t : eqType := pos_eqType.
-
-  Definition eqn : t -> t -> bool := fun x y : t => x == y.
-
-  Definition ltn : t -> t -> bool := fun x y => Pos.ltb x y.
-
-  Global Hint Unfold eqn ltn : core.
-
-  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
-  Proof.
-    move=> Hxy Hyz. move/pos_ltP: Hxy; move/pos_ltP: Hyz => Hyz Hxy.
-    apply/pos_ltP. exact: (Pos.lt_trans _ _ _ Hxy Hyz).
-  Qed.
-
-  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
-  Proof.
-    move=> Hlt. apply/negP => Heq. rewrite (eqP Heq) in Hlt.
-    apply: (Pos.lt_irrefl y). apply/pos_ltP. assumption.
-  Qed.
-
-  Lemma compare (x y : t) : Compare ltn eqn x y.
-  Proof.
-    case H: (Pos.compare x y).
-    - apply: EQ. move: (Pos.compare_eq_iff x y) => [Hc _].
-      apply/eqP. exact: (Hc H).
-    - apply: LT. move: (Pos.compare_lt_iff x y) => [Hc _].
-      apply/pos_ltP. exact: (Hc H).
-    - apply: GT. move: (Pos.compare_gt_iff x y) => [Hc _].
-      apply/pos_ltP. exact: (Hc H).
-  Defined.
-
-  Local Close Scope positive_scope.
-
-End PositiveOrderMinimal.
-
-Module PositiveOrder <: SsrOrder := MakeSsrOrder PositiveOrderMinimal.
-
-
-
-(** An ordered type for N with a Boolean equality in mathcomp. *)
-
-Module NOrderMinimal <: SsrOrderMinimal.
-
-  Local Open Scope N_scope.
-
-  Definition t : eqType := N_eqType.
-
-  Definition eqn : t -> t -> bool := fun x y : t => x == y.
-
-  Definition ltn : t -> t -> bool := fun x y => N.ltb x y.
-
-  Global Hint Unfold eqn ltn : core.
-
-  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
-  Proof.
-    move=> Hxy Hyz. move/N_ltP: Hxy; move/N_ltP: Hyz => Hyz Hxy.
-    apply/N_ltP. exact: (N.lt_trans _ _ _ Hxy Hyz).
-  Qed.
-
-  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
-  Proof.
-    move=> Hlt. apply/negP => Heq. rewrite (eqP Heq) in Hlt.
-    apply: (N.lt_irrefl y). apply/N_ltP. assumption.
-  Qed.
-
-  Lemma compare (x y : t) : Compare ltn eqn x y.
-  Proof.
-    case H: (N.compare x y).
-    - apply: EQ. move: (N.compare_eq_iff x y) => [Hc _].
-      apply/eqP. exact: (Hc H).
-    - apply: LT. move: (N.compare_lt_iff x y) => [Hc _].
-      apply/N_ltP. exact: (Hc H).
-    - apply: GT. move: (N.compare_gt_iff x y) => [Hc _].
-      apply/N_ltP. exact: (Hc H).
-  Defined.
-
-  Local Close Scope N_scope.
-
-End NOrderMinimal.
-
-Module NOrder <: SsrOrder := MakeSsrOrder NOrderMinimal.
-
-
-
-(** An ordered type for Z with a Boolean equality in mathcomp. *)
-
-Module ZOrderMinimal <: SsrOrderMinimal.
-
-  Local Open Scope Z_scope.
-
-  Definition t : eqType := Z_eqType.
-
-  Definition eqn : t -> t -> bool := fun x y : t => x == y.
-
-  Definition ltn : t -> t -> bool := fun x y => Z.ltb x y.
-
-  Global Hint Unfold eqn ltn : core.
-
-  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
-  Proof.
-    move=> Hxy Hyz. move/Z_ltP: Hxy; move/Z_ltP: Hyz => Hyz Hxy.
-    apply/Z_ltP. exact: (Z.lt_trans _ _ _ Hxy Hyz).
-  Qed.
-
-  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
-  Proof.
-    move=> Hlt. apply/negP => Heq. rewrite (eqP Heq) in Hlt.
-    apply: (Z.lt_irrefl y). apply/Z_ltP. assumption.
-  Qed.
-
-  Lemma compare (x y : t) : Compare ltn eqn x y.
-  Proof.
-    case H: (Z.compare x y).
-    - apply: EQ. move: (Z.compare_eq_iff x y) => [Hc _].
-      apply/eqP. exact: (Hc H).
-    - apply: LT. move: (Z.compare_lt_iff x y) => [Hc _].
-      apply/Z_ltP. exact: (Hc H).
-    - apply: GT. move: (Z.compare_gt_iff x y) => [Hc _].
-      apply/Z_ltP. exact: (Hc H).
-  Defined.
-
-  Local Close Scope Z_scope.
-
-End ZOrderMinimal.
-
-Module ZOrder <: SsrOrder := MakeSsrOrder ZOrderMinimal.
-
 
 
 (** Equality Modulo *)

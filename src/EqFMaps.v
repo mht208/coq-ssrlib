@@ -5,7 +5,7 @@
 
 From Coq Require Import FunInd FMaps FMapAVL OrderedType.
 From mathcomp Require Import ssreflect ssrbool eqtype seq.
-From ssrlib Require Import Types SsrOrder Lists FSets Tactics.
+From ssrlib Require Import Types EqOrder Lists EqFSets Tactics.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -15,8 +15,8 @@ Import Prenex Implicits.
 
 (* Finite maps of elements with decidable equality *)
 
-Module Type SsrFMap <: FMapInterface.S.
-  Declare Module SE : SsrOrder.
+Module Type EqFMap <: FMapInterface.S.
+  Declare Module SE : EqOrder.
   Module E : OrderedType.OrderedType
       with Definition t := SE.t
       with Definition eq := SE.eq
@@ -30,7 +30,7 @@ Module Type SsrFMap <: FMapInterface.S.
       with Definition eq_dec := SE.eq_dec
     := SE.
   Include Sfun E.
-End SsrFMap.
+End EqFMap.
 
 
 
@@ -938,7 +938,7 @@ End FMapLemmas.
 
 (* Keys as a set *)
 
-Module MapKeySet (X : SsrOrder) (M : SsrFMap with Module SE := X) (S : SsrFSet with Module SE := X).
+Module MapKeySet (X : EqOrder) (M : EqFMap with Module SE := X) (S : EqFSet with Module SE := X).
 
   Module MLemmas := FMapLemmas M.
   Module SLemmas := FSetLemmas S.
@@ -1088,35 +1088,35 @@ End MapKeySet.
 
 (* Functors for making finite maps *)
 
-Module MakeListMap' (X : SsrOrder) <: SsrFMap with Module SE := X.
+Module MakeListMap' (X : EqOrder) <: EqFMap with Module SE := X.
   Module SE := X.
   Include FMapList.Make X.
 End MakeListMap'.
 
-Module MakeListMap (X : SsrOrder) <: SsrFMap with Module SE := X.
+Module MakeListMap (X : EqOrder) <: EqFMap with Module SE := X.
   Module M := MakeListMap' X.
   Module Lemmas := FMapLemmas M.
   Include M.
 End MakeListMap.
 
-Module MakeTreeMap' (X : SsrOrder) <: SsrFMap with Module SE := X.
+Module MakeTreeMap' (X : EqOrder) <: EqFMap with Module SE := X.
   Module SE := X.
   Include FMapAVL.Make X.
 End MakeTreeMap'.
 
-Module MakeTreeMap (X : SsrOrder) <: SsrFMap with Module SE := X.
+Module MakeTreeMap (X : EqOrder) <: EqFMap with Module SE := X.
   Module M := MakeTreeMap' X.
   Module Lemmas := FMapLemmas M.
   Include M.
 End MakeTreeMap.
 
-Module Make (X : SsrOrder) <: SsrFMap with Module SE := X := MakeListMap X.
+Module Make (X : EqOrder) <: EqFMap with Module SE := X := MakeListMap X.
 
 
 
 (* Maps that can generate new keys. *)
 
-Module MakeElementGenerator (M : SsrFMap) (D : HasDefault M.SE) (S : HasSucc M.SE) (L : HasLtnSucc M.SE M.SE S).
+Module MakeElementGenerator (M : EqFMap) (D : HasDefault M.SE) (S : HasSucc M.SE) (L : HasLtnSucc M.SE M.SE S).
 
   Module Lemmas := FMapLemmas M.
 
@@ -1144,22 +1144,22 @@ Module MakeElementGenerator (M : SsrFMap) (D : HasDefault M.SE) (S : HasSucc M.S
 
 End MakeElementGenerator.
 
-Module Type SsrFMapWithNew <: SsrFMap.
-  Include SsrFMap.
+Module Type EqFMapWithNew <: EqFMap.
+  Include EqFMap.
   Section NewKey.
     Variable elt : Type.
     Parameter new_key : t elt -> key.
     Parameter new_key_is_new : forall (m : t elt), ~~ mem (new_key m) m.
   End NewKey.
-End SsrFMapWithNew.
+End EqFMapWithNew.
 
-Module MakeListMapWithNew (X : SsrOrderWithDefaultSucc) <: SsrFMapWithNew.
+Module MakeListMapWithNew (X : EqOrderWithDefaultSucc) <: EqFMapWithNew.
   Module M := MakeListMap' X.
   Include M.
   Include MakeElementGenerator M X X X.
 End MakeListMapWithNew.
 
-Module MakeTreeMapWithNew (X : SsrOrderWithDefaultSucc) <: SsrFMapWithNew.
+Module MakeTreeMapWithNew (X : EqOrderWithDefaultSucc) <: EqFMapWithNew.
   Module M := MakeTreeMap' X.
   Include M.
   Include MakeElementGenerator M X X X.

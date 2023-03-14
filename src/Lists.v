@@ -108,6 +108,8 @@ Section ListLemmas.
 
     Variable eqA eqB : A -> A -> Prop.
 
+    Context `{HeqA: Equivalence A eqA}.
+
     Definition is_eq (eqA : A -> A -> Prop) : Prop :=
       forall x y, eqA x y -> x = y.
 
@@ -124,22 +126,28 @@ Section ListLemmas.
         + right. exact: (IH _ Hin).
     Qed.
 
-    Lemma InA_eq_In x (s : seq A) : InA Logic.eq x s -> In x s.
+    Lemma InA_eq_In x (s : seq A) : InA Logic.eq x s <-> In x s.
     Proof.
-      elim: s x => [| a s IH] x Hin //=.
+      elim: s x => [| a s IH] x; split; move=> Hin //=.
       - by inversion_clear Hin.
       - case/InA_cons : Hin => Hin.
         + rewrite Hin; by left.
-        + right; exact: (IH _ Hin).
+        + right. apply/IH. assumption.
+      - case: (in_inv Hin) => {}Hin.
+        + subst. left. reflexivity.
+        + right. apply/IH. assumption.
     Qed.
 
-    Lemma InA_In x (s : seq A) : InA eqA x s -> In x s.
+    Lemma InA_In x (s : seq A) : InA eqA x s <-> In x s.
     Proof.
-      elim: s x => [| a s IH] x Hin //=.
+      elim: s x => [| a s IH] x; split; move=> Hin //=.
       - by inversion_clear Hin.
       - case/InA_cons : Hin => Hin.
         + rewrite (eqA_is_eq Hin); by left.
-        + right; exact: (IH _ Hin).
+        + right. apply/IH. assumption.
+      - case: (in_inv Hin) => {}Hin.
+        + subst. left. reflexivity.
+        + right. apply/IH. assumption.
     Qed.
 
   End InA.
@@ -264,5 +272,104 @@ Section ListLemmas.
     - move: (Forall_rev H). rewrite List_rev_rev revK. by apply.
     - move: (Forall_rev H). rewrite List_rev_rev. by apply.
   Qed.
+
+
+  Section InA.
+
+    Variable eqA : A -> A -> Prop.
+    Variable eqB : B -> B -> Prop.
+
+    Context `{HeqA: Equivalence A eqA}.
+    Context `{HeqB: Equivalence B eqB}.
+
+    Lemma inA_map f s x :
+      InA eqB x (map f s) -> exists y, InA eqA y s /\ eqB x (f y).
+    Proof.
+      elim: s => [| a s IH] //=.
+      - move=> H. by inversion_clear H.
+      - inversion_clear 1.
+        + exists a. split.
+          * apply: InA_cons_hd. reflexivity.
+          * assumption.
+        + move: (IH H0) => [y [Hin Heq]]. exists y. split.
+          * apply: InA_cons_tl. assumption.
+          * assumption.
+    Qed.
+
+    Lemma map_inA f s x :
+      Proper (eqA ==> eqB) f ->
+      InA eqA x s -> InA eqB (f x) (map f s).
+    Proof.
+      move=> Hs. elim: s => [| a s IH] //=.
+      - by inversion 1.
+      - inversion_clear 1.
+        + apply: InA_cons_hd. exact: (Hs _ _ H0).
+        + apply: InA_cons_tl. exact: (IH H0).
+    Qed.
+
+  End InA.
+
+  Section Equivlist.
+
+    Variable eqA : A -> A -> Prop.
+    Variable eqB : B -> B -> Prop.
+
+    Context `{HeqA: Equivalence A eqA}.
+    Context `{HeqB: Equivalence B eqB}.
+
+    Lemma map_equivlistA (s1 s2 : seq A) (f : A -> B) :
+      Proper (eqA ==> eqB) f ->
+      equivlistA eqA s1 s2 -> equivlistA eqB (map f s1) (map f s2).
+    Proof.
+      move=> Hf Heq x; split; move=> H.
+      - move: (@inA_map eqA eqB HeqA f s1 x H) => [y [Hin Heqx]].
+        symmetry in Heqx. apply: (InA_eqA HeqB Heqx). apply: map_inA.
+        apply/(Heq y). assumption.
+      - move: (@inA_map eqA eqB HeqA f s2 x H) => [y [Hin Heqx]].
+        symmetry in Heqx. apply: (InA_eqA HeqB Heqx). apply: map_inA.
+        apply/(Heq y). assumption.
+    Qed.
+
+    Lemma map2_equivlistA (s1 s2 : seq A) (f : A -> B) (g : A -> B) :
+      Proper (eqA ==> eqB) f ->
+      Proper (eqA ==> eqB) g ->
+      (forall x : A, eqB (f x) (g x)) ->
+      equivlistA eqA s1 s2 -> equivlistA eqB (map f s1) (map g s2).
+    Proof.
+      move=> Hf Hg Hfg Heq x; split; move=> H.
+      - move: (@inA_map eqA eqB HeqA f s1 x H) => [y [Hin Heqx]].
+        symmetry in Heqx. rewrite (Hfg y) in Heqx.
+        apply: (InA_eqA HeqB Heqx). apply: map_inA.
+        apply/(Heq y). assumption.
+      - move: (@inA_map eqA eqB HeqA g s2 x H) => [y [Hin Heqx]].
+        symmetry in Heqx. rewrite -(Hfg y) in Heqx.
+        apply: (InA_eqA HeqB Heqx). apply: map_inA.
+        apply/(Heq y). assumption.
+    Qed.
+
+    Lemma equivlistA_inclA_iff (s1 s2 : seq A) :
+      equivlistA eqA s1 s2 <-> inclA eqA s1 s2 /\ inclA eqA s2 s1.
+    Proof.
+      elim: s1 s2 => [| x1 s1 IH1] s2 //=.
+      - split.
+        + move=> Heq; split.
+          * move=> x. by inversion 1.
+          * move=> x Hin. apply/Heq. assumption.
+        + move=> [H1 H2] x. by intuition.
+      - split.
+        + move=> Heq. split.
+          * move=> x Hin1. apply/Heq. assumption.
+          * move=> x Hin2. apply/Heq. assumption.
+        + move=> [H1 H2]. move=> x; split.
+          * move=> Hin1. apply: H1. assumption.
+          * move=> Hin2. apply: H2. assumption.
+    Qed.
+
+    Lemma inclA_equivlistA (s1 s2 : seq A) :
+      inclA eqA s1 s2 -> inclA eqA s2 s1 ->
+      equivlistA eqA s1 s2.
+    Proof. move=> H1 H2. apply/equivlistA_inclA_iff. tauto. Qed.
+
+  End Equivlist.
 
 End ListLemmas.

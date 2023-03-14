@@ -50,6 +50,8 @@ Module FM.
 
   Local Open Scope ordered_scope.
 
+  Import O.
+
   Module ClassDef.
 
     Structure mixin_of (key : orderedType) (t : Type -> Type) :=
@@ -187,11 +189,17 @@ Module FM.
 
   Import ClassDef.
 
-  Coercion sort : type >-> Funclass.
-  Coercion sort_type : type >-> Sortclass.
-  Notation fmapType := type.
-  Notation FMapMixin := Mixin.
-  Notation FMapType key map m := (@Pack key map m).
+  Module Exports.
+
+    Coercion sort : type >-> Funclass.
+    Coercion sort_type : type >-> Sortclass.
+    Notation fmapType := type.
+    Notation FMapMixin := Mixin.
+    Notation FMapType key map m := (@Pack key map m).
+
+  End Exports.
+
+  Import Exports.
 
   Section Definitions.
     Context {key : orderedType}.
@@ -348,7 +356,8 @@ Module FM.
 
 End FM.
 
-Export FM.
+Export FM.Exports.
+Import FM.
 
 
 (** ** Lemmas from FMapFacts.Facts. *)
@@ -1188,7 +1197,7 @@ Module P.
       rewrite add_mapsto_iff, InA_cons, <- IH.
       unfold eq_key_elt at 1; simpl.
       split; destruct 1 as [H|H]; try (intuition;fail).
-      destruct (eq_dec k k'); [left|right]; split; auto with ordered_type.
+      destruct (O.eq_dec k k'); [left|right]; split; auto with ordered_type.
       contradict Hnotin.
       apply InA_eqke_eqk with k e; intuition.
     Qed.
@@ -1203,7 +1212,7 @@ Module P.
       inversion_clear Hnodup as [| ? ? Hnotin Hnodup'].
       specialize (IH k Hnodup'); clear Hnodup'.
       rewrite add_o, IH.
-      unfold eqb; do 2 destruct eq_dec as [|?Hnot]; auto; elim Hnot; eauto with ordered_type.
+      unfold eqb; do 2 destruct O.eq_dec as [|?Hnot]; auto; elim Hnot; eauto with ordered_type.
     Qed.
 
     Lemma of_list_2 : forall l, NoDupA eqk l ->
@@ -1261,7 +1270,7 @@ Module P.
       apply InA_eqke_eqk with k e'; auto with ordered_type.
       rewrite <- of_list_1; auto.
       intro k'. rewrite Hsame, add_o, of_list_1b. simpl.
-      unfold eqb. do 2 destruct eq_dec as [|?Hnot]; auto; elim Hnot; eauto with ordered_type.
+      unfold eqb. do 2 destruct O.eq_dec as [|?Hnot]; auto; elim Hnot; eauto with ordered_type.
       inversion_clear Hdup; auto.
       apply IHl.
       intros; eapply Hstep'; eauto.
@@ -1474,7 +1483,7 @@ Module P.
         unfold eq_key_elt; simpl.
         rewrite H0.
         rewrite add_o.
-        destruct (eq_dec k a) as [EQ|NEQ]; split; auto with ordered_type.
+        destruct (O.eq_dec k a) as [EQ|NEQ]; split; auto with ordered_type.
         intros EQ'; inversion EQ'; auto with ordered_type.
         intuition; subst; auto with ordered_type.
         elim H. exists b. rewrite EQ.
@@ -1603,7 +1612,7 @@ Module P.
         case_eq (f k e); intros Hfke; simpl;
           rewrite !add_mapsto_iff, IH; clear IH; intuition.
         rewrite <- Hfke; apply Hf; auto with ordered_type.
-        destruct (eq_dec k k') as [Hk|Hk]; [left|right]; eauto with ordered_type.
+        destruct (O.eq_dec k k') as [Hk|Hk]; [left|right]; eauto with ordered_type.
         elim Hn; exists e'. rewrite Hk; auto.
         assert (f k e = f k' e') by (apply Hf; auto). congruence.
       Qed.
@@ -1762,7 +1771,7 @@ Module P.
       assert (Heq : Equal m (remove x m')).
       change (Equal m' (add x e m)) in Hadd. rewrite Hadd.
       intro k. rewrite remove_o, add_o.
-      destruct eq_dec as [He|Hne]; auto.
+      destruct O.eq_dec as [He|Hne]; auto.
       rewrite <- He, <- not_find_in_iff; auto.
       assert (H : MapsTo x e m').
       change (Equal m' (add x e m)) in Hadd; rewrite Hadd.
@@ -1775,7 +1784,7 @@ Module P.
       change (Equal m1 (add x e (remove x m1))).
       intro k.
       rewrite add_o, remove_o.
-      destruct eq_dec as [He|Hne]; auto.
+      destruct O.eq_dec as [He|Hne]; auto.
       rewrite <- He; apply find_1; auto.
       (* disjoint *)
       intros k (H1,H2). elim (Hdisj k). split; auto.
@@ -1793,7 +1802,7 @@ Module P.
       change (Equal m2 (add x e (remove x m2))).
       intro k.
       rewrite add_o, remove_o.
-      destruct eq_dec as [He|Hne]; auto.
+      destruct O.eq_dec as [He|Hne]; auto.
       rewrite <- He; apply find_1; auto.
       (* disjoint *)
       intros k (H1,H2). elim (Hdisj k). split; auto.
@@ -2016,7 +2025,7 @@ Module P.
     apply fold_Equal1 with (eqA:=(@Equal key t elt)); auto.
     intros k k' Hk e e' He m m' Hm; rewrite Hk,He,Hm; red; auto.
     intros k k' e e' i Hneq x.
-    rewrite !add_o; do 2 destruct eq_dec; auto. elim Hneq; eauto with ordered_type.
+    rewrite !add_o; do 2 destruct O.eq_dec; auto. elim Hneq; eauto with ordered_type.
     apply fold_init with (eqA:=(@Equal key t elt)); auto.
     intros k k' Hk e e' He m m' Hm; rewrite Hk,He,Hm; red; auto.
   Qed.
@@ -2037,7 +2046,7 @@ Module P.
     destruct mem; rewrite ?Hk,?He,Hm; red; auto.
     intros k k' e e' i Hneq x.
     case_eq (mem k m2); case_eq (mem k' m2); intros; auto.
-    rewrite !add_o; do 2 destruct eq_dec; auto. elim Hneq; eauto with ordered_type.
+    rewrite !add_o; do 2 destruct O.eq_dec; auto. elim Hneq; eauto with ordered_type.
   Qed.
 
   Add Parametric Morphism key t elt : (@diff key t elt)
@@ -2056,7 +2065,7 @@ Module P.
     destruct mem; simpl; rewrite ?Hk,?He,Hm; red; auto.
     intros k k' e e' i Hneq x.
     case_eq (mem k m2); case_eq (mem k' m2); intros; simpl; auto.
-    rewrite !add_o; do 2 destruct eq_dec; auto. elim Hneq; eauto with ordered_type.
+    rewrite !add_o; do 2 destruct O.eq_dec; auto. elim Hneq; eauto with ordered_type.
   Qed.
 
 End P.
@@ -2084,8 +2093,8 @@ Module OP.
     Notation Equal := (@Equal key t elt).
     Notation Add := (@Add key t elt).
 
-    Definition Above x (m : t elt) := forall y, In y m -> lt y x.
-    Definition Below x (m : t elt) := forall y, In y m -> lt x y.
+    Definition Above x (m : t elt) := forall y, In y m -> O.lt y x.
+    Definition Below x (m : t elt) := forall y, In y m -> O.lt x y.
 
     Section Elements.
 
@@ -2098,7 +2107,7 @@ Module OP.
       Ltac clean_eauto := unfold KO.eqke, KO.ltk; simpl; intuition; eauto.
 
       Definition gtb (p p': key * elt) :=
-        match compare (fst p) (fst p') with GT _ => true | _ => false end.
+        match O.compare (fst p) (fst p') with GT _ => true | _ => false end.
 
       Definition leb p := fun p' => negb (gtb p p').
 
@@ -2108,13 +2117,13 @@ Module OP.
       Lemma gtb_1 : forall p p', gtb p p' = true <-> ltk p' p.
       Proof.
         intros (x,e) (y,e'); unfold gtb, KO.ltk; simpl.
-        destruct (compare x y); intuition; try discriminate; order.
+        destruct (O.compare x y); intuition; try discriminate; order.
       Qed.
 
       Lemma leb_1 : forall p p', leb p p' = true <-> ~ltk p' p.
       Proof.
         intros (x,e) (y,e'); unfold leb, gtb, KO.ltk; simpl.
-        destruct (compare x y); intuition; try discriminate; order.
+        destruct (O.compare x y); intuition; try discriminate; order.
       Qed.
 
       Lemma gtb_compat : forall p, Proper (eqke==>Logic.eq) (gtb p).
@@ -2152,7 +2161,7 @@ Module OP.
         rewrite gtb_1 in H; unfold KO.ltk in H; simpl in *.
         assert (~ltk (s0,e0) (s1,e1)).
         unfold gtb, KO.ltk in *; simpl in *.
-        destruct (compare s1 s0); intuition; try discriminate; order.
+        destruct (O.compare s1 s0); intuition; try discriminate; order.
         unfold KO.ltk in *; simpl in *; order.
       Qed.
 
@@ -2194,9 +2203,9 @@ Module OP.
           find_mapsto_iff, (H0 s), <- find_mapsto_iff,
           add_mapsto_iff by auto with map.
         unfold KO.eqke, KO.ltk; simpl.
-        destruct (compare s x); intuition; try fold (~oeq x s); auto with ordered_type.
+        destruct (O.compare s x); intuition; try fold (~oeq x s); auto with ordered_type.
         - elim H; exists e0; apply MapsTo_1 with s; auto.
-        - fold (~lt s x); auto with ordered_type.
+        - fold (~O.lt s x); auto with ordered_type.
       Qed.
 
       Lemma elements_Add_Above : forall m m' x e,
@@ -2513,8 +2522,7 @@ Module L.
   Include F.
   Include OP.
 
-  Import FM.
-  Import P.
+  Import FS O FM P.
 
   Local Open Scope seq_scope.
 
@@ -2629,10 +2637,10 @@ Module L.
     Proof. exact: map_b. Qed.
 
     Lemma Empty_mem (m : t elt) (x : key) :
-      Empty m -> mem x m -> False.
+      Empty m -> mem x m = false.
     Proof.
-      move=> Hempty Hmem. move/memP: Hmem => [e Hmapsto]. move: (Hempty x e); apply.
-      exact: Hmapsto.
+      move=> Hempty. apply/negP => Hmem. move/memP: Hmem => [e Hmapsto].
+      move: (Hempty x e); apply. exact: Hmapsto.
     Qed.
 
     Lemma find_eq_mem_eq (m1 m2 : t elt) (x1 x2 : key) :
@@ -3439,9 +3447,9 @@ Module L.
       forall x, mem x m -> FS.mem x (key_set m).
     Proof.
       rewrite /key_set. eapply fold_rec.
-      - move=> {} m Hempty x Hmem. apply: False_ind.
-        exact: (Empty_mem Hempty Hmem).
-      - move=> x e m' E1 E2 _ _ Hadd Hind y Hmem. case: (eq_dec y x) => Hyx.
+      - move=> {} m Hempty x Hmem. rewrite (Empty_mem x Hempty) in Hmem.
+        discriminate.
+      - move=> x e m' E1 E2 _ _ Hadd Hind y Hmem. case: (O.eq_dec y x) => Hyx.
         + exact: (Sets.L.mem_add_eq _ Hyx).
         + rewrite (Sets.L.mem_add_neq Hyx). apply: Hind. move: (Hadd y) => {Hadd}.
           rewrite (find_add_neq Hyx) => {Hyx} Hfind.
@@ -3454,7 +3462,7 @@ Module L.
       - move=> m Hempty x Hmem. move: (key_set_Empty Hempty) => {} Hempty.
         apply: False_ind. apply: (Hempty x). apply/Sets.L.memP. assumption.
       - move=> m m' IH x e Hin HAdd y Hmem. rewrite (Add_mem_add _ HAdd).
-        case: (eq_dec y x) => Hyx.
+        case: (O.eq_dec y x) => Hyx.
         + rewrite Hyx in Hmem *. apply: mem_add_eq. reflexivity.
         + rewrite (mem_add_neq Hyx). rewrite /key_set in Hmem.
           move: (fold_Add
@@ -3753,48 +3761,63 @@ Module L.
   Section AgreeLemmas.
 
     Context {key : orderedType}.
-    Context {set : fsetType key}.
+    Context {s : fsetType key}.
     Context {t : fmapType key}.
 
     Variable elt : Type.
 
-    Lemma Empty_agree (vs : set) (m1 m2 : t elt) : FS.Empty vs -> agree vs m1 m2.
+    Lemma Empty_agree (vs : s) (m1 m2 : t elt) : FS.Empty vs -> agree vs m1 m2.
     Proof. move=> He x /FS.mem_2 Hmemx. move: (He _ Hmemx). done. Qed.
 
-    Lemma agree_empty_set (m1 m2 : t elt) : agree (FS.empty : set) m1 m2.
+    Lemma agree_empty_set (m1 m2 : t elt) : agree (FS.empty : s) m1 m2.
     Proof. apply: Empty_agree. exact: FS.empty_1. Qed.
 
     Lemma agree_singleton_set x (m1 m2 : t elt) :
-      agree (FS.singleton x : set) m1 m2 <-> find x m1 = find x m2.
+      agree (FS.singleton x : s) m1 m2 <-> find x m1 = find x m2.
     Proof.
       split=> H.
       - apply: H. apply: FS.mem_1. apply: FS.singleton_2. reflexivity.
       - move=> y /FS.mem_2/FS.singleton_1 Hin. rewrite -Hin. assumption.
     Qed.
 
-    Lemma agree_empty_map_l (vs : set) (m : t elt) x :
+    Lemma agree_mem v (vs : s) (E1 E2 : t elt) :
+      agree vs E1 E2 -> FS.mem v vs -> mem v E1 = mem v E2.
+    Proof.
+      move=> Hag Hmem. move: (Hag _ Hmem).
+      rewrite L.mem_find_b. move=> ->.
+      rewrite -L.mem_find_b. reflexivity.
+    Qed.
+
+    Lemma agree_mem_singleton v (E1 E2 : t elt) :
+      agree (FS.singleton (t:=s) v) E1 E2 -> mem v E1 = FM.mem v E2.
+    Proof.
+      move=> Hag. apply: (agree_mem Hag).
+      apply: Sets.L.eq_mem_singleton. reflexivity.
+    Qed.
+
+    Lemma agree_empty_map_l (vs : s) (m : t elt) x :
       agree vs (empty elt) m -> FS.mem x vs -> find x m = None.
     Proof. move=> Ha Hmem. rewrite -(Ha _ Hmem). exact: empty_o. Qed.
 
-    Lemma agree_empty_map_r (vs : set) (m : t elt) x :
+    Lemma agree_empty_map_r (vs : s) (m : t elt) x :
       agree vs m (empty elt) -> FS.mem x vs -> find x m = None.
     Proof. move=> Ha Hmem. rewrite (Ha _ Hmem). exact: empty_o. Qed.
 
-    Lemma Subset_set_agree (s1 s2 : set) (m1 m2 : t elt) :
+    Lemma Subset_set_agree (s1 s2 : s) (m1 m2 : t elt) :
       FS.Subset s1 s2 -> agree s2 m1 m2 -> agree s1 m1 m2.
     Proof.
       move=> Hsub Ha x /FS.mem_2 Hin1. apply: Ha.
       apply/FS.mem_1. exact: (Hsub _ Hin1).
     Qed.
 
-    Lemma subset_set_agree (s1 s2 : set) (m1 m2 : t elt) :
+    Lemma subset_set_agree (s1 s2 : s) (m1 m2 : t elt) :
       FS.subset s1 s2 -> agree s2 m1 m2 -> agree s1 m1 m2.
     Proof.
       move=> Hsub Ha. apply: (Subset_set_agree _ Ha).
       apply: FS.subset_2. exact: Hsub.
     Qed.
 
-    Lemma not_mem_add_map_l (vs : set) (m1 m2 : t elt) x v :
+    Lemma not_mem_add_map_l (vs : s) (m1 m2 : t elt) x v :
       ~~ FS.mem x vs -> agree vs m1 m2 -> agree vs (add x v m1) m2.
     Proof.
       move=> Hmem Ha y Hmemy. rewrite add_neq_o.
@@ -3803,14 +3826,14 @@ Module L.
         rewrite (Sets.F.mem_b _ Heq). exact: Hmemy.
     Qed.
 
-    Lemma not_mem_add_map_r (vs : set) (m1 m2 : t elt) x v :
+    Lemma not_mem_add_map_r (vs : s) (m1 m2 : t elt) x v :
       ~~ FS.mem x vs -> agree vs m1 m2 -> agree vs m1 (add x v m2).
     Proof.
       move=> Hmem /agree_sym Ha. apply: agree_sym.
       exact: (not_mem_add_map_l _ Hmem Ha).
     Qed.
 
-    Lemma agree_add_map2 (vs : set) (m1 m2 : t elt) x v :
+    Lemma agree_add_map2 (vs : s) (m1 m2 : t elt) x v :
       agree vs m1 m2 -> agree vs (add x v m1) (add x v m2).
     Proof.
       move=> Ha y Hmemy. case: (O.eq_dec x y).
@@ -3818,7 +3841,7 @@ Module L.
       - move=> Hneq. rewrite 2!(add_neq_o _ _ Hneq). exact: (Ha _ Hmemy).
     Qed.
 
-    Lemma agree_add_map_l (vs : set) (m1 m2 : t elt) x v :
+    Lemma agree_add_map_l (vs : s) (m1 m2 : t elt) x v :
       agree vs m1 m2 -> find x m2 = Some v ->
       agree vs (add x v m1) m2.
     Proof.
@@ -3828,7 +3851,7 @@ Module L.
       - move=> Hneq. rewrite (add_neq_o _ _ Hneq). exact: (Ha _ Hmemy).
     Qed.
 
-    Lemma agree_add_map_r (vs : set) (m1 m2 : t elt) x v :
+    Lemma agree_add_map_r (vs : s) (m1 m2 : t elt) x v :
       agree vs m1 m2 -> find x m1 = Some v ->
       agree vs m1 (add x v m2).
     Proof.
@@ -3836,35 +3859,35 @@ Module L.
       exact: (agree_add_map_l Ha Hf).
     Qed.
 
-    Lemma agree_add_set_l x (vs : set) (m1 m2 : t elt) :
-      agree (FS.add x vs) m1 m2 -> agree (FS.singleton x : set) m1 m2.
+    Lemma agree_add_set_l x (vs : s) (m1 m2 : t elt) :
+      agree (FS.add x vs) m1 m2 -> agree (FS.singleton x : s) m1 m2.
     Proof.
       move=> Ha y Hmemy. apply: (Ha y). rewrite Sets.F.singleton_b in Hmemy.
       rewrite Sets.F.add_b Hmemy /=. reflexivity.
     Qed.
 
-    Lemma agree_add_set_r x (vs : set) (m1 m2 : t elt) :
+    Lemma agree_add_set_r x (vs : s) (m1 m2 : t elt) :
       agree (FS.add x vs) m1 m2 -> agree vs m1 m2.
     Proof.
       move=> Ha y Hmemy. apply: (Ha y).
       rewrite Sets.F.add_b Hmemy orbT. reflexivity.
     Qed.
 
-    Lemma agree_union_set_l (vs1 vs2 : set) (m1 m2 : t elt) :
+    Lemma agree_union_set_l (vs1 vs2 : s) (m1 m2 : t elt) :
       agree (FS.union vs1 vs2) m1 m2 -> agree vs1 m1 m2.
     Proof.
       move=> Ha x Hmemx. apply: (Ha x).
       rewrite Sets.F.union_b Hmemx /=. reflexivity.
     Qed.
 
-    Lemma agree_union_set_r (vs1 vs2 : set) (m1 m2 : t elt) :
+    Lemma agree_union_set_r (vs1 vs2 : s) (m1 m2 : t elt) :
       agree (FS.union vs1 vs2) m1 m2 -> agree vs2 m1 m2.
     Proof.
       move=> Ha x Hmemx. apply: (Ha x).
       rewrite Sets.F.union_b Hmemx /= orbT. reflexivity.
     Qed.
 
-    Lemma agree_add_to_set x (vs : set) (m1 m2 : t elt) :
+    Lemma agree_add_to_set x (vs : s) (m1 m2 : t elt) :
       agree vs m1 m2 -> find x m1 = find x m2 -> agree (FS.add x vs) m1 m2.
     Proof.
       move=> Ha Hf y /FS.mem_2 Hmem.
@@ -3873,7 +3896,7 @@ Module L.
       - move/FS.mem_1: H => Hmem. exact: (Ha _ Hmem).
     Qed.
 
-    Lemma agree_union_sets (vs1 vs2 : set) (m1 m2 : t elt) :
+    Lemma agree_union_sets (vs1 vs2 : s) (m1 m2 : t elt) :
       agree vs1 m1 m2 -> agree vs2 m1 m2 -> agree (FS.union vs1 vs2) m1 m2.
     Proof.
       move=> Ha1 Ha2 x Hmem. rewrite Sets.F.union_b in Hmem. case/orP: Hmem=> Hmem.
@@ -3881,8 +3904,8 @@ Module L.
       - exact: (Ha2 _ Hmem).
     Qed.
 
-    Lemma agree_add_set x (vs : set) (m1 m2 : t elt) :
-      agree (FS.add x vs) m1 m2 <-> agree (FS.singleton x : set) m1 m2 /\ agree vs m1 m2.
+    Lemma agree_add_set x (vs : s) (m1 m2 : t elt) :
+      agree (FS.add x vs) m1 m2 <-> agree (FS.singleton x : s) m1 m2 /\ agree vs m1 m2.
     Proof.
       split.
       - move=> H. exact: (conj (agree_add_set_l H) (agree_add_set_r H)).
@@ -3890,7 +3913,7 @@ Module L.
         assumption.
     Qed.
 
-    Lemma agree_union_set (vs1 vs2 : set) (m1 m2 : t elt) :
+    Lemma agree_union_set (vs1 vs2 : s) (m1 m2 : t elt) :
       agree (FS.union vs1 vs2) m1 m2 <-> agree vs1 m1 m2 /\ agree vs2 m1 m2.
     Proof.
       split.
@@ -3903,7 +3926,7 @@ Module L.
   Ltac simpl_agree :=
     repeat
       match goal with
-      | H : @agree ?t (FS.add _ _) _ _ |- _ =>
+      | H : agree (FS.add _ _) _ _ |- _ =>
           let H1 := fresh in
           let H2 := fresh in
           (* `move: (agree_add_set_l H)` succeeds inside this module
@@ -3911,7 +3934,7 @@ Module L.
           generalize (agree_add_set_r H);
           generalize (agree_add_set_l H);
           move=> {H} H1 H2
-      | H : @agree ?t (FS.union _ _) _ _ |- _ =>
+      | H : agree (FS.union _ _) _ _ |- _ =>
           let H1 := fresh in
           let H2 := fresh in
           generalize (agree_union_set_r H);
@@ -3954,12 +3977,17 @@ End L.
 
 (** ** FMapInterface.S as fmapType *)
 
+Module Type FMap.
+  Parameter key : orderedType.
+  Parameter t : fmapType key.
+End FMap.
+
 Module FMapInterface_as_FM
        (E : Ordered)
        (M : FMapInterface.S
         with Definition E.t := E.t
         with Definition E.eq := E.eq
-        with Definition E.lt := E.lt).
+        with Definition E.lt := E.lt) <: FMap.
 
   Definition fmap_mixin :=
     @FMapMixin E.T M.t
@@ -3976,43 +4004,24 @@ Module FMapInterface_as_FM
   #[global]
    Canonical t :=
     Eval hnf in FMapType E.T M.t fmap_mixin.
+
+  Definition key := E.T.
 
 End FMapInterface_as_FM.
 
-Module FMapInterface_as_DFM
-       (E : DecidableOrdered)
-       (M : FMapInterface.S
-        with Definition E.t := E.t
-        with Definition E.eq := E.eq
-        with Definition E.lt := E.lt).
 
-  Definition fmap_mixin :=
-    @FMapMixin E.T M.t
-               M.empty M.is_empty M.add M.find M.remove M.mem
-               M.map M.mapi M.map2 M.elements M.cardinal M.fold M.equal
-               M.MapsTo M.MapsTo_1 M.mem_1 M.mem_2
-               M.empty_1 M.is_empty_1 M.is_empty_2 M.add_1 M.add_2 M.add_3
-               M.remove_1 M.remove_2 M.remove_3 M.find_1 M.find_2
-               M.elements_1 M.elements_2 M.elements_3w M.cardinal_1
-               M.fold_1 M.equal_1 M.equal_2
-               M.map_1 M.map_2 M.mapi_1 M.mapi_2 M.map2_1 M.map2_2
-               M.elements_3.
-
-  #[global]
-   Canonical t :=
-    Eval hnf in FMapType E.T M.t fmap_mixin.
-
-End FMapInterface_as_DFM.
-
-
-(* Maps that can generate new elements. *)
+Module Type FMapWithNewKey <: FMap.
+  Include FMap.
+  Parameter new_key : forall (elt : Type), t elt -> key.
+  Axiom new_key_is_new : forall (elt : Type) (m : t elt), ~~ FM.mem (new_key m) m.
+End FMapWithNewKey.
 
 Module FMapInterface_as_FM_WDS
        (E : OrderedWithDefaultSucc)
        (M : FMapInterface.S
         with Definition E.t := E.t
         with Definition E.eq := E.eq
-        with Definition E.lt := E.lt).
+        with Definition E.lt := E.lt) <: FMapWithNewKey.
 
   Module MM := FMapInterface_as_FM E M.
   Include MM.
@@ -4041,38 +4050,3 @@ Module FMapInterface_as_FM_WDS
   End Gen.
 
 End FMapInterface_as_FM_WDS.
-
-Module FMapInterface_as_DFM_WDS
-       (E : DecidableOrderedWithDefaultSucc)
-       (M : FMapInterface.S
-        with Definition E.t := E.t
-        with Definition E.eq := E.eq
-        with Definition E.lt := E.lt).
-
-  Module MM := FMapInterface_as_DFM E M.
-  Include MM.
-
-  Section Gen.
-
-    Local Notation key := E.t.
-    Variable elt : Type.
-
-    (* Generate a new key *)
-    Definition new_key (m : t elt) : key :=
-      match L.max_key m with
-      | Some k => E.succ k
-      | None => E.default
-      end.
-
-    Lemma new_key_is_new :
-      forall (m : t elt), ~~ FM.mem (new_key m) m.
-    Proof.
-      move=> m. rewrite /new_key. case H: (L.max_key m).
-      - apply/negP=> Hmem. apply: (L.max_key_not_lt H Hmem). exact: E.lt_succ.
-      - move: (L.max_key_none H) => Hempty.
-        exact: (L.Empty_not_mem E.default Hempty).
-    Qed.
-
-  End Gen.
-
-End FMapInterface_as_DFM_WDS.

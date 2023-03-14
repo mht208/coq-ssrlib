@@ -11,11 +11,7 @@ Import Prenex Implicits.
 (** * Coq [OrderedType] as a structure [orderedType] *)
 
 (**
-   Two structures [orderedType] and [decidableOrderedType] are defined
-   respectively in the modules [O] and [DO].
-   [decidableOrderedType] is a subtype of [orderedType].
-   In [decidableOrderedType], less-than (and hence less-than-or-equal-to) is
-   decidable.
+   A structure [orderedType] is defined in the module [O].
 
    Lemmas from Coq about [OrderedType] are defined for [orderedType] in
    the following modules.
@@ -24,45 +20,33 @@ Import Prenex Implicits.
    - [KO]: lemmas from [OrderedType.KeyOrderedType]
    - [OF]: lemmas from [OrdersFacts]
 
-   Additional lemmas about [orderedType] and [decidableOrderedType] are provided
-   in the module [L], which includes lemmas from [F] and [OF].
+   Additional lemmas about [orderedType] are provided in the module [L],
+   which includes lemmas from [F] and [OF].
 
-   Several instances of [orderedType] and [decidableOrderedType] are provided.
-   - [prodOrderedType] and [prodDecidableOrderedType] for product types
-   - [sumOrderedType] and [sumDecidableOrderedType] for sum types
-   - [mathcompOrderedType] and [mathcompDecidableOrderedType] for math-comp
-     [orderType]
-   - [positiveOrderedType] and [positiveDecidableOrderedType] for [positive]
-   - [NOrderedType] and [NDecidableOrderedType] for [N]
-   - [ZOrderedType] and [ZDecidableOrderedType] for [Z]
-   [orderType] and [decidableOrderedType] for [nat] are provided by the coercion
-   [nat2orderedType].
+   Several instances of [orderedType] are provided.
+   - [prodOrderedType] for product types
+   - [sumOrderedType] for sum types
+   - [mathcompOrderedType] for math-comp [orderType]
+   - [positiveOrderedType] for [positive]
+   - [NOrderedType] for [N]
+   - [ZOrderedType] for [Z]
+   [orderType] for [nat] is provided by the coercion [nat2orderedType].
 
-   The structures [orderedType] and [decidableOrderedType] are wrapped in
-   [Ordered] and [DecidableOrdered] as Coq's [OrderedType].
-   Modules of [Ordered] and [DecidableOrdered] can be created by the following
-   functors:
+   The structure [orderedType] is wrapped in [Ordered] as Coq's [OrderedType].
+   Modules of [Ordered] can be created by the following functor:
    - [HOT_as_OT]: instantiate a module of [Ordered] from an [orderedType]
-   - [HDOT_as_DOT]: instantiate a module of [DecidableOrdered] from a
-                    [decidableOrderedType]
 
-   Similarly, the following functors are available for instantiating modules
+   Similarly, the following functor is available for instantiating modules
    of [Orders.OrderedTypeFull]:
    - [HOT_as_OTF]: instantiate a module of [Orders.OrderedTypeFull] from an
                    [orderedType]
-   - [HDOT_as_OTF]: instantiate a module of [Orders.OrderedTypeFull] from a
-                    [decidableOrderedType]
 
-   For enumerating elements (may not be fully) in an [orderedType] or a
-   [decidableOrderedType], two module types [OrderedWithDefaultSucc] and
-   [DecidableOrderedWithDefaultSucc] are defined. In the two module types, a
-   default element and a successor function must be provided. Modules of
-   [OrderedWithDefaultSucc] and [DecidableOrderedWithDefaultSucc] can be
-   instantiated by the following functors:
+   For enumerating elements (may not be fully) in an [orderedType], a module
+   type [OrderedWithDefaultSucc] is defined. In the module type, a default
+   element and a successor function must be provided. Modules of
+   [OrderedWithDefaultSucc] can be instantiated by the following functor:
    - [HOT_as_OT_WDS]: instantiate a module of [OrderedWithDefaultSucc] from an
                       [orderedType]
-   - [HDOT_as_DOT_WDS]: instantiate a module of [DecidableOrderedWithDefaultSucc] from a
-                      [decidableOrderedType]
 *)
 
 (** ** orderedType: OrderedType with decidable equality *)
@@ -70,9 +54,11 @@ Import Prenex Implicits.
 Declare Scope ordered_scope.
 Delimit Scope ordered_scope with OT.
 
-Module O.
+Local Open Scope ordered_scope.
 
-  Local Open Scope ordered_scope.
+(** Class definition *)
+
+Module O.
 
   Module ClassDef.
 
@@ -107,19 +93,25 @@ Module O.
 
   Import ClassDef.
 
-  Coercion sort : type >-> Sortclass.
-  Notation orderedType := type.
-  Notation OrderedTypeMixin := Mixin.
-  Notation OrderedType t m := (@Pack t m).
-  Notation "[ 'orderedTypeMixin' 'of' T ]" :=
-    (class _ : mixin_of T)
-      (at level 0, format "[ 'orderedTypeMixin'  'of'  T ]") : ordered_scope.
-  Notation "[ 'orderedType' 'of' T 'for' C ]" :=
-    (@clone T C _ idfun id)
-      (at level 0, format "[ 'orderedType'  'of'  T  'for'  C ]") : ordered_scope.
-  Notation "[ 'orderedType' 'of' T ]" :=
-    (@clone T _ _ id id)
-      (at level 0, format "[ 'orderedType'  'of'  T ]") : ordered_scope.
+  Module Exports.
+
+    Coercion sort : type >-> Sortclass.
+    Notation orderedType := type.
+    Notation OrderedTypeMixin := Mixin.
+    Notation OrderedType t m := (@Pack t m).
+    Notation "[ 'orderedTypeMixin' 'of' T ]" :=
+      (class _ : mixin_of T)
+        (at level 0, format "[ 'orderedTypeMixin'  'of'  T ]") : ordered_scope.
+    Notation "[ 'orderedType' 'of' T 'for' C ]" :=
+      (@clone T C _ idfun id)
+        (at level 0, format "[ 'orderedType'  'of'  T  'for'  C ]") : ordered_scope.
+    Notation "[ 'orderedType' 'of' T ]" :=
+      (@clone T _ _ id id)
+        (at level 0, format "[ 'orderedType'  'of'  T ]") : ordered_scope.
+
+  End Exports.
+
+  Import Exports.
 
   Section Definitions.
     Context {t : orderedType}.
@@ -144,25 +136,6 @@ Module O.
     Proof. exact: eq_dec. Defined.
   End Definitions.
 
-  Infix "==" := eq (at level 70, no associativity) : ordered_scope.
-  Notation "x == y :> T" := ((x : T) == (y : T)) (at level 70, y at next level) : ordered_scope.
-  Notation "x ~= y" := (~ (x == y)) (at level 70, no associativity) : ordered_scope.
-  Notation "x ~= y :> T" := (~ (x == y :> T)) (at level 70, y at next level, no associativity) : ordered_scope.
-  Infix "<" := lt : ordered_scope.
-  Notation "x < y :> T" := ((x : T) < (y : T)) (at level 70, y at next level) : ordered_scope.
-  Notation "x > y" := (y < x) (only parsing) : ordered_scope.
-  Notation "x > y :> T" := (y < x :> T) (at level 70, y at next level, only parsing) : ordered_scope.
-  Notation "x < y < z" := (x < y /\ y < z) : ordered_scope.
-  Infix "<=" := le : ordered_scope.
-  Notation "x <= y :> T" := ((x : T) <= (y : T)) (at level 70, y at next level) : ordered_scope.
-  Notation "x >= y" := (y <= x) (only parsing) : ordered_scope.
-  Notation "x >= y :> T" := (y <= x :> T) (at level 70, y at next level, only parsing) : ordered_scope.
-  Notation "x <= y <= z" := (x <= y /\ y <= z) : ordered_scope.
-  Notation "x <= y < z" := (x <= y /\ y < z) : ordered_scope.
-  Notation "x < y <= z" := (x < y /\ y <= z) : ordered_scope.
-  Infix "?=" := compare (at level 70, no associativity) : ordered_scope.
-  Notation "x ?= y :> T" := (@compare (class T) x y) (at level 70, y at next level, no associativity) : ordered_scope.
-
   #[global]
    Hint Unfold Symmetric : ordered_type.
   #[global]
@@ -172,7 +145,30 @@ Module O.
 
 End O.
 
-Export O.
+Export O.Exports.
+Import O.
+
+
+(** Notations *)
+
+Infix "==" := eq (at level 70, no associativity) : ordered_scope.
+Notation "x == y :> T" := ((x : T) == (y : T)) (at level 70, y at next level) : ordered_scope.
+Notation "x ~= y" := (~ (x == y)) (at level 70, no associativity) : ordered_scope.
+Notation "x ~= y :> T" := (~ (x == y :> T)) (at level 70, y at next level, no associativity) : ordered_scope.
+Infix "<" := lt : ordered_scope.
+Notation "x < y :> T" := ((x : T) < (y : T)) (at level 70, y at next level) : ordered_scope.
+Notation "x > y" := (y < x) (only parsing) : ordered_scope.
+Notation "x > y :> T" := (y < x :> T) (at level 70, y at next level, only parsing) : ordered_scope.
+Notation "x < y < z" := (x < y /\ y < z) : ordered_scope.
+Infix "<=" := le : ordered_scope.
+Notation "x <= y :> T" := ((x : T) <= (y : T)) (at level 70, y at next level) : ordered_scope.
+Notation "x >= y" := (y <= x) (only parsing) : ordered_scope.
+Notation "x >= y :> T" := (y <= x :> T) (at level 70, y at next level, only parsing) : ordered_scope.
+Notation "x <= y <= z" := (x <= y /\ y <= z) : ordered_scope.
+Notation "x <= y < z" := (x <= y /\ y < z) : ordered_scope.
+Notation "x < y <= z" := (x < y /\ y <= z) : ordered_scope.
+Infix "?=" := compare (at level 70, no associativity) : ordered_scope.
+Notation "x ?= y :> T" := (@compare (ClassDef.class T) x y) (at level 70, y at next level, no associativity) : ordered_scope.
 
 Notation oeq := O.eq (only parsing).
 Notation olt := O.lt (only parsing).
@@ -186,8 +182,6 @@ Notation oeq_dec := eq_dec (only parsing).
 (** ** Lemmas from OrdersTac *)
 
 Module OT.
-
-  Local Open Scope ordered_scope.
 
   Section OrderFacts.
 
@@ -591,7 +585,7 @@ Module F.
 
     Notation In := (InA (eq (t:=t))).
     Notation Inf := (lelistA (lt (t:=t))).
-    Notation Sort := (sort (lt (t:=t))).
+    Notation Sort := (Sorting.Sorted.sort (lt (t:=t))).
     Notation NoDup := (NoDupA (eq (t:=t))).
 
     Lemma In_eq : forall l x y, eq x y -> In x l -> In y l.
@@ -775,7 +769,7 @@ Module KO.
 
     Definition In k m := exists e : elt, MapsTo k e m.
 
-    Notation Sort := (sort ltk).
+    Notation Sort := (Sorting.Sorted.sort ltk).
 
     Notation Inf := (lelistA ltk).
 
@@ -915,8 +909,6 @@ Module OF.
   Local Open Scope general_if_scope.
 
   Import OT F.
-
-  Local Open Scope ordered_scope.
 
   Ltac order := OT.order.
   Ltac iorder := intuition order.
@@ -1059,8 +1051,6 @@ Module OF.
 
   Section CompareBasedOrderFacts.
 
-    Local Open Scope ordered_scope.
-
     Context {t : orderedType}.
 
     Infix "?=" := compare.
@@ -1085,6 +1075,49 @@ Module OF.
 End OF.
 
 
+(** ** Other operations *)
+
+Section OO.
+
+  Context {t : orderedType}.
+
+  Definition ltb (x y : t) := match compare x y with LT _ => true | _ => false end.
+  Definition leb (x y : t) := match compare x y with GT _ => false | _ => true end.
+
+  Lemma ltb_lt (x y : t) : ltb x y <-> lt x y.
+  Proof.
+    unfold ltb. case: (x ?= y) => //=.
+    - move=> Heq. split => //=. move=> Hlt. apply: False_ind. exact: (lt_not_eq Hlt Heq).
+    - move=> Hlt. split => //=. move=> Heq'. apply: False_ind.
+      move: (lt_trans Hlt Heq'). exact: F.lt_antirefl.
+  Qed.
+
+  Lemma leb_le (x y : t) : leb x y <-> le x y.
+  Proof.
+    unfold leb. case: (x ?= y) => //=.
+    - move=> Hlt. split => //=. move=> _. apply/le_lteq. by left.
+    - move=> Heq. split => //=. move=> _. rewrite Heq. exact: OT.le_refl.
+    - move=> Hlt. split => //=. move=> /le_lteq Hle. case: Hle => H.
+      + apply: False_ind. exact: (F.lt_antirefl (lt_trans Hlt H)).
+      + rewrite H in Hlt. by elim: (F.lt_antirefl Hlt).
+  Qed.
+
+End OO.
+
+Infix "<?" := ltb (at level 70, no associativity) : ordered_scope.
+Infix "<=?" := leb (at level 70, no associativity) : ordered_scope.
+Notation "x >? y" := (y <? x) (only parsing, at level 70, no associativity) : ordered_scope.
+Notation "x >=? y" := (y <=? x) (only parsing, at level 70, no associativity) : ordered_scope.
+Notation "x <? y <? z" := (x <? y /\ y <? z) (at level 70, y at next level) : ordered_scope.
+Notation "x <=? y <=? z" := (x <=? y /\ y <=? z) (at level 70, y at next level) : ordered_scope.
+Notation "x <=? y <? z" := (x <=? y /\ y <? z) (at level 70, y at next level) : ordered_scope.
+Notation "x <? y <=? z" := (x <? y /\ y <=? z) (at level 70, y at next level) : ordered_scope.
+Notation oltb := ltb (only parsing).
+Notation oleb := leb (only parsing).
+Notation ogtb := (flip ltb) (only parsing).
+Notation ogeb := (flip leb) (only parsing).
+
+
 (** ** OrderedType structure as OrderedType Module *)
 
 Module Type HasSucc (Import T : Structures.OrderedType.OrderedType).
@@ -1094,7 +1127,7 @@ End HasSucc.
 
 
 Module Type Ordered <: Structures.OrderedType.OrderedType.
-  Parameter Inline T : orderedType.
+  Parameter T : orderedType.
   Definition t : Type := T.
   Definition eq : t -> t -> Prop := oeq.
   Definition lt : t -> t -> Prop := olt.
@@ -1113,19 +1146,19 @@ Module Type OrderedWithDefaultSucc :=
   Ordered <+ HasDefault <+ HasSucc.
 
 
-Module Type HasOrderedType.
+Module Type OrderedType.
   Parameter t : orderedType.
-End HasOrderedType.
+End OrderedType.
 
-Module Type HasOrderedTypeWithDefaultSucc <: HasOrderedType.
+Module Type OrderedTypeWithDefaultSucc <: OrderedType.
   Parameter t : orderedType.
   Parameter default : t.
   Parameter succ : t -> t.
   Parameter lt_succ : forall (x : t), lt x (succ x).
-End HasOrderedTypeWithDefaultSucc.
+End OrderedTypeWithDefaultSucc.
 
 
-Module HOT_as_OT (O : HasOrderedType) <: Ordered.
+Module OT_as_O (O : OrderedType) <: Ordered.
   Definition T := O.t.
   Definition t : Type := O.t.
   Definition eq : t -> t -> Prop := oeq.
@@ -1140,16 +1173,16 @@ Module HOT_as_OT (O : HasOrderedType) <: Ordered.
   Definition le_lteq : forall x y : t, le x y <-> lt x y \/ eq x y := le_lteq.
   Definition compare : forall x y : t, Compare lt eq x y := ocompare.
   Definition eq_dec : forall x y : t, {eq x y} + {~ eq x y} := eq_dec.
-End HOT_as_OT.
+End OT_as_O.
 
-Module HOT_as_OT_WDS (O : HasOrderedTypeWithDefaultSucc) <: OrderedWithDefaultSucc.
-  Include HOT_as_OT O.
+Module OT_as_O_WDS (O : OrderedTypeWithDefaultSucc) <: OrderedWithDefaultSucc.
+  Include OT_as_O O.
   Definition default : t := O.default.
   Definition succ : t -> t := O.succ.
   Definition lt_succ : forall (x : t), lt x (succ x) := O.lt_succ.
-End HOT_as_OT_WDS.
+End OT_as_O_WDS.
 
-Module HOT_as_OTF (O : HasOrderedType) <: Structures.Orders.OrderedTypeFull.
+Module OT_as_OTF (O : OrderedType) <: Structures.Orders.OrderedTypeFull.
   Definition t : Type := O.t.
   Definition eq : t -> t -> Prop := oeq.
   Definition eq_equiv : Equivalence eq := OT.eq_equiv.
@@ -1161,89 +1194,149 @@ Module HOT_as_OTF (O : HasOrderedType) <: Structures.Orders.OrderedTypeFull.
   Definition eq_dec : forall x y : t, {eq x y} + {~ eq x y} := eq_dec.
   Definition le : t -> t -> Prop := ole.
   Definition le_lteq : forall x y : t, le x y <-> lt x y \/ eq x y := le_lteq.
-End HOT_as_OTF.
+End OT_as_OTF.
 
 
-(** ** decidableOrderedType: OrderedType with decidable less-than and decidable less-than-or-equal-to *)
+(** ** Ordered elements are also eqType *)
 
-Module DO.
+Module EO.
 
   Module ClassDef.
 
-    Structure mixin_of (t0 : Type) (o : O.ClassDef.class_of t0) (t := O.ClassDef.Pack o) :=
-      Mixin { ltb : t -> t -> bool
-            ; leb : t -> t -> bool
-            ; ltb_lt : forall (x y : t), ltb x y <-> lt x y
-            ; leb_le : forall (x y : t), leb x y <-> le x y }.
+    Structure mixin_of
+              (t : Type)
+              (oc : O.ClassDef.class_of t) (ec : Equality.class_of t)
+              (ot := O.ClassDef.Pack oc) (et := Equality.Pack ec) :=
+      Mixin { eq_eqop : forall (x y : t), @eq ot x y <-> @eq_op et x y }.
 
     Set Primitive Projections.
     Record class_of (T : Type) :=
-      Class { base : O.ClassDef.class_of T
-            ; mixin : mixin_of base; }.
+      Class { obase : O.ClassDef.class_of T
+            ; ebase : Equality.class_of T
+            ; mixin : mixin_of obase ebase }.
     Unset Primitive Projections.
 
     Section Def.
-
       Structure type : Type := Pack { sort; _ : class_of sort }.
-
       Local Coercion sort : type >-> Sortclass.
-      Local Coercion base : class_of >-> O.ClassDef.class_of.
-
+      Local Coercion obase : class_of >-> O.ClassDef.class_of.
+      Local Coercion ebase : class_of >-> Equality.class_of.
       Variables (T : Type) (cT : type).
-
       Definition class := let: Pack _ c := cT return class_of cT in c.
       Definition clone c of phant_id class c := @Pack T c.
-
-      Definition pack :=
-        fun bT b & phant_id (@O.ClassDef.class bT) b =>
-        fun m => Pack (@Class T b m).
-
       Definition orderedType := @O.ClassDef.Pack cT class.
-
+      Definition eqType := @Equality.Pack cT class.
     End Def.
-
   End ClassDef.
-
   Import ClassDef.
-
-  Coercion base : class_of >-> O.ClassDef.class_of.
-  Coercion mixin : class_of >-> mixin_of.
-  Coercion sort : type >-> Sortclass.
-  Coercion orderedType : type >-> O.ClassDef.type.
-  #[global]
-   Canonical orderedType.
-  Notation decidableOrderedType := type.
-  Notation DecidableOrderedTypeMixin := Mixin.
-  Notation DecidableOrderedType T m := (@pack T _ _ _ m).
-
+  Module Exports.
+    Coercion obase : class_of >-> O.ClassDef.class_of.
+    Coercion ebase : class_of >-> Equality.class_of.
+    Coercion mixin : class_of >-> mixin_of.
+    Coercion sort : type >-> Sortclass.
+    Coercion orderedType : type >-> O.ClassDef.type.
+    #[global]
+     Canonical orderedType.
+    Coercion eqType : type >-> Equality.type.
+    #[global]
+     Canonical eqType.
+    Notation eqOrderedType := type.
+    Notation EqOrderedTypeMixin := Mixin.
+    Notation EqOrderedType t m := (@Pack t m).
+  End Exports.
+  Import Exports.
   Section Definitions.
-    Context {t : decidableOrderedType}.
-    Definition ltb := ltb (class t).
-    Definition leb := leb (class t).
-    Lemma ltb_lt : forall (x y : t), ltb x y <-> lt x y.
-    Proof. exact: ltb_lt. Qed.
-    Lemma leb_le : forall (x y : t), leb x y <-> le x y.
-    Proof. exact: leb_le. Qed.
+    Context {t : eqOrderedType}.
+    Definition eq_eqop : forall (x y : t), (x == y)%OT <-> (x == y)%B := eq_eqop (class t).
+    Lemma eq_eq : forall x y : t, (x == y)%OT <-> x = y.
+    Proof.
+      move=> x y. split.
+      - move/eq_eqop. move/eqP. by apply.
+      - move=> ->. exact: eq_refl.
+    Qed.
+    Lemma neq_eqop : forall x y : t, (x ~= y)%OT <-> x != y.
+    Proof.
+      move=> x y; split.
+      - move=> H. apply/negP/eq_eqop. assumption.
+      - move/negP/eq_eqop. by apply.
+    Qed.
+    Lemma eqb_eqop (x y : t) : (x =? y)%OT = (x == y)%B.
+    Proof.
+      case H: (x == y)%B.
+      - move/eqtype.eqP: H => ->. apply/F.eqb_eq. reflexivity.
+      - apply/negP => H1. apply/negPf: H. move/F.eqb_eq: H1 => /eq_eq ->.
+        exact: eqxx.
+    Qed.
+    Lemma eqbP : forall x y : t, reflect (x = y) (x =? y)%OT.
+    Proof.
+      move=> x y. case H: (x =? y)%OT.
+      - apply: ReflectT. move/F.eqb_eq: H => /eq_eq ->. reflexivity.
+      - apply: ReflectF. move=> Heq. apply/negPf: H.
+        apply/F.eqb_eq. apply/eq_eq. assumption.
+    Qed.
+    Lemma compare : forall x y : t, Compare (fun x y : t => ltb x y) eq_op x y.
+    Proof.
+      move=> x y. case Heq: (x =? y).
+      - apply: EQ. rewrite -eqb_eqop. assumption.
+      - case Hlt: (x <? y).
+        + apply: LT. assumption.
+        + apply: GT. apply/ltb_lt. apply: F.le_neq.
+          * move=> /ltb_lt H. apply/negPf: Hlt. assumption.
+          * move=> /F.eqb_eq H. apply/negPf: Heq. assumption.
+    Qed.
   End Definitions.
+End EO.
 
-  Local Open Scope ordered_scope.
-  Infix "<?" := ltb (at level 70, no associativity) : ordered_scope.
-  Notation "x >? y" := (y <? x) (only parsing, at level 70, no associativity) : ordered_scope.
-  Notation "x <? y <? z" := (x <? y /\ y <? z) (at level 70, y at next level) : ordered_scope.
-  Infix "<=?" := leb (at level 70, no associativity) : ordered_scope.
-  Notation "x >=? y" := (y <=? x) (only parsing, at level 70, no associativity) : ordered_scope.
-  Notation "x <=? y <=? z" := (x <=? y /\ y <=? z) (at level 70, y at next level) : ordered_scope.
-  Notation "x <=? y <? z" := (x <=? y /\ y <? z) (at level 70, y at next level) : ordered_scope.
-  Notation "x <? y <=? z" := (x <? y /\ y <=? z) (at level 70, y at next level) : ordered_scope.
+Export EO.Exports.
 
-End DO.
+Notation oeq_eq := EO.eq_eq (only parsing).
+Notation oeqbP := EO.eqbP (only parsing).
 
-Export DO.
 
-Notation oltb := DO.ltb (only parsing).
-Notation oleb := DO.leb (only parsing).
-Notation ogtb := (flip DO.ltb) (only parsing).
-Notation ogeb := (flip DO.leb) (only parsing).
+Module Type EqOrdered <: Ordered.
+  Parameter ET : eqOrderedType.
+  Definition T : orderedType := ET.
+  Definition t : Type := T.
+  Definition eq : t -> t -> Prop := oeq.
+  Definition lt : t -> t -> Prop := olt.
+  Definition le : t -> t -> Prop := ole.
+  Parameter eq_refl : forall x : t, eq x x.
+  Parameter eq_sym : forall x y : t, eq x y -> eq y x.
+  Parameter eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z.
+  Parameter lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
+  Parameter lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
+  Parameter compare : forall x y : t, Compare lt eq x y.
+  Parameter eq_dec : forall x y : t, {eq x y} + {~ eq x y}.
+  Parameter le_lteq : forall x y, le x y <-> lt x y \/ eq x y.
+End EqOrdered.
+
+Module Type EqOrderedWithDefaultSucc := EqOrdered <+ HasDefault <+ HasSucc.
+
+Module Type EqOrderedType.
+  Parameter t : eqOrderedType.
+End EqOrderedType.
+
+Module Type EqOrderedTypeWithDefaultSucc <: EqOrderedType.
+  Parameter t : eqOrderedType.
+  Parameter default : t.
+  Parameter succ : t -> t.
+  Parameter lt_succ : forall (x : t), lt x (succ x).
+End EqOrderedTypeWithDefaultSucc.
+
+Module EOT_as_EO (O : EqOrderedType) <: EqOrdered.
+  Definition ET := O.t.
+  Module H <: OrderedType.
+    Definition t : orderedType := O.t.
+  End H.
+  Include OT_as_O H.
+End EOT_as_EO.
+
+Module EOT_as_EO_WDS (O : EqOrderedTypeWithDefaultSucc) <: EqOrderedWithDefaultSucc.
+  Include EOT_as_EO O.
+  Definition default : t := O.default.
+  Definition succ : t -> t := O.succ.
+  Definition lt_succ : forall (x : t), lt x (succ x) := O.lt_succ.
+End EOT_as_EO_WDS.
 
 
 (** ** Other lemmas *)
@@ -1262,8 +1355,6 @@ Module L.
   Section OrderedTypeLemmas.
 
     Context {t : orderedType}.
-
-    Local Open Scope ordered_scope.
 
     Lemma eqP {x y : t} : reflect (eq x y) (eqb x y).
     Proof.
@@ -1314,6 +1405,7 @@ Module L.
       - case: H => [H1 H2]. exact: (le_neq H2 (neq_sym H1)).
     Qed.
 
+
     Section Injective.
 
       Context (A B : orderedType) (f : A -> B).
@@ -1323,16 +1415,6 @@ Module L.
 
     End Injective.
 
-  End OrderedTypeLemmas.
-
-
-  Section DecidableOrderedTypeLemmas.
-
-    Import F OF.
-
-    Local Open Scope ordered_scope.
-
-    Context {t : decidableOrderedType}.
 
     Lemma ltP (x y : t) : reflect (lt x y) (ltb x y).
     Proof.
@@ -1398,6 +1480,18 @@ Module L.
       now rewrite -> negb_true_iff, ltb_lt, leb_gt.
     Qed.
 
+    Lemma ltb_trans (x y z : t) : (x <? y)%OT -> (y <? z)%OT -> (x <? z)%OT.
+    Proof. move => /ltP Hxy /ltP Hyz. apply/ltP. by order. Qed.
+
+    Lemma leb_trans (x y z : t) : (x <=? y)%OT -> (y <=? z)%OT -> (x <=? z)%OT.
+    Proof. move => /leP Hxy /leP Hyz. apply/leP. by order. Qed.
+
+    Lemma ltb_leb_trans (x y z : t) : (x <? y)%OT -> (y <=? z)%OT -> (x <? z)%OT.
+    Proof. move => /ltP Hxy /leP Hyz. apply/ltP. by order. Qed.
+
+    Lemma leb_ltb_trans (x y z : t) : (x <=? y)%OT -> (y <? z)%OT -> (x <? z)%OT.
+    Proof. move => /leP Hxy /ltP Hyz. apply/ltP. by order. Qed.
+
     Lemma eqb_compare (x y : t) :
       (x =? y) = match compare x y with Eq => true | _ => false end.
     Proof.
@@ -1422,92 +1516,13 @@ Module L.
       now destruct compare.
     Qed.
 
-  End DecidableOrderedTypeLemmas.
+  End OrderedTypeLemmas.
 
 End L.
 
 Notation oeqP := L.eqP.
 Notation oltP := L.ltP.
 Notation oleP := L.leP.
-
-
-(** ** decidableOrderedType as Coq OrderedType module *)
-
-Module Type DecidableOrdered <: Structures.OrderedType.OrderedType.
-  Parameter Inline T : decidableOrderedType.
-  Definition t : Type := T.
-  Definition eq : t -> t -> Prop := oeq.
-  Definition lt : t -> t -> Prop := olt.
-  Definition le : t -> t -> Prop := ole.
-  Parameter eq_refl : forall x : t, eq x x.
-  Parameter eq_sym : forall x y : t, eq x y -> eq y x.
-  Parameter eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z.
-  Parameter lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z.
-  Parameter lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
-  Parameter compare : forall x y : t, Compare lt eq x y.
-  Parameter eq_dec : forall x y : t, {eq x y} + {~ eq x y}.
-  Parameter le_lteq : forall x y, le x y <-> lt x y \/ eq x y.
-  Parameter ltb : t -> t -> bool.
-  Parameter leb : t -> t -> bool.
-  Axiom ltb_lt : forall (x y : t), ltb x y <-> lt x y.
-  Axiom leb_le : forall (x y : t), leb x y <-> le x y.
-End DecidableOrdered.
-
-Module Type DecidableOrderedWithDefaultSucc <: DecidableOrdered :=
-  DecidableOrdered <+ HasDefault <+ HasSucc.
-
-Module Type HasDecidableOrderedType.
-  Parameter t : decidableOrderedType.
-End HasDecidableOrderedType.
-
-Module Type HasDecidableOrderedTypeWithDefaultSucc <: HasDecidableOrderedType.
-  Parameter t : decidableOrderedType.
-  Parameter default : t.
-  Parameter succ : t -> t.
-  Parameter lt_succ : forall (x : t), lt x (succ x).
-End HasDecidableOrderedTypeWithDefaultSucc.
-
-Module HDOT_as_DOT (O : HasDecidableOrderedType) <: DecidableOrdered.
-  Definition T := O.t.
-  Definition t : Type := O.t.
-  Definition eq : t -> t -> Prop := oeq.
-  Definition lt : t -> t -> Prop := olt.
-  Definition le : t -> t -> Prop := ole.
-  Definition eq_refl : forall x : t, eq x x := eq_refl.
-  Definition eq_sym : forall x y : t, eq x y -> eq y x := eq_sym.
-  Definition eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z := eq_trans.
-  Definition eq_equiv : Equivalence eq := OT.eq_equiv.
-  Definition lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z := lt_trans.
-  Definition lt_not_eq : forall x y : t, lt x y -> ~ eq x y := lt_not_eq.
-  Definition le_lteq : forall x y : t, le x y <-> lt x y \/ eq x y := le_lteq.
-  Definition compare : forall x y : t, Compare lt eq x y := ocompare.
-  Definition eq_dec : forall x y : t, {eq x y} + {~ eq x y} := eq_dec.
-  Definition ltb : t -> t -> bool := oltb.
-  Definition leb : t -> t -> bool := oleb.
-  Definition ltb_lt : forall (x y : t), ltb x y <-> lt x y := ltb_lt.
-  Definition leb_le : forall (x y : t), leb x y <-> le x y := leb_le.
-End HDOT_as_DOT.
-
-Module HDOT_as_DOT_WDS (O : HasDecidableOrderedTypeWithDefaultSucc) <: DecidableOrderedWithDefaultSucc.
-  Include HDOT_as_DOT O.
-  Definition default : t := O.default.
-  Definition succ : t -> t := O.succ.
-  Definition lt_succ : forall (x : t), lt x (succ x) := O.lt_succ.
-End HDOT_as_DOT_WDS.
-
-Module HDOT_as_OTF (O : HasDecidableOrderedType) <: Structures.Orders.OrderedTypeFull.
-  Definition t : Type := O.t.
-  Definition eq : t -> t -> Prop := oeq.
-  Definition eq_equiv : Equivalence eq := OT.eq_equiv.
-  Definition lt : t -> t -> Prop := olt.
-  Definition lt_strorder : StrictOrder lt := OT.lt_strorder.
-  Definition lt_compat : Proper (eq ==> eq ==> iff) lt := OT.lt_compat.
-  Definition compare : t -> t -> comparison := OF.compare.
-  Definition compare_spec : forall x y : t, CompareSpec (eq x y) (lt x y) (lt y x) (OF.compare x y) := OF.compare_spec.
-  Definition eq_dec : forall x y : t, {eq x y} + {~ eq x y} := eq_dec.
-  Definition le : t -> t -> Prop := ole.
-  Definition le_lteq : forall x y : t, le x y <-> lt x y \/ eq x y := le_lteq.
-End HDOT_as_OTF.
 
 
 (** ** Product orders *)
@@ -1585,105 +1600,68 @@ End ProdOrderedType.
 
 Export ProdOrderedType.
 
-
-Module ProdDecidableOrderedType.
-
-  Import F.
+Module ProdEqOrderedType.
 
   Module Base.
     Section Def.
-      Context {t1 t2 : decidableOrderedType}.
+      Context {t1 t2 : eqOrderedType}.
       Notation t := (prod t1 t2).
-      Definition ltb (x y : t) : bool :=
-        match x, y with
-        | (x1, x2), (y1, y2) => oltb x1 y1 || eqb x1 y1 && oltb x2 y2
-        end.
-      Definition leb (x y : t) : bool :=
-        match x, y with
-        | (x1, x2), (y1, y2) => oltb x1 y1 || eqb x1 y1 && oleb x2 y2
-        end.
-      Lemma ltb_lt : forall x y : t, ltb x y <-> lt x y.
+      Lemma eq_eqop : forall (x y : t), (x == y)%OT <-> (x == y)%B.
       Proof.
-        move=> [] x1 x2 [] y1 y2 /=. rewrite /olt /=. case_all.
-        - left. rewrite <- ltb_lt. assumption.
-        - right. rewrite <- eqb_eq, <- ltb_lt. tauto.
-        - left. rewrite -> ltb_lt. assumption.
-        - right. apply/andP; split;
-            [rewrite -> eqb_eq | rewrite -> ltb_lt]; assumption.
-      Qed.
-      Lemma leb_le : forall x y : t, leb x y <-> le x y.
-      Proof.
-        move=> [] x1 x2 [] y1 y2 /=. rewrite /ole /=. case_all.
-        - left. rewrite <- DO.ltb_lt. assumption.
-        - right. rewrite <- eqb_eq, <- DO.leb_le. tauto.
-        - left. rewrite -> DO.ltb_lt. assumption.
-        - right. apply/andP; split;
-            [rewrite -> eqb_eq | rewrite -> DO.leb_le]; assumption.
+        move=> [] x1 x2 [] y1 y2 /=. split.
+        - case => /EO.eq_eqop /eqP -> /EO.eq_eqop /eqP ->. exact: eqxx.
+        - move/eqP => [] -> ->. reflexivity.
       Qed.
     End Def.
   End Base.
 
   Import Base.
 
-  Definition prodDecidableOrderedTypeMixin' (t1 t2 : decidableOrderedType) :=
-    @DecidableOrderedTypeMixin (prod t1 t2) (prodOrderedTypeMixin t1 t2)
-                               ltb leb ltb_lt leb_le.
-
-  Definition prodDecidableOrderedTypeMixin (t1 t2 : decidableOrderedType) :=
-    {| DO.ClassDef.base := prodOrderedTypeMixin t1 t2
-    ; DO.ClassDef.mixin := prodDecidableOrderedTypeMixin' t1 t2 |}.
+  Definition prodEqOrderedTypeMixin (t1 t2 : eqOrderedType) :=
+    @EqOrderedTypeMixin (prod t1 t2) (prodOrderedTypeMixin t1 t2) (prod_eqMixin t1 t2) eq_eqop.
 
   #[global]
-   Canonical prodDecidableOrderedType (t1 t2 : decidableOrderedType) :=
-    Eval hnf in DecidableOrderedType (prod t1 t2) (prodDecidableOrderedTypeMixin t1 t2).
+   Canonical prodEqOrderedType (t1 t2 : eqOrderedType) :=
+    Eval hnf in EqOrderedType (prod t1 t2) (EO.ClassDef.Class (prodEqOrderedTypeMixin t1 t2)).
 
-End ProdDecidableOrderedType.
+End ProdEqOrderedType.
 
-Export ProdDecidableOrderedType.
-
+Export ProdEqOrderedType.
 
 Module ProdOrdered (O1 O2 : Ordered) <: Ordered with Definition T := prodOrderedType O1.T O2.T.
-  Module H <: HasOrderedType.
+  Module H <: OrderedType.
     Definition t := prodOrderedType O1.T O2.T.
   End H.
-  Include HOT_as_OT H.
+  Include OT_as_O H.
 End ProdOrdered.
 
 Module ProdOrderedWithDefaultSucc (O1 O2 : OrderedWithDefaultSucc) <: OrderedWithDefaultSucc with Definition T := prodOrderedType O1.T O2.T.
-  Module H <: HasOrderedTypeWithDefaultSucc with Definition t := prodOrderedType O1.T O2.T.
-    Definition t := prodOrderedType O1.T O2.T.
-    Definition default : t := (O1.default, O2.default).
-    Definition succ '(x, y) : t := (O1.succ x, y).
-    Lemma lt_succ (x : t) : lt x (succ x).
-    Proof.
-      case: x => x y. rewrite /lt /succ /=. left. exact: O1.lt_succ.
-    Qed.
-  End H.
-  Include HOT_as_OT_WDS H.
+  Include ProdOrdered O1 O2.
+  Definition default : t := (O1.default, O2.default).
+  Definition succ '(x, y) : t := (O1.succ x, y).
+  Lemma lt_succ (x : t) : lt x (succ x).
+  Proof.
+    case: x => x y. rewrite /lt /succ /=. left. exact: O1.lt_succ.
+  Qed.
 End ProdOrderedWithDefaultSucc.
 
-Module ProdDecidableOrdered (O1 O2 : DecidableOrdered) <: DecidableOrdered with Definition T := prodDecidableOrderedType O1.T O2.T.
-  Module H <: HasDecidableOrderedType.
-    Definition t := prodDecidableOrderedType O1.T O2.T.
-  End H.
-  Include HDOT_as_DOT H.
-End ProdDecidableOrdered.
+Module ProdEqOrdered (O1 O2 : EqOrdered) <: EqOrdered with Definition ET := prodEqOrderedType O1.ET O2.ET.
+  Definition ET : eqOrderedType := prodEqOrderedType O1.ET O2.ET.
+  Include ProdOrdered O1 O2.
+End ProdEqOrdered.
 
-Module ProdDecidableOrderedWithDefaultSucc (O1 O2 : DecidableOrderedWithDefaultSucc) <: DecidableOrderedWithDefaultSucc with Definition T := prodDecidableOrderedType O1.T O2.T.
-  Module H <: HasDecidableOrderedTypeWithDefaultSucc with Definition t := prodDecidableOrderedType O1.T O2.T.
-    Definition t := prodDecidableOrderedType O1.T O2.T.
-    Definition default : t := (O1.default, O2.default).
-    Definition succ '(x, y) : t := (O1.succ x, y).
-    Lemma lt_succ (x : t) : lt x (succ x).
-    Proof.
-      case: x => x y. rewrite /lt /succ /=. left. exact: O1.lt_succ.
-    Qed.
-  End H.
-  Include HDOT_as_DOT_WDS H.
-End ProdDecidableOrderedWithDefaultSucc.
+Module ProdEqOrderedWithDefaultSucc (O1 O2 : EqOrderedWithDefaultSucc) <: EqOrderedWithDefaultSucc with Definition ET := prodEqOrderedType O1.ET O2.ET.
+  Include ProdEqOrdered O1 O2.
+  Definition default : t := (O1.default, O2.default).
+  Definition succ '(x, y) : t := (O1.succ x, y).
+  Lemma lt_succ (x : t) : lt x (succ x).
+  Proof.
+    case: x => x y. rewrite /lt /succ /=. left. exact: O1.lt_succ.
+  Qed.
+End ProdEqOrderedWithDefaultSucc.
 
 
-(** * Sum orders *)
+(** ** Sum orders *)
 
 Module SumOrderedType.
 
@@ -1766,69 +1744,58 @@ End SumOrderedType.
 
 Export SumOrderedType.
 
-
-Module SumDecidableOrderedType.
+Module SumEqOrderedType.
 
   Module Base.
     Section Def.
-      Context {t1 t2 : decidableOrderedType}.
+      Context {t1 t2 : eqOrderedType}.
       Notation t := (sum t1 t2).
-      Definition ltb (x y : t) : bool :=
-        match x, y with
-        | inl x, inl y => oltb x y
-        | inl _, inr _ => true
-        | inr _, inl _ => false
-        | inr x, inr y => oltb x y
-        end.
-      Definition leb (x y : t) : bool :=
-        match x, y with
-        | inl x, inl y => oleb x y
-        | inl _, inr _ => true
-        | inr _, inl _ => false
-        | inr x, inr y => oleb x y
-        end.
-      Lemma ltb_lt : forall x y : t, ltb x y <-> lt x y.
-      Proof. move=> [] x [] y //=; exact: ltb_lt. Qed.
-      Lemma leb_le : forall x y : t, leb x y <-> le x y.
-      Proof. move=> [] x [] y //=; exact: leb_le. Qed.
+      Lemma eq_eqop : forall (x y : t), (x == y)%OT <-> (x == y)%B.
+      Proof.
+        move=> [] x [] y /=.
+        - split => H.
+          + move/EO.eq_eqop: H => /eqP ->. exact: eqxx.
+          + rewrite (eqP H). reflexivity.
+        - split => H.
+          + by inversion H.
+          + discriminate.
+        - split => H.
+          + by inversion H.
+          + discriminate.
+        - split => H.
+          + move/EO.eq_eqop: H => /eqP ->. exact: eqxx.
+          + rewrite (eqP H). reflexivity.
+      Qed.
     End Def.
   End Base.
 
   Import Base.
 
-  Definition sumDecidableOrderedTypeMixin' (t1 t2 : decidableOrderedType) :=
-    @DecidableOrderedTypeMixin (sum t1 t2) (sumOrderedTypeMixin t1 t2)
-                               ltb leb ltb_lt leb_le.
-
-  Definition sumDecidableOrderedTypeMixin (t1 t2 : decidableOrderedType) :=
-    {| DO.ClassDef.base := sumOrderedTypeMixin t1 t2
-    ; DO.ClassDef.mixin := sumDecidableOrderedTypeMixin' t1 t2 |}.
+  Definition sumEqOrderedTypeMixin (t1 t2 : eqOrderedType) :=
+    @EqOrderedTypeMixin (sum t1 t2) (sumOrderedTypeMixin t1 t2) (sum_eqMixin t1 t2) eq_eqop.
 
   #[global]
-   Canonical sumDecidableOrderedType (t1 t2 : decidableOrderedType) :=
-    Eval hnf in DecidableOrderedType (sum t1 t2) (sumDecidableOrderedTypeMixin t1 t2).
+   Canonical sumEqOrderedType (t1 t2 : eqOrderedType) :=
+    Eval hnf in EqOrderedType (sum t1 t2) (EO.ClassDef.Class (sumEqOrderedTypeMixin t1 t2)).
 
-End SumDecidableOrderedType.
+End SumEqOrderedType.
 
-Export SumDecidableOrderedType.
-
+Export SumEqOrderedType.
 
 Module SumOrdered (O1 O2 : Ordered) <: Ordered with Definition T := sumOrderedType O1.T O2.T.
-  Module H <: HasOrderedType.
+  Module H <: OrderedType.
     Definition t := sumOrderedType O1.T O2.T.
   End H.
-  Include HOT_as_OT H.
+  Include OT_as_O H.
 End SumOrdered.
 
-Module SumDecidableOrdered (O1 O2 : DecidableOrdered) <: DecidableOrdered with Definition T := sumDecidableOrderedType O1.T O2.T.
-  Module H <: HasDecidableOrderedType.
-    Definition t := sumDecidableOrderedType O1.T O2.T.
-  End H.
-  Include HDOT_as_DOT H.
-End SumDecidableOrdered.
+Module SumEqOrdered (O1 O2 : EqOrdered) <: EqOrdered with Definition ET := sumEqOrderedType O1.ET O2.ET.
+  Definition ET := sumEqOrderedType O1.ET O2.ET.
+  Include SumOrdered O1 O2.
+End SumEqOrdered.
 
 
-(** * List of orderedType as predType *)
+(** ** List of orderedType as predType *)
 
 From ssrlib Require Import Lists.
 
@@ -1836,8 +1803,10 @@ Section ListPredType.
 
   Import F L.
 
-  Variable t : orderedType.
+  Context {t : eqOrderedType}.
 
+  (* The following definitions require only orderedType but conflict with seq_predType in mathcomp *)
+  (*
   Definition oin (s : list t) : pred t := fun x => existsb (oeqb x) s.
   Definition olist := list t.
   Identity Coercion list_of_olist : olist >-> list.
@@ -1846,33 +1815,34 @@ Section ListPredType.
    Canonical olist_predType := PredType (pred_of_olist : list t -> pred t).
   #[global]
    Canonical oin_predType := PredType oin.
+   *)
 
   Import seq.
 
-  Ltac in2oin := rewrite /mem /= /in_mem /= /pred_of_olist /=.
+  Ltac in2oin := rewrite /mem /= /in_mem /=.
 
-  Lemma oin_cons x a s :
-    x \in (a::s) = (oeqb x a) || (x \in s).
-  Proof. reflexivity. Qed.
+  Lemma oin_cons x a (s : seq t) :
+    x \in (a::s) = (x =? a) || (x \in s).
+  Proof. rewrite in_cons. rewrite EO.eqb_eqop. reflexivity. Qed.
 
-  Lemma oin_app x s1 s2 :
+  Lemma oin_app x (s1 s2 : seq t) :
     x \in (s1 ++ s2) = (x \in s1) || (x \in s2).
-  Proof. in2oin. rewrite /oin existsb_app. reflexivity. Qed.
+  Proof. exact: mem_cat. Qed.
 
-  Lemma oin_rcons x s a :
-    x \in (rcons s a) = (x \in s) || (oeqb x a).
-  Proof. in2oin. by rewrite /oin existsb_rcons. Qed.
+  Lemma oin_rcons x (s : seq t) a :
+    x \in (rcons s a) = (x \in s) || (x =? a).
+  Proof. rewrite Seqs.in_rcons. rewrite EO.eqb_eqop. reflexivity. Qed.
 
-  Lemma inA_oin x s : (SetoidList.InA oeq x s) -> (x \in s).
+  Lemma inA_oin x (s : seq t) : (SetoidList.InA oeq x s) -> (x \in s).
   Proof.
     elim: s x => [| a s IH] x Hin /=.
     - by inversion Hin.
     - rewrite oin_cons. case/InA_cons: Hin => Hin.
-      + by move/eqP: Hin => ->.
+      + by move/eqb_eq: Hin => ->.
       + by rewrite (IH _ Hin) orbT.
   Qed.
 
-  Lemma oin_inA x s : (x \in s) -> (SetoidList.InA oeq x s).
+  Lemma oin_inA x (s : seq t) : (x \in s) -> (SetoidList.InA oeq x s).
   Proof.
     elim: s x => [| a s IH] x Hin //=. rewrite oin_cons in Hin.
     case/orP: Hin => Hin.
@@ -1880,7 +1850,7 @@ Section ListPredType.
     - right. exact: (IH _ Hin).
   Qed.
 
-  Lemma oinP x s : reflect (SetoidList.InA oeq x s) (x \in s).
+  Lemma oinP x (s : seq t) : reflect (SetoidList.InA oeq x s) (x \in s).
   Proof.
     case Hin: (x \in s).
     - apply: ReflectT. exact: (oin_inA Hin).
@@ -1893,9 +1863,11 @@ Notation "x '\in' A :> T" :=  (in_mem x (mem (A : T)))
                                 (at level 70, no associativity, only parsing, A at next level).
 
 
-(** * mathcomp orderType as orderedType *)
+(** ** mathcomp orderType as eqOrderedType (and hence orderedType) *)
 
 Module MathCompOrderedType.
+
+  Local Close Scope ordered_scope.
 
   Module Base.
     Section Def.
@@ -1928,7 +1900,7 @@ Module MathCompOrderedType.
       Qed.
       Definition compare : forall x y : t, Compare lt eq x y.
       Proof.
-        rewrite /lt /eq => x y. case Heq: (x == y).
+        rewrite /lt /eq => x y. case Heq: (x == y)%EQ.
         - apply: EQ; assumption.
         - case Hlt: (x < y)%O.
           + apply: LT; assumption.
@@ -1945,6 +1917,8 @@ Module MathCompOrderedType.
       Proof. tauto. Qed.
       Lemma leb_le (x y : t) : leb x y <-> le x y.
       Proof. tauto. Qed.
+      Lemma eq_eqop (x y : t) : eq x y <-> (x == y)%B.
+      Proof. tauto. Qed.
     End Def.
   End Base.
 
@@ -1959,460 +1933,644 @@ Module MathCompOrderedType.
    Canonical mathcompOrderedType (disp : unit) (t : orderType disp) :=
     Eval hnf in OrderedType t (mathcompOrderedTypeMixin t).
 
-  Definition mathcompDecidableOrderedTypeMixin' (disp : unit) (t : orderType disp) :=
-    @DecidableOrderedTypeMixin t (mathcompOrderedTypeMixin t)
-                               ltb leb ltb_lt leb_le.
-
-  Definition mathcompDecidableOrderedTypeMixin (disp : unit) (t : orderType disp) :=
-    {| DO.ClassDef.base := mathcompOrderedTypeMixin t
-    ; DO.ClassDef.mixin := mathcompDecidableOrderedTypeMixin' t |}.
+  Definition mathcompEqOrderedTypeMixin (disp : unit) (t : orderType disp) :=
+    @EqOrderedTypeMixin t (mathcompOrderedTypeMixin t) (Order.Total.class t) eq_eqop.
 
   #[global]
-   Canonical mathcompDecidableOrderedType (disp : unit) (t : orderType disp) :=
-    Eval hnf in DecidableOrderedType t (mathcompDecidableOrderedTypeMixin t).
+   Canonical mathcompEqOrderedType (disp : unit) (t : orderType disp) :=
+    Eval hnf in EqOrderedType t (EO.ClassDef.Class (mathcompEqOrderedTypeMixin t)).
 
 End MathCompOrderedType.
 
 Export MathCompOrderedType.
 Coercion MathCompOrderedType.mathcompOrderedType : orderType >-> orderedType.
-Coercion MathCompOrderedType.mathcompDecidableOrderedType : orderType >-> decidableOrderedType.
+Coercion MathCompOrderedType.mathcompEqOrderedType : orderType >-> eqOrderedType.
 
 
 (** ** Additional orderType Lemmas *)
 
 Section OrderTypeLemmas.
 
+  Local Close Scope ordered_scope.
   Context {disp : unit}.
   Context {t : orderType disp}.
 
-  Local Open Scope order_scope.
-
-  Lemma nlt_eqVlt (x y : t) : (~~ (x < y)) = ((x == y) || (y < x)).
+  Lemma nlt_eqVlt (x y : t) : (~~ (x < y))%O = ((x == y) || (y < x))%O.
   Proof.
-    case Heq: (x == y) => /=.
+    case Heq: (x == y)%O => /=.
     - apply/negP => Hlt. move: (Order.POrderTheory.lt_eqF Hlt). by rewrite Heq.
     - rewrite -Order.TotalTheory.leNgt Order.POrderTheory.le_eqVlt eqtype.eq_sym Heq /=.
       reflexivity.
   Qed.
 
-  Lemma lt_neqAlt (x y : t) : (x < y) = (x != y) && (~~ (y < x)).
+  Lemma lt_neqAlt (x y : t) : (x < y)%O = (x != y) && (~~ (y < x))%O.
   Proof. rewrite -Order.TotalTheory.leNgt. exact: Order.POrderTheory.lt_neqAle. Qed.
 
 End OrderTypeLemmas.
 
 
-(** * Instances of orderedType, decidableOrderedType, Ordered, and DecidableOrdered *)
+(** ** Instances of orderedType, decidableOrderedType, Ordered, and DecidableOrdered *)
 
-(* nat *)
+(** Coq's OrderedType as orderedType *)
 
-Module NatOrderedType.
+Module CoqOrdered (O : Structures.OrderedType.OrderedType).
 
-  Definition natOrderedTypeMixin :=
-    @OrderedTypeMixin nat Logic.eq Nat.lt Nat.le
-                      Nat.eq_refl Nat.eq_sym Nat.eq_trans Nat.lt_trans
-                      DecidableTypeEx.Nat_as_DT.lt_not_eq Nat.le_lteq
-                      DecidableTypeEx.Nat_as_DT.compare Nat.eq_dec.
+  Module Base.
+    Definition le (x y : O.t) := O.lt x y \/ O.eq x y.
+    Lemma le_lteq (x y : O.t) : le x y <-> O.lt x y \/ O.eq x y.
+    Proof. reflexivity. Qed.
+  End Base.
 
-  #[global]
-   Canonical natOrderedType :=
-    Eval hnf in OrderedType nat natOrderedTypeMixin.
+  Import Base.
 
-  Definition natDecidableOrderedTypeMixin' :=
-    @DecidableOrderedTypeMixin nat natOrderedTypeMixin
-                               Nat.ltb Nat.leb Nat.ltb_lt Nat.leb_le.
-
-  Definition natDecidableOrderedTypeMixin :=
-    {| DO.ClassDef.base := natOrderedTypeMixin
-    ; DO.ClassDef.mixin := natDecidableOrderedTypeMixin' |}.
+  Definition mixin :=
+    @OrderedTypeMixin O.t O.eq O.lt le
+                      O.eq_refl O.eq_sym O.eq_trans O.lt_trans
+                      O.lt_not_eq le_lteq O.compare O.eq_dec.
 
   #[global]
-   Canonical natDecidableOrderedType :=
-    Eval hnf in DecidableOrderedType nat natDecidableOrderedTypeMixin.
+   Canonical t :=
+    Eval hnf in OrderedType O.t mixin.
 
-End NatOrderedType.
+End CoqOrdered.
 
-(* Another definition of NatOrderedType where propositional comparisons
+Module CoqOrdered_as_Ordered (Import O : Structures.OrderedType.OrderedType) <: Ordered.
+  Module M := CoqOrdered O.
+  Definition T : orderedType := M.t.
+  Definition t : Type := T.
+  Definition eq : t -> t -> Prop := oeq.
+  Definition lt : t -> t -> Prop := olt.
+  Definition le : t -> t -> Prop := ole.
+  Definition eq_refl : forall x : t, eq x x := O.eq_refl.
+  Definition eq_sym : forall x y : t, eq x y -> eq y x := O.eq_sym.
+  Definition eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z := O.eq_trans.
+  Definition lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z := O.lt_trans.
+  Definition lt_not_eq : forall x y : t, lt x y -> ~ eq x y := O.lt_not_eq.
+  Definition compare : forall x y : t, Compare lt eq x y := O.compare.
+  Definition eq_dec : forall x y : t, {eq x y} + {~ eq x y} := O.eq_dec.
+  Definition le_lteq : forall x y, le x y <-> lt x y \/ eq x y := O.le_lteq.
+End CoqOrdered_as_Ordered.
+
+
+(** Numbers that use Logic.eq for equality *)
+
+Module N.
+
+  (* nat *)
+
+  Module NatOT.
+
+    Definition natOrderedTypeMixin :=
+      @OrderedTypeMixin nat Logic.eq Nat.lt Nat.le
+                        Nat.eq_refl Nat.eq_sym Nat.eq_trans Nat.lt_trans
+                        DecidableTypeEx.Nat_as_DT.lt_not_eq Nat.le_lteq
+                        DecidableTypeEx.Nat_as_DT.compare Nat.eq_dec.
+
+    #[global]
+     Canonical natOrderedType :=
+      Eval hnf in OrderedType nat natOrderedTypeMixin.
+
+  End NatOT.
+
+  Export NatOT.
+
+  Module NatEOT.
+
+    Lemma nat_eq_eqop (x y : nat) : (x == y)%OT <-> (x == y)%B.
+    Proof. split; move/eqP => H; assumption. Qed.
+
+    Definition natEqOrderedTypeMixin :=
+      @EqOrderedTypeMixin nat natOrderedTypeMixin nat_eqMixin nat_eq_eqop.
+
+    #[global]
+     Canonical natEqOrderedType :=
+      Eval hnf in EqOrderedType nat (EO.ClassDef.Class natEqOrderedTypeMixin).
+
+  End NatEOT.
+
+  Export NatEOT.
+
+  Module NatOrderedType <: OrderedTypeWithDefaultSucc.
+    Definition t : orderedType := natOrderedType.
+    Definition default : t := 0%nat.
+    Definition succ : t -> t := Nat.succ.
+    Lemma lt_succ : forall (x : t), lt x (succ x).
+    Proof. exact: Nat.lt_succ_diag_r. Qed.
+  End NatOrderedType.
+
+  Module NatEqOrderedType <: EqOrderedTypeWithDefaultSucc.
+    Definition t : eqOrderedType := natEqOrderedType.
+    Definition default : t := NatOrderedType.default.
+    Definition succ : t -> t := NatOrderedType.succ.
+    Definition lt_succ : forall (x : t), lt x (succ x) := NatOrderedType.lt_succ.
+  End NatEqOrderedType.
+
+  Module NatOrdered <: EqOrdered := EOT_as_EO_WDS NatEqOrderedType.
+
+
+  (* positive *)
+
+  Module PositiveOT.
+
+    Definition positiveOrderedTypeMixin :=
+      @OrderedTypeMixin positive Logic.eq Pos.lt Pos.le
+                        Pos.eq_refl Pos.eq_sym Pos.eq_trans Pos.lt_trans
+                        DecidableTypeEx.Positive_as_DT.lt_not_eq Pos.le_lteq
+                        DecidableTypeEx.Positive_as_DT.compare Pos.eq_dec.
+
+    #[global]
+     Canonical positiveOrderedType :=
+      Eval hnf in OrderedType positive positiveOrderedTypeMixin.
+
+  End PositiveOT.
+
+  Export PositiveOT.
+
+  Module PositiveEOT.
+
+    Lemma positive_eq_eqop (x y : positive) : (x == y)%OT <-> (x == y)%B.
+    Proof. split; move/eqP => H; assumption. Qed.
+
+    Definition positiveEqOrderedTypeMixin :=
+      @EqOrderedTypeMixin positive positiveOrderedTypeMixin pos_eqMixin positive_eq_eqop.
+
+    #[global]
+     Canonical positiveEqOrderedType :=
+      Eval hnf in EqOrderedType positive (EO.ClassDef.Class positiveEqOrderedTypeMixin).
+
+  End PositiveEOT.
+
+  Export PositiveEOT.
+
+  Module PositiveOrderedType <: OrderedTypeWithDefaultSucc.
+    Definition t : orderedType := positiveOrderedType.
+    Definition default : t := 1%positive.
+    Definition succ : t -> t := Pos.succ.
+    Lemma lt_succ : forall (x : t), lt x (succ x).
+    Proof. exact: Pos.lt_succ_diag_r. Qed.
+  End PositiveOrderedType.
+
+  Module PositiveEqOrderedType <: EqOrderedTypeWithDefaultSucc.
+    Definition t : eqOrderedType := positiveEqOrderedType.
+    Definition default : t := PositiveOrderedType.default.
+    Definition succ : t -> t := PositiveOrderedType.succ.
+    Definition lt_succ : forall (x : t), lt x (succ x) := PositiveOrderedType.lt_succ.
+  End PositiveEqOrderedType.
+
+  Module PositiveOrdered <: EqOrdered := EOT_as_EO_WDS PositiveEqOrderedType.
+
+
+  (* N *)
+
+  Module NOT.
+
+    Definition NOrderedTypeMixin :=
+      @OrderedTypeMixin N Logic.eq N.lt N.le
+                        N.eq_refl N.eq_sym N.eq_trans N.lt_trans
+                        DecidableTypeEx.N_as_DT.lt_not_eq N.le_lteq
+                        DecidableTypeEx.N_as_DT.compare N.eq_dec.
+
+    #[global]
+     Canonical NOrderedType :=
+      Eval hnf in OrderedType N NOrderedTypeMixin.
+
+  End NOT.
+
+  Export NOT.
+
+  Module NEOT.
+
+    Lemma N_eq_eqop (x y : N) : (x == y)%OT <-> (x == y)%B.
+    Proof. split; move/eqP => H; assumption. Qed.
+
+    Definition NEqOrderedTypeMixin :=
+      @EqOrderedTypeMixin N NOrderedTypeMixin N_eqMixin N_eq_eqop.
+
+    #[global]
+     Canonical NEqOrderedType :=
+      Eval hnf in EqOrderedType N (EO.ClassDef.Class NEqOrderedTypeMixin).
+
+  End NEOT.
+
+  Export NEOT.
+
+  Module NOrderedType <: OrderedTypeWithDefaultSucc.
+    Definition t : orderedType := NOrderedType.
+    Definition default : t := 0%num.
+    Definition succ : t -> t := N.succ.
+    Lemma lt_succ : forall (x : t), lt x (succ x).
+    Proof. exact: N.lt_succ_diag_r. Qed.
+  End NOrderedType.
+
+  Module NEqOrderedType <: EqOrderedTypeWithDefaultSucc.
+    Definition t : eqOrderedType := NEqOrderedType.
+    Definition default : t := NOrderedType.default.
+    Definition succ : t -> t := NOrderedType.succ.
+    Definition lt_succ : forall (x : t), lt x (succ x) := NOrderedType.lt_succ.
+  End NEqOrderedType.
+
+  Module NOrdered <: EqOrdered := EOT_as_EO_WDS NEqOrderedType.
+
+
+  (* Z *)
+
+  Module ZOT.
+
+    Definition ZOrderedTypeMixin :=
+      @OrderedTypeMixin Z Logic.eq Z.lt Z.le
+                        Z.eq_refl Z.eq_sym Z.eq_trans Z.lt_trans
+                        DecidableTypeEx.Z_as_DT.lt_not_eq Z.le_lteq
+                        DecidableTypeEx.Z_as_DT.compare Z.eq_dec.
+
+    #[global]
+     Canonical ZOrderedType :=
+      Eval hnf in OrderedType Z ZOrderedTypeMixin.
+
+  End ZOT.
+
+  Export ZOT.
+
+  Module ZEOT.
+
+    Lemma Z_eq_eqop (x y : Z) : (x == y)%OT <-> (x == y)%B.
+    Proof. split; move/eqP => H; assumption. Qed.
+
+    Definition ZEqOrderedTypeMixin :=
+      @EqOrderedTypeMixin Z ZOrderedTypeMixin Z_eqMixin Z_eq_eqop.
+
+    #[global]
+     Canonical ZEqOrderedType :=
+      Eval hnf in EqOrderedType Z (EO.ClassDef.Class ZEqOrderedTypeMixin).
+
+  End ZEOT.
+
+  Export ZEOT.
+
+  Module ZOrderedType <: OrderedTypeWithDefaultSucc.
+    Definition t : orderedType := ZOrderedType.
+    Definition default : t := 0%Z.
+    Definition succ : t -> t := Z.succ.
+    Lemma lt_succ : forall (x : t), lt x (succ x).
+    Proof. exact: Z.lt_succ_diag_r. Qed.
+  End ZOrderedType.
+
+  Module ZEqOrderedType <: EqOrderedTypeWithDefaultSucc.
+    Definition t : eqOrderedType := ZEqOrderedType.
+    Definition default : t := ZOrderedType.default.
+    Definition succ : t -> t := ZOrderedType.succ.
+    Definition lt_succ : forall (x : t), lt x (succ x) := ZOrderedType.lt_succ.
+  End ZEqOrderedType.
+
+  Module ZOrdered <: EqOrdered := EOT_as_EO_WDS ZEqOrderedType.
+
+End N.
+
+
+(** Numbers that use functions for equality, less-than, and less-than-or-equal-to *)
+
+Module EN.
+
+  (* Another definition of NatOrderedType where propositional comparisons
    and boolean comparisons are not distinguished *)
-(*
-Module EqNatOrdeeredType.
-  Definition natOrderedType : orderedType := Order.NatOrder.orderType.
-  Definition natDecidableOrderedType : decidableOrderedType := Order.NatOrder.orderType.
 
-  (*
+  Module NatOT.
+    Definition natOrderedType : orderedType := Order.NatOrder.orderType.
+    Definition natEqOrderedType : eqOrderedType := Order.NatOrder.orderType.
+
+    (*
     Add the following coercion so that we can write [forall n : nat, (n <= n)%OT]
     instead of [forall n : nat, (n <= n :> mathcompOrderedType Order.NatOrder.orderType)%OT].
-   *)
-  Definition nat2orderedType : nat -> mathcompOrderedType Order.NatOrder.orderType := id.
-  Coercion nat2orderedType : nat >-> O.ClassDef.sort.
-End EqNatOrdeeredType.
- *)
+     *)
+    Definition nat2orderedType : nat -> mathcompOrderedType Order.NatOrder.orderType := id.
+    Coercion nat2orderedType : nat >-> O.ClassDef.sort.
+  End NatOT.
 
-Export NatOrderedType.
+  Export NatOT.
 
-Module HasNatDecidableOrderedType <: HasDecidableOrderedTypeWithDefaultSucc.
-  Definition t : decidableOrderedType := natDecidableOrderedType.
-  Definition default : t := 0%nat.
-  Definition succ : t -> t := Nat.succ.
-  Lemma lt_succ : forall (x : t), lt x (succ x).
-  Proof. exact: Nat.lt_succ_diag_r. Qed.
-End HasNatDecidableOrderedType.
+  Module NatOrderedType <: OrderedTypeWithDefaultSucc.
+    Definition t : orderedType := natOrderedType.
+    Definition default : t := 0%nat.
+    Definition succ : t -> t := Nat.succ.
+    Lemma lt_succ : forall (x : t), lt x (succ x).
+    Proof. exact: ltnSn. Qed.
+  End NatOrderedType.
 
-Module NatOrdered := HDOT_as_DOT_WDS HasNatDecidableOrderedType.
+  Module NatEqOrderedType <: EqOrderedTypeWithDefaultSucc.
+    Definition t : eqOrderedType := natEqOrderedType.
+    Definition default : t := NatOrderedType.default.
+    Definition succ : t -> t := NatOrderedType.succ.
+    Definition lt_succ : forall (x : t), lt x (succ x) := NatOrderedType.lt_succ.
+  End NatEqOrderedType.
+
+  Module NatOrdered <: EqOrdered := EOT_as_EO_WDS NatEqOrderedType.
 
 
-(* positive *)
-
-Module PositiveOrderedType.
-
-  Definition positiveOrderedTypeMixin :=
-    @OrderedTypeMixin positive Logic.eq Pos.lt Pos.le
-                      Pos.eq_refl Pos.eq_sym Pos.eq_trans Pos.lt_trans
-                      DecidableTypeEx.Positive_as_DT.lt_not_eq Pos.le_lteq
-                      DecidableTypeEx.Positive_as_DT.compare Pos.eq_dec.
-
-  #[global]
-   Canonical positiveOrderedType :=
-    Eval hnf in OrderedType positive positiveOrderedTypeMixin.
-
-  Definition positiveDecidableOrderedTypeMixin' :=
-    @DecidableOrderedTypeMixin positive positiveOrderedTypeMixin
-                               Pos.ltb Pos.leb Pos.ltb_lt Pos.leb_le.
-
-  Definition positiveDecidableOrderedTypeMixin :=
-    {| DO.ClassDef.base := positiveOrderedTypeMixin
-    ; DO.ClassDef.mixin := positiveDecidableOrderedTypeMixin' |}.
-
-  #[global]
-   Canonical positiveDecidableOrderedType :=
-    Eval hnf in DecidableOrderedType positive positiveDecidableOrderedTypeMixin.
-
-End PositiveOrderedType.
-
-(* Another definition of PositiveOrderedType where propositional comparisons
+  (* Another definition of PositiveOrderedType where propositional comparisons
    and boolean comparisons are not distinguished *)
-(*
-Module EqPositiveOrderedType.
 
-  Module Base.
-    Local Open Scope positive_scope.
-    Notation t := pos_eqType.
-    Notation eq := (@eqtype.eq_op t).
-    Notation lt := Pos.ltb.
-    Notation le := Pos.leb.
-    Notation eq_refl := (@eqtype.eq_refl t).
-    Lemma eq_sym (x y : t) : x == y -> y == x.
-    Proof. rewrite eqtype.eq_sym. by apply. Qed.
-    Lemma eq_trans (x y z : t) : x == y -> y == z -> x == z.
-    Proof. move => /eqP -> /eqP ->. exact: eqxx. Qed.
-    Notation lt_trans := pos_ltb_trans.
-    Lemma lt_not_eq (x y : t) : lt x y -> ~ x == y.
-    Proof.
-      move=> /pos_ltP Hlt /eqP Heq.
-      exact: (DecidableTypeEx.Positive_as_DT.lt_not_eq _ _ Hlt Heq).
-    Qed.
-    Lemma le_lteq (x y : t) : le x y <-> lt x y \/ x == y.
-    Proof.
-      move: (Pos.le_lteq x y) => [H1 H2]. split => H.
-      - move/pos_leP: H => H. case: (H1 H) => {}H.
-        + left; apply/pos_ltP; assumption.
-        + right; apply/eqP; assumption.
-      - apply/pos_leP. apply: H2. case: H => H.
-        + left; apply/pos_ltP; assumption.
-        + right; apply/eqP; assumption.
-    Qed.
-    Lemma compare (x y : t) : Compare lt eq x y.
-    Proof.
-      case: (DecidableTypeEx.Positive_as_DT.compare x y) => H.
-      - apply: LT; apply/pos_ltP; assumption.
-      - apply: EQ; apply/eqP; assumption.
-      - apply: GT; apply/pos_ltP; assumption.
-    Defined.
-    Lemma eq_dec (x y : t) : { eq x y } + { ~ eq x y }.
-    Proof. by case: (x == y); eauto. Qed.
-    Notation ltb := Pos.ltb.
-    Notation leb := Pos.leb.
-    Lemma ltb_lt (x y : t) : ltb x y <-> lt x y.
+  Module PositiveOT.
+
+    Local Close Scope ordered_scope.
+
+    Module Base.
+      Local Open Scope positive_scope.
+      Notation t := pos_eqType.
+      Notation eq := (@eqtype.eq_op t).
+      Notation lt := Pos.ltb.
+      Notation le := Pos.leb.
+      Notation eq_refl := (@eqtype.eq_refl t).
+      Lemma eq_sym (x y : t) : (x == y)%EQ -> (y == x)%EQ.
+      Proof. rewrite eqtype.eq_sym. by apply. Qed.
+      Lemma eq_trans (x y z : t) : x == y -> y == z -> x == z.
+      Proof. move => /eqP -> /eqP ->. exact: eqxx. Qed.
+      Notation lt_trans := pos_ltb_trans.
+      Lemma lt_not_eq (x y : t) : lt x y -> ~ x == y.
+      Proof.
+        move=> /pos_ltP Hlt /eqP Heq.
+        exact: (DecidableTypeEx.Positive_as_DT.lt_not_eq _ _ Hlt Heq).
+      Qed.
+      Lemma le_lteq (x y : t) : le x y <-> lt x y \/ x == y.
+      Proof.
+        move: (Pos.le_lteq x y) => [H1 H2]. split => H.
+        - move/pos_leP: H => H. case: (H1 H) => {}H.
+          + left; apply/pos_ltP; assumption.
+          + right; apply/eqP; assumption.
+        - apply/pos_leP. apply: H2. case: H => H.
+          + left; apply/pos_ltP; assumption.
+          + right; apply/eqP; assumption.
+      Qed.
+      Lemma compare (x y : t) : Compare lt eq x y.
+      Proof.
+        case: (DecidableTypeEx.Positive_as_DT.compare x y) => H.
+        - apply: LT; apply/pos_ltP; assumption.
+        - apply: EQ; apply/eqP; assumption.
+        - apply: GT; apply/pos_ltP; assumption.
+      Defined.
+      Lemma eq_dec (x y : t) : { eq x y } + { ~ eq x y }.
+      Proof. by case: (x == y); eauto. Qed.
+      Notation ltb := Pos.ltb.
+      Notation leb := Pos.leb.
+      Lemma ltb_lt (x y : t) : ltb x y <-> lt x y.
+      Proof. tauto. Qed.
+      Lemma leb_le (x y : t) : leb x y <-> le x y.
+      Proof. tauto. Qed.
+    End Base.
+
+    Import Base.
+
+    Definition positiveOrderedTypeMixin :=
+      @OrderedTypeMixin positive eq lt le
+                        eq_refl eq_sym eq_trans lt_trans
+                        lt_not_eq le_lteq compare eq_dec.
+
+    #[global]
+     Canonical positiveOrderedType :=
+      Eval hnf in OrderedType positive positiveOrderedTypeMixin.
+
+  End PositiveOT.
+
+  Export PositiveOT.
+
+  Module PositiveEOT.
+
+    Lemma positive_eq_eqop (x y : positive) : (x == y)%OT <-> (x == y)%B.
     Proof. tauto. Qed.
-    Lemma leb_le (x y : t) : leb x y <-> le x y.
-    Proof. tauto. Qed.
-  End Base.
 
-  Import Base.
+    Definition positiveEqOrderedTypeMixin :=
+      @EqOrderedTypeMixin positive positiveOrderedTypeMixin pos_eqMixin positive_eq_eqop.
 
-  Definition positiveOrderedTypeMixin :=
-    @OrderedTypeMixin positive eq lt le
-                      eq_refl eq_sym eq_trans lt_trans
-                      lt_not_eq le_lteq compare eq_dec.
+    #[global]
+     Canonical positiveEqOrderedType :=
+      Eval hnf in EqOrderedType positive (EO.ClassDef.Class positiveEqOrderedTypeMixin).
 
-  #[global]
-   Canonical positiveOrderedType :=
-    Eval hnf in OrderedType positive positiveOrderedTypeMixin.
+  End PositiveEOT.
 
-  Definition positiveDecidableOrderedTypeMixin' :=
-    @DecidableOrderedTypeMixin positive positiveOrderedTypeMixin
-                               ltb leb ltb_lt leb_le.
+  Export PositiveEOT.
 
-  Definition positiveDecidableOrderedTypeMixin :=
-    {| DO.ClassDef.base := positiveOrderedTypeMixin
-    ; DO.ClassDef.mixin := positiveDecidableOrderedTypeMixin' |}.
+  Module PositiveOrderedType <: OrderedTypeWithDefaultSucc.
+    Definition t : orderedType := positiveOrderedType.
+    Definition default : t := 1%positive.
+    Definition succ : t -> t := Pos.succ.
+    Lemma lt_succ : forall (x : t), lt x (succ x).
+    Proof. move=> x. apply/pos_ltP. exact: Pos.lt_succ_diag_r. Qed.
+  End PositiveOrderedType.
 
-  #[global]
-   Canonical positiveDecidableOrderedType :=
-    Eval hnf in DecidableOrderedType positive positiveDecidableOrderedTypeMixin.
+  Module PositiveEqOrderedType <: EqOrderedTypeWithDefaultSucc.
+    Definition t : eqOrderedType := positiveEqOrderedType.
+    Definition default : t := PositiveOrderedType.default.
+    Definition succ : t -> t := PositiveOrderedType.succ.
+    Definition lt_succ : forall (x : t), lt x (succ x) := PositiveOrderedType.lt_succ.
+  End PositiveEqOrderedType.
 
-End EqPositiveOrderedType.
- *)
-
-Export PositiveOrderedType.
-
-Module HasPositiveDecidableOrderedType <: HasDecidableOrderedTypeWithDefaultSucc.
-  Definition t : decidableOrderedType := positiveDecidableOrderedType.
-  Definition default : t := 1%positive.
-  Definition succ : t -> t := Pos.succ.
-  Lemma lt_succ : forall (x : t), lt x (succ x).
-  Proof. exact: Pos.lt_succ_diag_r. Qed.
-End HasPositiveDecidableOrderedType.
-
-Module PositiveOrdered := HDOT_as_DOT_WDS HasPositiveDecidableOrderedType.
+  Module PositiveOrdered <: EqOrdered := EOT_as_EO_WDS PositiveEqOrderedType.
 
 
-(* N *)
-
-Module NOrderedType.
-
-  Definition NOrderedTypeMixin :=
-    @OrderedTypeMixin N Logic.eq N.lt N.le
-                      N.eq_refl N.eq_sym N.eq_trans N.lt_trans
-                      DecidableTypeEx.N_as_DT.lt_not_eq N.le_lteq
-                      DecidableTypeEx.N_as_DT.compare N.eq_dec.
-
-  #[global]
-   Canonical NOrderedType :=
-    Eval hnf in OrderedType N NOrderedTypeMixin.
-
-  Definition NDecidableOrderedTypeMixin' :=
-    @DecidableOrderedTypeMixin N NOrderedTypeMixin
-                               N.ltb N.leb N.ltb_lt N.leb_le.
-
-  Definition NDecidableOrderedTypeMixin :=
-    {| DO.ClassDef.base := NOrderedTypeMixin
-    ; DO.ClassDef.mixin := NDecidableOrderedTypeMixin' |}.
-
-  #[global]
-   Canonical NDecidableOrderedType :=
-    Eval hnf in DecidableOrderedType N NDecidableOrderedTypeMixin.
-
-End NOrderedType.
-
-(* Another definition of NOrderedType where propositional comparisons
+  (* Another definition of NOrderedType where propositional comparisons
    and boolean comparisons are not distinguished *)
-(*
-Module EqNOrderedType.
 
-  Module Base.
-    Local Open Scope N_scope.
-    Notation t := N_eqType.
-    Notation eq := (@eqtype.eq_op t).
-    Notation lt := N.ltb.
-    Notation le := N.leb.
-    Notation eq_refl := (@eqtype.eq_refl t).
-    Lemma eq_sym (x y : t) : x == y -> y == x.
-    Proof. rewrite eqtype.eq_sym. by apply. Qed.
-    Lemma eq_trans (x y z : t) : x == y -> y == z -> x == z.
-    Proof. move => /eqP -> /eqP ->. exact: eqxx. Qed.
-    Definition lt_trans (x y z : t) := @Nltn_trans y x z.
-    Lemma lt_not_eq (x y : t) : lt x y -> ~ x == y.
-    Proof.
-      move=> /N_ltP Hlt /eqP Heq.
-      exact: (DecidableTypeEx.N_as_DT.lt_not_eq _ _ Hlt Heq).
-    Qed.
-    Lemma le_lteq (x y : t) : le x y <-> lt x y \/ x == y.
-    Proof.
-      move: (N.le_lteq x y) => [H1 H2]. split => H.
-      - move/N_leP: H => H. case: (H1 H) => {}H.
-        + left; apply/N_ltP; assumption.
-        + right; apply/eqP; assumption.
-      - apply/N_leP. apply: H2. case: H => H.
-        + left; apply/N_ltP; assumption.
-        + right; apply/eqP; assumption.
-    Qed.
-    Lemma compare (x y : t) : Compare lt eq x y.
-    Proof.
-      case: (DecidableTypeEx.N_as_DT.compare x y) => H.
-      - apply: LT; apply/N_ltP; assumption.
-      - apply: EQ; apply/eqP; assumption.
-      - apply: GT; apply/N_ltP; assumption.
-    Defined.
-    Lemma eq_dec (x y : t) : { eq x y } + { ~ eq x y }.
-    Proof. by case: (x == y); eauto. Qed.
-    Notation ltb := N.ltb.
-    Notation leb := N.leb.
-    Lemma ltb_lt (x y : t) : ltb x y <-> lt x y.
+  Module NOT.
+
+    Local Close Scope ordered_scope.
+
+    Module Base.
+      Local Open Scope N_scope.
+      Notation t := N_eqType.
+      Notation eq := (@eqtype.eq_op t).
+      Notation lt := N.ltb.
+      Notation le := N.leb.
+      Notation eq_refl := (@eqtype.eq_refl t).
+      Lemma eq_sym (x y : t) : x == y -> y == x.
+      Proof. rewrite eqtype.eq_sym. by apply. Qed.
+      Lemma eq_trans (x y z : t) : x == y -> y == z -> x == z.
+      Proof. move => /eqP -> /eqP ->. exact: eqxx. Qed.
+      Definition lt_trans (x y z : t) := @Nltn_trans y x z.
+      Lemma lt_not_eq (x y : t) : lt x y -> ~ x == y.
+      Proof.
+        move=> /N_ltP Hlt /eqP Heq.
+        exact: (DecidableTypeEx.N_as_DT.lt_not_eq _ _ Hlt Heq).
+      Qed.
+      Lemma le_lteq (x y : t) : le x y <-> lt x y \/ x == y.
+      Proof.
+        move: (N.le_lteq x y) => [H1 H2]. split => H.
+        - move/N_leP: H => H. case: (H1 H) => {}H.
+          + left; apply/N_ltP; assumption.
+          + right; apply/eqP; assumption.
+        - apply/N_leP. apply: H2. case: H => H.
+          + left; apply/N_ltP; assumption.
+          + right; apply/eqP; assumption.
+      Qed.
+      Lemma compare (x y : t) : Compare lt eq x y.
+      Proof.
+        case: (DecidableTypeEx.N_as_DT.compare x y) => H.
+        - apply: LT; apply/N_ltP; assumption.
+        - apply: EQ; apply/eqP; assumption.
+        - apply: GT; apply/N_ltP; assumption.
+      Defined.
+      Lemma eq_dec (x y : t) : { eq x y } + { ~ eq x y }.
+      Proof. by case: (x == y); eauto. Qed.
+      Notation ltb := N.ltb.
+      Notation leb := N.leb.
+      Lemma ltb_lt (x y : t) : ltb x y <-> lt x y.
+      Proof. tauto. Qed.
+      Lemma leb_le (x y : t) : leb x y <-> le x y.
+      Proof. tauto. Qed.
+    End Base.
+
+    Import Base.
+
+    Definition NOrderedTypeMixin :=
+      @OrderedTypeMixin N eq lt le
+                        eq_refl eq_sym eq_trans lt_trans
+                        lt_not_eq le_lteq compare eq_dec.
+
+    #[global]
+     Canonical NOrderedType :=
+      Eval hnf in OrderedType N NOrderedTypeMixin.
+
+  End NOT.
+
+  Export NOT.
+
+  Module NEOT.
+
+    Lemma N_eq_eqop (x y : N) : (x == y)%OT <-> (x == y)%B.
     Proof. tauto. Qed.
-    Lemma leb_le (x y : t) : leb x y <-> le x y.
-    Proof. tauto. Qed.
-  End Base.
 
-  Import Base.
+    Definition NEqOrderedTypeMixin :=
+      @EqOrderedTypeMixin N NOrderedTypeMixin N_eqMixin N_eq_eqop.
 
-  Definition NOrderedTypeMixin :=
-    @OrderedTypeMixin N eq lt le
-                      eq_refl eq_sym eq_trans lt_trans
-                      lt_not_eq le_lteq compare eq_dec.
+    #[global]
+     Canonical NEqOrderedType :=
+      Eval hnf in EqOrderedType N (EO.ClassDef.Class NEqOrderedTypeMixin).
 
-  #[global]
-   Canonical NOrderedType :=
-    Eval hnf in OrderedType N NOrderedTypeMixin.
+  End NEOT.
 
-  Definition NDecidableOrderedTypeMixin' :=
-    @DecidableOrderedTypeMixin N NOrderedTypeMixin
-                               ltb leb ltb_lt leb_le.
+  Export NEOT.
 
-  #[global]
-  Definition NDecidableOrderedTypeMixin :=
-    {| DO.ClassDef.base := NOrderedTypeMixin
-    ; DO.ClassDef.mixin := NDecidableOrderedTypeMixin' |}.
+  Module NOrderedType <: OrderedTypeWithDefaultSucc.
+    Definition t : orderedType := NOrderedType.
+    Definition default : t := 0%num.
+    Definition succ : t -> t := N.succ.
+    Lemma lt_succ : forall (x : t), lt x (succ x).
+    Proof. move=> x. apply/N_ltP. exact: N.lt_succ_diag_r. Qed.
+  End NOrderedType.
 
-   Canonical NDecidableOrderedType :=
-    Eval hnf in DecidableOrderedType N NDecidableOrderedTypeMixin.
+  Module NEqOrderedType <: EqOrderedTypeWithDefaultSucc.
+    Definition t : eqOrderedType := NEqOrderedType.
+    Definition default : t := NOrderedType.default.
+    Definition succ : t -> t := NOrderedType.succ.
+    Definition lt_succ : forall (x : t), lt x (succ x) := NOrderedType.lt_succ.
+  End NEqOrderedType.
 
-End EqNOrderedType.
-*)
-
-Export NOrderedType.
-
-Module HasNDecidableOrderedType <: HasDecidableOrderedTypeWithDefaultSucc.
-  Definition t : decidableOrderedType := NDecidableOrderedType.
-  Definition default : t := 0%num.
-  Definition succ : t -> t := N.succ.
-  Lemma lt_succ : forall (x : t), lt x (succ x).
-  Proof. exact: N.lt_succ_diag_r. Qed.
-End HasNDecidableOrderedType.
-
-Module NOrdered := HDOT_as_DOT_WDS HasNDecidableOrderedType.
+  Module NOrdered <: EqOrdered := EOT_as_EO_WDS NEqOrderedType.
 
 
-(* Z *)
-
-Module ZOrderedType.
-
-  Definition ZOrderedTypeMixin :=
-    @OrderedTypeMixin Z Logic.eq Z.lt Z.le
-                      Z.eq_refl Z.eq_sym Z.eq_trans Z.lt_trans
-                      DecidableTypeEx.Z_as_DT.lt_not_eq Z.le_lteq
-                      DecidableTypeEx.Z_as_DT.compare Z.eq_dec.
-
-  #[global]
-   Canonical ZOrderedType :=
-    Eval hnf in OrderedType Z ZOrderedTypeMixin.
-
-  Definition ZDecidableOrderedTypeMixin' :=
-    @DecidableOrderedTypeMixin Z ZOrderedTypeMixin
-                               Z.ltb Z.leb Z.ltb_lt Z.leb_le.
-
-  Definition ZDecidableOrderedTypeMixin :=
-    {| DO.ClassDef.base := ZOrderedTypeMixin
-    ; DO.ClassDef.mixin := ZDecidableOrderedTypeMixin' |}.
-
-  #[global]
-   Canonical ZDecidableOrderedType :=
-    Eval hnf in DecidableOrderedType Z ZDecidableOrderedTypeMixin.
-
-End ZOrderedType.
-
-(* Another definition of ZOrderedType where propositional comparisons
+  (* Another definition of ZOrderedType where propositional comparisons
    and boolean comparisons are not distinguished *)
-(*
-Module EqZOrderedType.
 
-  Module Base.
-    Local Open Scope Z_scope.
-    Notation t := Z_eqType.
-    Notation eq := (@eqtype.eq_op t).
-    Notation lt := Z.ltb.
-    Notation le := Z.leb.
-    Notation eq_refl := (@eqtype.eq_refl t).
-    Lemma eq_sym (x y : t) : x == y -> y == x.
-    Proof. rewrite eqtype.eq_sym. by apply. Qed.
-    Lemma eq_trans (x y z : t) : x == y -> y == z -> x == z.
-    Proof. move => /eqP -> /eqP ->. exact: eqxx. Qed.
-    Notation lt_trans := Z_ltb_trans.
-    Lemma lt_not_eq (x y : t) : lt x y -> ~ x == y.
-    Proof.
-      move=> /Z_ltP Hlt /eqP Heq.
-      exact: (DecidableTypeEx.Z_as_DT.lt_not_eq _ _ Hlt Heq).
-    Qed.
-    Lemma le_lteq (x y : t) : le x y <-> lt x y \/ x == y.
-    Proof.
-      move: (Z.le_lteq x y) => [H1 H2]. split => H.
-      - move/Z_leP: H => H. case: (H1 H) => {}H.
-        + left; apply/Z_ltP; assumption.
-        + right; apply/eqP; assumption.
-      - apply/Z_leP. apply: H2. case: H => H.
-        + left; apply/Z_ltP; assumption.
-        + right; apply/eqP; assumption.
-    Qed.
-    Lemma compare (x y : t) : Compare lt eq x y.
-    Proof.
-      case: (DecidableTypeEx.Z_as_DT.compare x y) => H.
-      - apply: LT; apply/Z_ltP; assumption.
-      - apply: EQ; apply/eqP; assumption.
-      - apply: GT; apply/Z_ltP; assumption.
-    Defined.
-    Lemma eq_dec (x y : t) : { eq x y } + { ~ eq x y }.
-    Proof. by case: (x == y); eauto. Qed.
-    Notation ltb := Z.ltb.
-    Notation leb := Z.leb.
-    Lemma ltb_lt (x y : t) : ltb x y <-> lt x y.
+  Module ZOT.
+
+    Local Close Scope ordered_scope.
+
+    Module Base.
+      Local Open Scope Z_scope.
+      Notation t := Z_eqType.
+      Notation eq := (@eqtype.eq_op t).
+      Notation lt := Z.ltb.
+      Notation le := Z.leb.
+      Notation eq_refl := (@eqtype.eq_refl t).
+      Lemma eq_sym (x y : t) : x == y -> y == x.
+      Proof. rewrite eqtype.eq_sym. by apply. Qed.
+      Lemma eq_trans (x y z : t) : x == y -> y == z -> x == z.
+      Proof. move => /eqP -> /eqP ->. exact: eqxx. Qed.
+      Notation lt_trans := Z_ltb_trans.
+      Lemma lt_not_eq (x y : t) : lt x y -> ~ x == y.
+      Proof.
+        move=> /Z_ltP Hlt /eqP Heq.
+        exact: (DecidableTypeEx.Z_as_DT.lt_not_eq _ _ Hlt Heq).
+      Qed.
+      Lemma le_lteq (x y : t) : le x y <-> lt x y \/ x == y.
+      Proof.
+        move: (Z.le_lteq x y) => [H1 H2]. split => H.
+        - move/Z_leP: H => H. case: (H1 H) => {}H.
+          + left; apply/Z_ltP; assumption.
+          + right; apply/eqP; assumption.
+        - apply/Z_leP. apply: H2. case: H => H.
+          + left; apply/Z_ltP; assumption.
+          + right; apply/eqP; assumption.
+      Qed.
+      Lemma compare (x y : t) : Compare lt eq x y.
+      Proof.
+        case: (DecidableTypeEx.Z_as_DT.compare x y) => H.
+        - apply: LT; apply/Z_ltP; assumption.
+        - apply: EQ; apply/eqP; assumption.
+        - apply: GT; apply/Z_ltP; assumption.
+      Defined.
+      Lemma eq_dec (x y : t) : { eq x y } + { ~ eq x y }.
+      Proof. by case: (x == y); eauto. Qed.
+      Notation ltb := Z.ltb.
+      Notation leb := Z.leb.
+      Lemma ltb_lt (x y : t) : ltb x y <-> lt x y.
+      Proof. tauto. Qed.
+      Lemma leb_le (x y : t) : leb x y <-> le x y.
+      Proof. tauto. Qed.
+    End Base.
+
+    Import Base.
+
+    Definition ZOrderedTypeMixin :=
+      @OrderedTypeMixin Z eq lt le
+                        eq_refl eq_sym eq_trans lt_trans
+                        lt_not_eq le_lteq compare eq_dec.
+
+    #[global]
+     Canonical ZOrderedType :=
+      Eval hnf in OrderedType Z ZOrderedTypeMixin.
+
+  End ZOT.
+
+  Export ZOT.
+
+  Module ZEOT.
+
+    Lemma Z_eq_eqop (x y : Z) : (x == y)%OT <-> (x == y)%B.
     Proof. tauto. Qed.
-    Lemma leb_le (x y : t) : leb x y <-> le x y.
-    Proof. tauto. Qed.
-  End Base.
 
-  Import Base.
+    Definition ZEqOrderedTypeMixin :=
+      @EqOrderedTypeMixin Z ZOrderedTypeMixin Z_eqMixin Z_eq_eqop.
 
-  Definition ZOrderedTypeMixin :=
-    @OrderedTypeMixin Z eq lt le
-                      eq_refl eq_sym eq_trans lt_trans
-                      lt_not_eq le_lteq compare eq_dec.
+    #[global]
+     Canonical ZEqOrderedType :=
+      Eval hnf in EqOrderedType Z (EO.ClassDef.Class ZEqOrderedTypeMixin).
 
-  #[global]
-   Canonical ZOrderedType :=
-    Eval hnf in OrderedType Z ZOrderedTypeMixin.
+  End ZEOT.
 
-  Definition ZDecidableOrderedTypeMixin' :=
-    @DecidableOrderedTypeMixin Z ZOrderedTypeMixin
-                               ltb leb ltb_lt leb_le.
+  Export ZEOT.
 
-  Definition ZDecidableOrderedTypeMixin :=
-    {| DO.ClassDef.base := ZOrderedTypeMixin
-    ; DO.ClassDef.mixin := ZDecidableOrderedTypeMixin' |}.
+  Module ZOrderedType <: OrderedTypeWithDefaultSucc.
+    Definition t : orderedType := ZOrderedType.
+    Definition default : t := 0%Z.
+    Definition succ : t -> t := Z.succ.
+    Lemma lt_succ : forall (x : t), lt x (succ x).
+    Proof. move=> x. apply/Z_ltP. exact: Z.lt_succ_diag_r. Qed.
+  End ZOrderedType.
 
-  #[global]
-   Canonical ZDecidableOrderedType :=
-    Eval hnf in DecidableOrderedType Z ZDecidableOrderedTypeMixin.
+  Module ZEqOrderedType <: EqOrderedTypeWithDefaultSucc.
+    Definition t : eqOrderedType := ZEqOrderedType.
+    Definition default : t := ZOrderedType.default.
+    Definition succ : t -> t := ZOrderedType.succ.
+    Definition lt_succ : forall (x : t), lt x (succ x) := ZOrderedType.lt_succ.
+  End ZEqOrderedType.
 
-End EqZOrderedType.
- *)
+  Module ZOrdered <: EqOrdered := EOT_as_EO_WDS ZEqOrderedType.
 
-Export ZOrderedType.
-
-Module HasZDecidableOrderedType <: HasDecidableOrderedTypeWithDefaultSucc.
-  Definition t : decidableOrderedType := ZDecidableOrderedType.
-  Definition default : t := 0%Z.
-  Definition succ : t -> t := Z.succ.
-  Lemma lt_succ : forall (x : t), lt x (succ x).
-  Proof. exact: Z.lt_succ_diag_r. Qed.
-End HasZDecidableOrderedType.
-
-Module ZOrdered := HDOT_as_DOT_WDS HasZDecidableOrderedType.
+End EN.
 
 
-(* seq *)
+(** ** Sequences of orderedType *)
 
 Module SeqOrderedType.
 
-  Local Open Scope ordered_scope.
   Import seq.
 
   Module Base.
@@ -2529,91 +2687,37 @@ End SeqOrderedType.
 
 Export SeqOrderedType.
 
-
-Module SeqDecidableOrderedType.
-
-  Local Open Scope ordered_scope.
+Module SeqEqOrderedType.
   Import seq.
+  Section Aux.
+    Context {t: eqOrderedType}.
+    Lemma seq_eq_eqop (xs ys : seq t) : (xs == ys)%OT <-> (xs == ys)%B.
+    Proof.
+      elim: xs ys => [| x xs IH] [| y ys] //=. split.
+      - case => /EO.eq_eq -> /IH /eqP ->. exact: eqxx.
+      - move/eqP => [] -> ->. reflexivity.
+    Qed.
+  End Aux.
+  Definition seqEqOrderedTypeMixin (t : eqOrderedType) :=
+    @EqOrderedTypeMixin (seq t) (seqOrderedTypeMixin t) (seq_eqMixin t) seq_eq_eqop.
+  #[global]
+   Canonical seqEqOrderedType (t : eqOrderedType) :=
+    Eval hnf in EqOrderedType (seq t) (EO.ClassDef.Class (seqEqOrderedTypeMixin t)).
+End SeqEqOrderedType.
+Export SeqEqOrderedType.
 
-  Module Base.
-    Section Def.
-      Context {e : decidableOrderedType}.
-      Notation t := (seq e).
-      Fixpoint ltb (xs ys : t) : bool :=
-        match xs, ys with
-        | _, [::] => false
-        | [::], _::_ => true
-        | x::xs, y::ys => (x <? y)%OT || ((x =? y)%OT && (ltb xs ys))
-        end.
-      Fixpoint leb (xs ys : t) : bool :=
-        match xs, ys with
-        | [::], _ => true
-        | _, [::] => false
-        | x::xs, y::ys => (x <? y)%OT || ((x =? y)%OT && (leb xs ys))
-        end.
-      Lemma ltb_lt (xs ys : t) : ltb xs ys <-> lt xs ys.
-      Proof.
-        elim: xs ys => [| x xs IH] [| y ys] //=. split.
-        - case/orP => H.
-          + left. apply/DO.ltb_lt. assumption.
-          + move/andP: H => [Hx Hxs]. right. split.
-            * apply/oeqP. assumption.
-            * apply/IH. assumption.
-        - case => H.
-          + move/oltP: H => ->. reflexivity.
-          + case: H => [Hx Hxs]. move/oeqP: Hx => ->.
-            move/IH: Hxs => ->. by rewrite orbT.
-      Qed.
-      Lemma leb_le (xs ys : t) : leb xs ys <-> le xs ys.
-      Proof.
-        elim: xs ys => [| x xs IH] [| y ys] //=. split.
-        - case/orP => H.
-          + left. apply/oltP. assumption.
-          + right. move/andP: H => [/oeqP Hx /IH Hxs]. tauto.
-        - case => H.
-          + by move/oltP: H => ->.
-          + move: H => [/oeqP Hx /IH Hxs]. by rewrite Hx Hxs orbT.
-      Qed.
-    End Def.
-  End Base.
-
-  Import Base.
-
-  Section Exports.
-
-    Context (e : decidableOrderedType).
-
-    Definition seqDecidableOrderedTypeMixin' :=
-      @DecidableOrderedTypeMixin (seq e) (seqOrderedTypeMixin e)
-                                 ltb leb ltb_lt leb_le.
-
-    Definition seqDecidableOrderedTypeMixin :=
-      {| DO.ClassDef.base := seqOrderedTypeMixin e
-      ; DO.ClassDef.mixin := seqDecidableOrderedTypeMixin' |}.
-
-    #[global]
-     Canonical seqDecidableOrderedType :=
-      Eval hnf in DecidableOrderedType (seq e) seqDecidableOrderedTypeMixin.
-
-  End Exports.
-
-End SeqDecidableOrderedType.
-
-Export SeqDecidableOrderedType.
-
-
-Module SeqOrdered (H : HasOrderedType) <: Ordered.
+Module SeqOrdered (H : OrderedType) <: Ordered.
   Import seq.
-  Module HH <: HasOrderedType.
+  Module HH <: OrderedType.
     Definition t : orderedType := seqOrderedType H.t.
   End HH.
-  Include HOT_as_OT HH.
+  Include OT_as_O HH.
 End SeqOrdered.
 
-Module SeqDecidableOrdered (H : HasDecidableOrderedType) <: DecidableOrdered.
+Module SeqEqOrdered (H : EqOrderedType) <: EqOrdered.
   Import seq.
-  Module HH <: HasDecidableOrderedType.
-    Definition t : decidableOrderedType := seqDecidableOrderedType H.t.
+  Module HH <: EqOrderedType.
+    Definition t : eqOrderedType := seqEqOrderedType H.t.
   End HH.
-  Include HDOT_as_DOT HH.
-End SeqDecidableOrdered.
+  Include EOT_as_EO HH.
+End SeqEqOrdered.

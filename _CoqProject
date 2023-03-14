@@ -2,7 +2,6 @@
 src/Compatibility.v
 src/Strings.v
 src/Types.v
-src/SsrOrder.v
 src/Tactics.v
 src/Lists.v
 src/Tuples.v
@@ -11,11 +10,15 @@ src/Nats.v
 src/ZAriths.v
 src/Seqs.v
 src/Orders.v
-src/FSets.v
 src/Sets.v
-src/FMaps.v
 src/Maps.v
 src/HList.v
 src/Var.v
 src/Env.v
 src/Store.v
+src/EqOrder.v
+src/EqFSets.v
+src/EqFMaps.v
+src/EqVar.v
+src/EqEnv.v
+src/EqStore.v

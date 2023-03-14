@@ -50,11 +50,13 @@ Declare Scope fset_scope.
 Delimit Scope fset_scope with FS.
 
 
-(** * fsetType: a finite set as a structure *)
+(** ** fsetType: a finite set as a structure *)
 
 Module FS.
 
   Local Open Scope ordered_scope.
+
+  Import O.
 
   Module ClassDef.
 
@@ -86,7 +88,7 @@ Module FS.
             ; filter : (elt -> bool) -> t -> t
             ; partition : (elt -> bool) -> t -> t * t
             ; cardinal : t -> nat
-            ; elements : t -> olist elt
+            ; elements : t -> list elt
             ; choose : t -> option elt
             ; In_1 : forall s x y, x == y -> In x s -> In y s
             ; eq_refl : forall s, eq s s
@@ -184,10 +186,16 @@ Module FS.
 
   Import ClassDef.
 
-  Coercion sort : type >-> Sortclass.
-  Notation fsetType := type.
-  Notation FSetMixin := Mixin.
-  Notation FSetType elt set m := (@Pack elt set m).
+  Module Exports.
+
+    Coercion sort : type >-> Sortclass.
+    Notation fsetType := type.
+    Notation FSetMixin := Mixin.
+    Notation FSetType elt set m := (@Pack elt set m).
+
+  End Exports.
+
+  Import Exports.
 
   Section Definitions.
     Context {elt : orderedType}.
@@ -364,16 +372,6 @@ Module FS.
 
   End Definitions.
 
-  Notation "s [=] t" := (Equal s t) (at level 70, no associativity) : fset_scope.
-  Notation "s [<=] t" := (Subset s t) (at level 70, no associativity) : fset_scope.
-  Notation "s [=?] t" := (equal s t) (at level 70, no associativity) : fset_scope.
-  Notation "s [<=?] t" := (subset s t) (at level 70, no associativity) : fset_scope.
-  Notation "s [\] t" := (diff s t) (at level 70, no associativity) : fset_scope.
-  Notation "s [|] t" := (union s t) (at level 70, no associativity) : fset_scope.
-  Notation "s [&] t" := (inter s t) (at level 70, no associativity) : fset_scope.
-  Notation "a [+] s" := (add a s) (at level 70, no associativity) : fset_scope.
-  Notation "s [-] a" := (remove a s) (at level 70, no associativity) : fset_scope.
-
   #[global]
    Hint Resolve mem_1 equal_1 subset_1 empty_1
    is_empty_1 choose_1 choose_2 add_1 add_2 remove_1
@@ -397,14 +395,25 @@ Module FS.
 
 End FS.
 
-Export FS.
+Export FS.Exports.
+Import FS.
+
+Notation "s [=] t" := (Equal s t) (at level 70, no associativity) : fset_scope.
+Notation "s [<=] t" := (Subset s t) (at level 70, no associativity) : fset_scope.
+Notation "s [=?] t" := (equal s t) (at level 70, no associativity) : fset_scope.
+Notation "s [<=?] t" := (subset s t) (at level 70, no associativity) : fset_scope.
+Notation "s [\] t" := (diff s t) (at level 70, no associativity) : fset_scope.
+Notation "s [|] t" := (union s t) (at level 70, no associativity) : fset_scope.
+Notation "s [&] t" := (inter s t) (at level 70, no associativity) : fset_scope.
+Notation "a [+] s" := (add a s) (at level 70, no associativity) : fset_scope.
+Notation "s [-] a" := (remove a s) (at level 70, no associativity) : fset_scope.
 
 
 (** * Lemmas from FSetFacts. *)
 
 Module F.
 
-  Import Orders.F.
+  Import O Orders.F.
 
   Local Open Scope ordered_scope.
   Local Open Scope fset_scope.
@@ -447,7 +456,7 @@ Module F.
     Lemma add_iff : In y (add x s) <-> x == y \/ In y s.
     Proof.
       split; [ | destruct 1; [ apply add_1 | apply add_2 ] ]; auto.
-      destruct (eq_dec x y) as [ E | E ]; auto.
+      destruct (O.eq_dec x y) as [ E | E ]; auto.
       intro H; right; exact (add_3 E H).
     Qed.
 
@@ -534,7 +543,7 @@ Module F.
     Lemma add_b : mem y (add x s) = eqb x y || mem y s.
     Proof.
       generalize (mem_iff (add x s) y) (mem_iff s y) (add_iff s x y); unfold eqb.
-      destruct (eq_dec x y); destruct (mem y s); destruct (mem y (add x s)); intuition.
+      destruct (O.eq_dec x y); destruct (mem y s); destruct (mem y (add x s)); intuition.
     Qed.
 
     Lemma add_neq_b : ~ x == y -> mem y (add x s) = mem y s.
@@ -546,7 +555,7 @@ Module F.
     Lemma remove_b : mem y (remove x s) = mem y s && negb (eqb x y).
     Proof.
       generalize (mem_iff (remove x s) y) (mem_iff s y) (remove_iff s x y); unfold eqb.
-      destruct (eq_dec x y); destruct (mem y s); destruct (mem y (remove x s)); simpl; intuition.
+      destruct (O.eq_dec x y); destruct (mem y s); destruct (mem y (remove x s)); simpl; intuition.
     Qed.
 
     Lemma remove_neq_b : ~ x == y -> mem y (remove x s) = mem y s.
@@ -558,7 +567,7 @@ Module F.
     Lemma singleton_b : mem (t:=t) y (singleton x) = eqb x y.
     Proof.
       generalize (mem_iff (t:=t) (singleton x) y) (singleton_iff (t:=t) x y); unfold eqb.
-      destruct (eq_dec x y); destruct (mem y (singleton x)); intuition.
+      destruct (O.eq_dec x y); destruct (mem y (singleton x)); intuition.
     Qed.
 
     Lemma union_b : mem x (union s s') = mem x s || mem x s'.
@@ -589,13 +598,13 @@ Module F.
       destruct H0 as (H0,_).
       destruct H0 as (a,(Ha1,Ha2)); [ intuition |].
       exists a; intuition.
-      unfold eqb; destruct (eq_dec x a); auto.
+      unfold eqb; destruct (O.eq_dec x a); auto.
       rewrite <- H.
       rewrite H0.
       destruct H1 as (H1,_).
       destruct H1 as (a,(Ha1,Ha2)); [intuition|].
       exists a; intuition.
-      unfold eqb in *; destruct (eq_dec x a); auto; discriminate.
+      unfold eqb in *; destruct (O.eq_dec x a); auto; discriminate.
     Qed.
 
     Variable f : elt -> bool.
@@ -665,7 +674,7 @@ Module F.
     #[global]
      Instance Equal_ST : Equivalence (Equal (t:=t)).
     Proof.
-      constructor ; red; [apply eq_refl | apply eq_sym | apply eq_trans].
+      constructor ; red; [apply FS.eq_refl | apply FS.eq_sym | apply FS.eq_trans].
     Qed.
 
     #[global]
@@ -864,7 +873,7 @@ From Coq Require Import Decidable.
 
 Module D.
 
-  Import Orders.F F.
+  Import O Orders.F F.
 
   Local Open Scope fset_scope.
 
@@ -1067,14 +1076,14 @@ Module D.
     Ltac abstract_elements :=
       repeat
         (match goal with
-           | |- context [ singleton ?t ] => abstract_term t
-           | _ : context [ singleton ?t ] |- _ => abstract_term t
-           | |- context [ add ?t _ ] => abstract_term t
-           | _ : context [ add ?t _ ] |- _ => abstract_term t
-           | |- context [ remove ?t _ ] => abstract_term t
-           | _ : context [ remove ?t _ ] |- _ => abstract_term t
-           | |- context [ In ?t _ ] => abstract_term t
-           | _ : context [ In ?t _ ] |- _ => abstract_term t
+           | |- context [ FS.singleton ?t ] => abstract_term t
+           | _ : context [ FS.singleton ?t ] |- _ => abstract_term t
+           | |- context [ FS.add ?t _ ] => abstract_term t
+           | _ : context [ FS.add ?t _ ] |- _ => abstract_term t
+           | |- context [ FS.remove ?t _ ] => abstract_term t
+           | _ : context [ FS.remove ?t _ ] |- _ => abstract_term t
+           | |- context [ FS.In ?t _ ] => abstract_term t
+           | _ : context [ FS.In ?t _ ] |- _ => abstract_term t
          end).
 
     Tactic Notation "prop" constr(P) "holds" "by" tactic(t) :=
@@ -1156,7 +1165,7 @@ Module D.
       Lemma dec_eq : forall (x y : elt),
           decidable (oeq x y).
       Proof.
-        red; intros x y; destruct (eq_dec x y); auto.
+        red; intros x y; destruct (O.eq_dec x y); auto.
       Qed.
 
     End FSetDecideAuxiliary.
@@ -1243,14 +1252,14 @@ Module D.
           assert new (oeq x y \/ ~ oeq x y) by (apply dec_eq)
         | H: context [~ (?x == ?y)%OT] |- _ =>
           assert new (oeq x y \/ ~ oeq x y) by (apply dec_eq)
-        | H: context [~ In ?x ?s] |- _ =>
-          assert new (In x s \/ ~ In x s) by (apply dec_In)
+        | H: context [~ FS.In ?x ?s] |- _ =>
+          assert new (FS.In x s \/ ~ FS.In x s) by (apply dec_In)
         | |- context [~ oeq ?x ?y] =>
           assert new (oeq x y \/ ~ oeq x y) by (apply dec_eq)
         | |- context [~ (?x == ?y)%OT] =>
           assert new (oeq x y \/ ~ oeq x y) by (apply dec_eq)
-        | |- context [~ In ?x ?s] =>
-          assert new (In x s \/ ~ In x s) by (apply dec_In)
+        | |- context [~ FS.In ?x ?s] =>
+          assert new (FS.In x s \/ ~ FS.In x s) by (apply dec_In)
         end);
       repeat (
         match goal with
@@ -1260,50 +1269,50 @@ Module D.
     Ltac inst_FSet_hypotheses :=
       repeat (
         match goal with
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _,
-          _ : context [ In ?x _ ] |- _ =>
+        | H : forall a : O.ClassDef.sort ?elt, _,
+          _ : context [ FS.In ?x _ ] |- _ =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _
-          |- context [ In ?x _ ] =>
+        | H : forall a : O.ClassDef.sort ?elt, _
+          |- context [ FS.In ?x _ ] =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _,
+        | H : forall a : O.ClassDef.sort ?elt, _,
           _ : context [ oeq ?x _ ] |- _ =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _,
+        | H : forall a : O.ClassDef.sort ?elt, _,
           _ : context [ (?x == _)%OT ] |- _ =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _
+        | H : forall a : O.ClassDef.sort ?elt, _
           |- context [ oeq ?x _ ] =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _
+        | H : forall a : O.ClassDef.sort ?elt, _
           |- context [ (?x == _)%OT ] =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _,
+        | H : forall a : O.ClassDef.sort ?elt, _,
           _ : context [ oeq _ ?x ] |- _ =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _,
+        | H : forall a : O.ClassDef.sort ?elt, _,
           _ : context [ (_ == ?x)%OT ] |- _ =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _
+        | H : forall a : O.ClassDef.sort ?elt, _
           |- context [ oeq _ ?x ] =>
           let P := type of (H x) in
           assert new P by (exact (H x))
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _
+        | H : forall a : O.ClassDef.sort ?elt, _
           |- context [ (_ == ?x)%OT ] =>
           let P := type of (H x) in
           assert new P by (exact (H x))
         end);
       repeat (
         match goal with
-        | t : fsetType ?elt, H : forall a : O.ClassDef.sort ?elt, _ |- _ =>
+        | H : forall a : O.ClassDef.sort ?elt, _ |- _ =>
           clear H
         end).
 
@@ -1328,7 +1337,7 @@ Module D.
       no_logical_interdep;
       decompose records;
       discard_nonFSet;
-      unfold Empty, Subset, Equal in *; intros;
+      unfold FS.Empty, FS.Subset, FS.Equal in *; intros;
       change_to_E_t; E_eq_to_Logic_eq; subst++; Logic_eq_to_E_eq;
       pull not using FSet_decidability;
       unfold not in *;
@@ -1502,7 +1511,7 @@ End D.
 
 Module P.
 
-  Import F D.
+  Import O F D.
 
   Local Open Scope fset_scope.
 
@@ -2369,7 +2378,7 @@ End P.
 
 Module OP.
 
-  Import Orders.OT Orders.F F P.
+  Import O Orders.OT Orders.F F P.
 
   Local Open Scope fset_scope.
 
@@ -2647,7 +2656,7 @@ End OP.
 
 Module EP.
 
-  Import Orders.F Orders.OT F P D.
+  Import O Orders.F Orders.OT F P D.
 
   Section BasicProperties.
 
@@ -2876,7 +2885,7 @@ Module EP.
     Lemma is_empty_cardinal : is_empty s = zerob (cardinal s).
     Proof.
       intros; apply bool_1; split; intros.
-      rewrite cardinal_1; simpl; auto with set.
+      rewrite cardinal_1; simpl; auto with set fset.
       assert (cardinal s = 0) by (apply zerob_true_elim; auto).
       auto with set fset.
     Qed.
@@ -2889,7 +2898,7 @@ Module EP.
     Lemma singleton_mem_2: ~ oeq x y -> mem (t:=t) y (singleton x)=false.
     Proof.
       intros; rewrite singleton_b.
-      unfold eqb; destruct (eq_dec x y); intuition.
+      unfold eqb; destruct (O.eq_dec x y); intuition.
     Qed.
 
     Lemma singleton_mem_3: mem (t:=t) y (singleton x)=true -> oeq x y.
@@ -3584,11 +3593,11 @@ Module L.
   Include D.
   Include OP.
 
-  Import P.
+  Import O P.
 
   Local Open Scope fset_scope.
 
-  Section FSetTypeLemmas.
+  Section Lemmas.
 
     Context {elt : orderedType}.
     Context {t : fsetType elt}.
@@ -3844,53 +3853,6 @@ Module L.
     Qed.
 
 
-    (* mem and \in *)
-
-    Lemma oin_elements x (s : t) : (x \in elements s) = (mem x s).
-    Proof.
-      case Hmem: (mem x s).
-      - apply/oinP. move/memP: Hmem. exact: elements_1.
-      - apply/negP => /oinP Hin. apply/negPf: Hmem. apply/memP.
-        exact: elements_2.
-    Qed.
-
-    Lemma mem_oin_elements x (s : t) : mem x s -> x \in elements s.
-    Proof. by rewrite oin_elements. Qed.
-
-    Lemma oin_elements_mem x (s : t) : x \in elements s -> mem x s.
-    Proof. by rewrite oin_elements. Qed.
-
-    Lemma memPo x (s : t) : (x \in elements s) <-> (mem x s).
-    Proof. by rewrite oin_elements. Qed.
-
-    Lemma mem_of_list x (s : olist elt) : mem (t:=t) x (of_list s) = (x \in s).
-    Proof.
-      case Hin: (x \in s).
-      - apply/memP. apply/of_list_1. move/oinP: Hin. by apply.
-      - apply/negP => /memP /of_list_1 Hmem. apply/negPf: Hin.
-        apply/oinP. assumption.
-    Qed.
-
-    Lemma mem_of_list_oin x (s : olist elt) : mem (t:=t) x (of_list s) -> x \in s.
-    Proof. by rewrite mem_of_list. Qed.
-
-    Lemma oin_mem_of_list x (s : olist elt) : x \in s -> mem (t:=t) x (of_list s).
-    Proof. by rewrite mem_of_list. Qed.
-
-    Lemma mem_of_list_iff x (s : olist elt) : mem (t:=t) x (of_list s) <-> x \in s.
-    Proof. by rewrite mem_of_list. Qed.
-
-    Lemma inPo x (s : t) : reflect (In x s) (x \in elements s).
-    Proof.
-      case Hmem: (x \in elements s).
-      - apply: ReflectT. apply/memP. move/memPo: Hmem. by apply.
-      - apply/ReflectF => Hin. apply/negPf: Hmem. apply/memPo.
-        move/memP: Hin. by apply.
-    Qed.
-
-    Definition inPa := elements_iff (t:=t).
-
-
     (* equal *)
 
     Lemma equal_refl (s : t) : equal s s.
@@ -4125,6 +4087,13 @@ Module L.
         by rewrite (subset_union_ll H123) (subset_union_lr H123).
     Qed.
 
+    Lemma subset_union_iff_l (s1 s2 s3 : t) : subset (union s1 s2) s3 <-> subset s1 s3 /\ subset s2 s3.
+    Proof.
+      split.
+      - move=> H. move: (subset_union_ll H); move: (subset_union_lr H). tauto.
+      - move=> [H1 H2]. apply: subset_union_2l; assumption.
+    Qed.
+
     Lemma subset_refl (s : t) : subset s s.
     Proof. apply: subset_1. exact: Subset_refl. Qed.
 
@@ -4174,6 +4143,19 @@ Module L.
 
     Hint Resolve subset_add_l subset_add_r : set.
 
+    #[global]
+     Instance mem_S_m : Proper (oeq ==> Subset (t:=t) ==> Basics.impl) mem.
+    Proof.
+      intros x y H s s' H0 Hxs. apply/memP. apply: H0. rewrite <- H.
+      apply/memP. assumption.
+    Qed.
+
+    #[global]
+     Instance mem_s_m : Proper (oeq ==> subset (t:=t) ==> Basics.impl) mem.
+    Proof.
+      move=> x y H s s' /subsetP H0 Hxs. exact: (mem_S_m H H0).
+    Qed.
+
 
     (* elements *)
 
@@ -4212,23 +4194,27 @@ Module L.
 
     (* of_list *)
 
-    Lemma in_of_list_inA x s : In (t:=t) x (of_list s) -> InA oeq x s.
+    Lemma in_of_list_inA x s : In (t:=t) x (of_list s) <-> InA oeq x s.
     Proof.
-      move=> Hin. move: (of_list_1 (t:=t) s x) => [H1 H2].
-      exact: (H1 Hin).
+      split.
+      - move=> Hin. move: (of_list_1 (t:=t) s x) => [H1 H2]. exact: (H1 Hin).
+      - move=> Hin. move: (of_list_1 (t:=t) s x) => [H1 H2]. exact: (H2 Hin).
     Qed.
 
-    Lemma inA_in_of_list x s : InA oeq x s -> In (t:=t) x (of_list s).
+    Lemma mem_of_list_inA x s : mem (t:=t) x (of_list s) <-> InA oeq x s.
     Proof.
-      move=> Hin. move: (of_list_1 (t:=t) s x) => [H1 H2].
-      exact: (H2 Hin).
+      split.
+      - move=> /memP Hin. apply/in_of_list_inA. assumption.
+      - move=> Hin; apply/memP. apply/in_of_list_inA. assumption.
     Qed.
 
-    Lemma mem_of_list_inA x s : mem (t:=t) x (of_list s) -> InA oeq x s.
-    Proof. move=> /memP Hin. exact: in_of_list_inA. Qed.
-
-    Lemma inA_mem_of_list x s : InA oeq x s -> mem (t:=t) x (of_list s).
-    Proof. move=> Hin; apply/memP. exact: inA_in_of_list. Qed.
+    Lemma of_list_equivlistA (s1 s2 : seq elt) :
+      equivlistA oeq s1 s2 -> Equal (t:=t) (of_list s1) (of_list s2).
+    Proof.
+      move=> Heq x. split; move => H.
+      - apply/in_of_list_inA. apply: (proj1 (Heq x)). apply/in_of_list_inA. assumption.
+      - apply/in_of_list_inA. apply: (proj2 (Heq x)). apply/in_of_list_inA. assumption.
+    Qed.
 
 
     (* remove *)
@@ -4258,6 +4244,14 @@ Module L.
       move=> Hne Hmem. apply/memP; apply: remove_2.
       - move=> Heq; apply: Hne; apply: O.eq_sym; assumption.
       - apply/memP; assumption.
+    Qed.
+
+    Lemma mem_remove_iff x y (s : t) :
+      mem x (remove y s) <-> ~ oeq x y /\ mem x s.
+    Proof.
+      split.
+      - move=> H; move: (mem_remove_neq H) (mem_remove_mem H). tauto.
+      - move=> [Hne Hmem]. exact: (neq_mem_remove Hne Hmem).
     Qed.
 
     Lemma in_remove_neq x y (s : t) :
@@ -4441,6 +4435,20 @@ Module L.
 
     Lemma disjoint_singleton_l x s : disjoint (singleton x) s = ~~ mem x s.
     Proof. rewrite disjoint_sym. exact: disjoint_singleton_r. Qed.
+
+    Lemma disjoint_singleton2 x y :
+      disjoint (singleton x) (singleton y) = (x ~=? y)%OT.
+    Proof.
+      rewrite disjoint_singleton_l. rewrite not_mem_singleton. reflexivity.
+    Qed.
+
+    Lemma disjoint_singleton_iff x y :
+      disjoint (singleton x) (singleton y) <-> (x ~= y)%OT.
+    Proof.
+      rewrite disjoint_singleton_l. rewrite not_mem_singleton. split.
+      - move/negP/Orders.F.eqb_eq. by apply.
+      - move=> H. apply/negP/Orders.F.eqb_eq. assumption.
+    Qed.
 
     Lemma disjoint_add_r x (s1 s2 : t) :
       disjoint s1 (add x s2) = ~~ mem x s1 && disjoint s1 s2.
@@ -4823,8 +4831,88 @@ Module L.
       move=> Heq x /elements_iff H1. apply/elements_iff. by rewrite <- Heq.
     Qed.
 
+    (* equivlistA *)
 
-  End FSetTypeLemmas.
+    Lemma equivlistA_elements (s1 s2 : t) :
+      Equal s1 s2 -> equivlistA oeq (elements s1) (elements s2).
+    Proof.
+      move=> H. apply: Lists.inclA_equivlistA.
+      - exact: (Equal_inclA H).
+      - symmetry in H. exact: (Equal_inclA H).
+    Qed.
+
+  End Lemmas.
+
+  Section EqLemmas.
+
+    Context {elt : eqOrderedType}.
+    Context {t : fsetType elt}.
+
+    (* mem and \in *)
+
+    Lemma oin_elements x (s : t) : (x \in elements s) = (mem x s).
+    Proof.
+      case Hmem: (mem x s).
+      - apply/oinP. move/memP: Hmem. exact: elements_1.
+      - apply/negP => /oinP Hin. apply/negPf: Hmem. apply/memP.
+        exact: elements_2.
+    Qed.
+
+    Lemma mem_oin_elements x (s : t) : mem x s -> x \in elements s.
+    Proof. by rewrite oin_elements. Qed.
+
+    Lemma oin_elements_mem x (s : t) : x \in elements s -> mem x s.
+    Proof. by rewrite oin_elements. Qed.
+
+    Lemma memPo x (s : t) : (x \in elements s) <-> (mem x s).
+    Proof. by rewrite oin_elements. Qed.
+
+    Lemma mem_of_list x (s : list elt) : mem (t:=t) x (of_list s) = (x \in s).
+    Proof.
+      case Hin: (x \in s).
+      - apply/memP. apply/of_list_1. move/oinP: Hin. by apply.
+      - apply/negP => /memP /of_list_1 Hmem. apply/negPf: Hin.
+        apply/oinP. assumption.
+    Qed.
+
+    Lemma mem_of_list_oin x (s : list elt) : mem (t:=t) x (of_list s) -> x \in s.
+    Proof. by rewrite mem_of_list. Qed.
+
+    Lemma oin_mem_of_list x (s : list elt) : x \in s -> mem (t:=t) x (of_list s).
+    Proof. by rewrite mem_of_list. Qed.
+
+    Lemma mem_of_list_iff x (s : list elt) : mem (t:=t) x (of_list s) <-> x \in s.
+    Proof. by rewrite mem_of_list. Qed.
+
+    Lemma inPo x (s : t) : reflect (In x s) (x \in elements s).
+    Proof.
+      case Hmem: (x \in elements s).
+      - apply: ReflectT. apply/memP. move/memPo: Hmem. by apply.
+      - apply/ReflectF => Hin. apply/negPf: Hmem. apply/memPo.
+        move/memP: Hin. by apply.
+    Qed.
+
+    Definition inPa := elements_iff (t:=t).
+
+    Lemma Subset_incl (s1 s2 : t) :
+      Subset s1 s2 -> incl (elements s1) (elements s2).
+    Proof.
+      have H: (Lists.is_eq (oeq (t:=elt))).
+      { move=> x y /EO.eq_eq. by apply. }
+      move=> Hsub x Hin. apply/(Lists.InA_In H). apply/Sets.F.elements_iff.
+      apply: Hsub. apply/Sets.F.elements_iff. apply/(Lists.InA_In H). assumption.
+    Qed.
+
+    Lemma Equal_incl (s1 s2 : t) :
+      Equal s1 s2 -> incl (elements s1) (elements s2).
+    Proof.
+      have H: (Lists.is_eq (oeq (t:=elt))).
+      { move=> x y /EO.eq_eq. by apply. }
+      move=> Heq x H1. apply/(Lists.InA_In H). apply/Sets.F.elements_iff.
+      rewrite -Heq. apply/Sets.F.elements_iff. apply/(Lists.InA_In H). assumption.
+    Qed.
+
+  End EqLemmas.
 
   Notation "s [o] t" := (disjoint s t) (at level 70, no associativity) : fset_scope.
   Notation "s [<?] t" := (proper_subset s t) (at level 70, no associativity) : fset_scope.
@@ -4887,152 +4975,79 @@ Module L.
       | |- context [InA _ _ (elements _)] => apply/inPa
       end.
 
+  Ltac all_to_prop :=
+    all2in;
+    repeat match goal with
+           | H : _ = true |- _ => move/idP: H => H
+           | |- _ = true => apply/idP
+           | H : is_true (FS.mem _ _) |- _ => move: (FS.mem_2 H) => {}H
+           | H : is_true (FS.equal _ _) |- _ => move: (FS.equal_2 H) => {}H
+           | H : is_true (FS.subset _ _) |- _ => move: (FS.subset_2 H) => {}H
+           | H : is_true (FS.is_empty _) |- _ => move: (FS.is_empty_2 H) => {}H
+           | |- is_true (FS.mem _ _) => apply: FS.mem_1
+           | |- is_true (FS.equal _ _) => apply: FS.equal_1
+           | |- is_true (FS.subset _ _) => apply: FS.subset_1
+           | |- is_true (FS.is_empty _ _) => apply: FS.is_empty_1
+           end.
+
+  Ltac dp_sets := all_to_prop; fsetdec.
   Ltac dp_mem :=
     match goal with
-    | |- mem _ _ = true => apply/idP; dp_mem
-    (* *)
-    | H : is_true (mem ?x ?s) |- is_true (mem ?x ?s) => exact: H
-    | H : ?x = ?y |- ?x = ?y => exact: H
-    | H : ?x = ?y |- is_true (?x == ?y) => apply/eqtype.eqP; exact: H
-    | H : is_true (?x == ?y) |- ?x = ?y => exact: (eqtype.eqP H)
-    | H : is_true (?x == ?y) |- is_true (?x == ?y) => exact: H
-    | H : oeq ?x ?y |- oeq ?x ?y => exact: H
-    | |- ?x = ?x => reflexivity
-    | |- is_true (?x == ?x) => exact: eqxx
-    | |- oeq ?x ?x => exact: O.eq_refl
-    | H1 : is_true (mem ?x ?s1), H2 : is_true (subset ?s1 ?s2) |-
-        is_true (mem ?x ?s2) =>
-        exact: (mem_subset H1 H2)
-    (* *)
-    | H : is_true (mem ?x (singleton ?y)) |- is_true (mem ?x _) =>
-        move: (mem_singleton_eq H) => {} H; dp_mem
-    | H : is_true (mem ?x (add ?y ?s)) |- is_true (mem ?x _) =>
-        move: (mem_add_or H) => {H} [] H; dp_mem
-    | H : is_true (mem ?x (union ?s1 ?s2)) |- is_true (mem ?x _) =>
-        move: (mem_union_or H) => {H} [] H; dp_mem
-    (* *)
-    | |- is_true (mem ?x (singleton ?y)) =>
-        apply: eq_mem_singleton; dp_mem
-    | |- is_true (mem ?x (add ?y ?s)) =>
-        first [ apply: mem_add_eq; by dp_mem | apply: mem_add_mem; by dp_mem ]
-    | |- is_true (mem ?x (union ?s1 ?s2)) =>
-        first [ apply: mem_union_l; by dp_mem | apply: mem_union_r; by dp_mem ]
-    (* *)
-    | H : is_true (subset (singleton _) _) |- _ =>
-        move: (subset_singleton_mem H) => {} H; dp_mem
-    | H : is_true (subset (add _ _) _) |- _ =>
-        let H1 := fresh in
-        let H2 := fresh in
-        move: (subset_add_ll H) (subset_add_lr H) => {H} H1 H2; dp_mem
-    | H : is_true (subset (union _ _) _) |- _ =>
-        let H1 := fresh in
-        let H2 := fresh in
-        move: (subset_union_ll H) (subset_union_lr H) => {H} H1 H2; dp_mem
-    (* *)
-    | H : is_true (_ && _) |- _ =>
-        let H1 := fresh in
-        let H2 := fresh in
-        move/andP: H => [H1 H2]; dp_mem
-    | H : _ /\ _ |- _ =>
-        let H1 := fresh in
-        let H2 := fresh in
-        move: H => [H1 H2]; dp_mem
-    (* *)
-    | H : is_true (_ || _) |- _ =>
-        move/orP: H => [] H; dp_mem
-    | H : _ \/ _ |- _ =>
-        move: H => [] H; dp_mem
+    | |- is_true (FS.mem _ _) => dp_sets
+    | |- FS.mem _ _ = true => dp_sets
     end.
-
   Ltac dp_subset :=
     match goal with
-    (* *)
-    | |- subset _ _ = true => apply/idP; dp_subset
-    | |- is_true (subset empty _) => exact: subset_empty_l
-    | H : is_true (subset ?x ?y) |- is_true (subset ?x ?y) => exact: H
-    | |- is_true (subset ?x ?x) => exact: subset_refl
-    | H1 : is_true (subset ?s1 ?s2), H2 : is_true (subset ?s2 ?s3) |-
-        is_true (subset ?s1 ?s3) =>
-        exact: (subset_trans H1 H2)
-    (* *)
-    | H : is_true (subset (singleton _) _) |- _ =>
-        move: (subset_singleton_mem H) => {} H; dp_subset
-    | H : is_true (subset (add _ _) _) |- _ =>
-        let H1 := fresh in
-        let H2 := fresh in
-        move: (subset_add_ll H) (subset_add_lr H) => {H} H1 H2; dp_subset
-    | H : is_true (subset (union _ _) _) |- _ =>
-        let H1 := fresh in
-        let H2 := fresh in
-        move: (subset_union_ll H) (subset_union_lr H) => {H} H1 H2; dp_subset
-    (* *)
-    | |- is_true (subset (singleton _) _) =>
-        apply: mem_subset_singleton; dp_mem
-    | |- is_true (subset (add _ _) _) =>
-        apply: subset_add_l; [ dp_mem | dp_subset ]
-    | |- is_true (subset (union _ _) _) =>
-        apply: subset_union_2l; dp_subset
-    (* *)
-    | |- is_true (subset _ (add _ _)) =>
-        apply: subset_add_r; dp_subset
-    | |- is_true (subset _ (union _ _)) =>
-        first [ apply: subset_union_l; by dp_subset |
-                apply: subset_union_r; by dp_subset ]
-    (* *)
-    | H : is_true (_ && _) |- _ =>
-        let H1 := fresh in
-        let H2 := fresh in
-        move/andP: H => [H1 H2]; dp_subset
-    | H : _ /\ _ |- _ =>
-        let H1 := fresh in
-        let H2 := fresh in
-        move: H => [H1 H2]; dp_subset
-    (* *)
-    | H : is_true (_ || _) |- _ =>
-        move/orP: H => [] H; dp_subset
-    | H : _ \/ _ |- _ =>
-        move: H => [] H; dp_subset
+    | |- is_true (FS.subset _ _) => dp_sets
+    | |- FS.subset _ _ = true => dp_sets
+    | |- FS.Subset _ _ => dp_sets
     end.
-
+  Ltac dp_equal :=
+    match goal with
+    | |- is_true (FS.equal _ _) => dp_sets
+    | |- FS.equal _ _ = true => dp_sets
+    end.
   Ltac dp_Equal :=
-    apply: subset_antisym; apply: subset_2; dp_subset.
+    match goal with
+    | |- FS.Equal _ _ => dp_sets
+    end.
 
   Ltac simpl_union :=
     repeat
       match goal with
-      | H : context [union empty _] |- _ => rewrite union_empty_l in H
-      | |- context [union empty _] => rewrite union_empty_l
-      | H : context [union _ empty] |- _ => rewrite union_empty_r in H
-      | |- context [union _ empty] => rewrite union_empty_r
-      | H1 : Empty ?s1, H2 : context [union ?s1 ?s2] |- _ =>
+      | H : context [FS.union FS.empty _] |- _ => rewrite union_empty_l in H
+      | |- context [FS.union FS.empty _] => rewrite union_empty_l
+      | H : context [FS.union _ FS.empty] |- _ => rewrite union_empty_r in H
+      | |- context [FS.union _ FS.empty] => rewrite union_empty_r
+      | H1 : Empty ?s1, H2 : context [FS.union ?s1 ?s2] |- _ =>
           rewrite (empty_union_1 s2 H1) in H2
-      | H1 : Empty ?s2, H2 : context [union ?s1 ?s2] |- _ =>
+      | H1 : FS.Empty ?s2, H2 : context [FS.union ?s1 ?s2] |- _ =>
           rewrite (empty_union_2 s1 H1) in H2
-      | H : Empty ?s1 |- context [union ?s1 ?s2] =>
+      | H : FS.Empty ?s1 |- context [FS.union ?s1 ?s2] =>
           rewrite (empty_union_1 s2 H)
-      | H : Empty ?s2 |- context [union ?s1 ?s2] =>
+      | H : FS.Empty ?s2 |- context [FS.union ?s1 ?s2] =>
           rewrite (empty_union_2 s1 H)
       end.
 
   Ltac simpl_cardinal :=
     repeat
       match goal with
-      | H : context [cardinal empty] |- _ => rewrite empty_cardinal in H
-      | |- context [cardinal empty] => rewrite empty_cardinal
-      | H1 : Empty ?s, H2 : context [cardinal ?s] |- _ =>
-          rewrite (cardinal_1 H1) in H2
-      | H : Empty ?s |- context [cardinal ?s] => rewrite (cardinal_1 H)
-      | H1 : ~ In ?x ?s, H2 : Add ?x ?s ?s', H3 : context [cardinal ?s'] |- _ =>
-          rewrite (cardinal_2 H1 H2) in H3
-      | H1 : ~ In ?x ?s, H2 : Add ?x ?s ?s' |- context [cardinal ?s'] =>
-          rewrite (cardinal_2 H1 H2)
-      | H1 : In ?x ?s, H2 : context [cardinal (add ?x ?s)] |- _ =>
+      | H : context [FS.cardinal FS.empty] |- _ => rewrite empty_cardinal in H
+      | |- context [FS.cardinal FS.empty] => rewrite empty_cardinal
+      | H1 : FS.Empty ?s, H2 : context [FS.cardinal ?s] |- _ =>
+          rewrite (FS.cardinal_1 H1) in H2
+      | H : FS.Empty ?s |- context [FS.cardinal ?s] => rewrite (FS.cardinal_1 H)
+      | H1 : ~ FS.In ?x ?s, H2 : P.Add ?x ?s ?s', H3 : context [FS.cardinal ?s'] |- _ =>
+          rewrite (P.cardinal_2 H1 H2) in H3
+      | H1 : ~ FS.In ?x ?s, H2 : P.Add ?x ?s ?s' |- context [FS.cardinal ?s'] =>
+          rewrite (P.cardinal_2 H1 H2)
+      | H1 : FS.In ?x ?s, H2 : context [FS.cardinal (FS.add ?x ?s)] |- _ =>
           rewrite (add_cardinal_1 H1) in H2
-      | H : In ?x ?s |- context [cardinal (add ?x ?s)] =>
+      | H : In ?x ?s |- context [cardinal (FS.add ?x ?s)] =>
           rewrite (add_cardinal_1 H)
-      | H1 : ~ In ?x ?s, H2 : context [cardinal (add ?x ?s)] |- _ =>
+      | H1 : ~ FS.In ?x ?s, H2 : context [FS.cardinal (FS.add ?x ?s)] |- _ =>
           rewrite (add_cardinal_2 H1) in H2
-      | H : ~ In ?x ?s |- context c [cardinal (add ?x ?s)] =>
+      | H : ~ In ?x ?s |- context c [FS.cardinal (FS.add ?x ?s)] =>
           rewrite (add_cardinal_2 H)
       end.
 
@@ -5049,13 +5064,13 @@ Module L.
 
     Definition injectiveA : Prop := L.oinjective f.
 
-    Record wf_fsetmap : Prop :=
-      mkWfFSetMap { f_compat : compatA
-                  ; f_injective : injectiveA }.
+    Record wf_smap : Prop :=
+      mkWfSMap { f_compat : compatA
+               ; f_injective : injectiveA }.
 
-    Context (f_wf : wf_fsetmap).
+    Context (f_wf : wf_smap).
 
-    Definition fsetmap (s : sA) : sB := of_list (map f (elements s)).
+    Definition smap (s : sA) : sB := of_list (map f (elements s)).
 
     Lemma inA_map_compat x s :
       InA oeq x s -> InA oeq (f x) (map f s).
@@ -5089,135 +5104,140 @@ Module L.
           exists y; split; first assumption. exact: InA_cons_tl.
     Qed.
 
-    Lemma Empty_Empty_fsetmap s : Empty s -> Empty (fsetmap s).
+    Lemma Empty_Empty_smap s : Empty s -> Empty (smap s).
     Proof.
-      rewrite /fsetmap => Hemp1 x Hin. move: (elements_Empty s) => [H _].
+      rewrite /smap => Hemp1 x Hin. move: (elements_Empty s) => [H _].
       rewrite (H Hemp1) /= in Hin => {H}. apply/(empty_iff x). exact: Hin.
     Qed.
 
-    Lemma Empty_fsetmap_Empty s : Empty (fsetmap s) -> Empty s.
+    Lemma Empty_smap_Empty s : Empty (smap s) -> Empty s.
     Proof.
-      rewrite /fsetmap => Hemp1 x Hin. apply: (Hemp1 (f x)).
-      apply: inA_in_of_list. apply: inA_map_compat. exact: (elements_1 Hin).
+      rewrite /smap => Hemp1 x Hin. apply: (Hemp1 (f x)).
+      apply/in_of_list_inA. apply: inA_map_compat. exact: (elements_1 Hin).
     Qed.
 
-    Hint Resolve Empty_Empty_fsetmap : fset.
+    Hint Resolve Empty_Empty_smap : fset.
 
-    Lemma Empty_fsetmap_iff s : Empty (fsetmap s) <-> Empty s.
-    Proof. split; auto with fset. exact: Empty_fsetmap_Empty. Qed.
+    Lemma Empty_smap_iff s : Empty (smap s) <-> Empty s.
+    Proof. split; auto with fset. exact: Empty_smap_Empty. Qed.
 
-    Lemma mem_fsetmap a s : mem (f a) (fsetmap s) = mem a s.
+    Lemma mem_smap a s : mem (f a) (smap s) = mem a s.
     Proof.
-      rewrite /fsetmap. case Hmem1: (mem a s).
-      - apply: inA_mem_of_list. apply: inA_map_compat.
+      rewrite /smap. case Hmem1: (mem a s).
+      - apply/mem_of_list_inA. apply: inA_map_compat.
         move/memP: Hmem1 => Hin1. exact: (elements_1 Hin1).
-      - apply/negP => Hmem2. apply/negPf: Hmem1. move: (mem_of_list_inA Hmem2) => HinA.
+      - apply/negP => Hmem2. apply/negPf: Hmem1. move/mem_of_list_inA: Hmem2 => HinA.
         move: (inA_map_injective HinA) => {} HinA. apply/memP. exact: (elements_2 HinA).
     Qed.
 
-    Lemma mem_fsetmap_exists b s :
-      mem b (fsetmap s) -> exists a, oeq b (f a) /\ mem a s.
+    Lemma mem_smap_exists b s :
+      mem b (smap s) -> exists a, oeq b (f a) /\ mem a s.
     Proof.
-      rewrite /fsetmap => Hmem. move: (mem_of_list_inA Hmem) => {Hmem} HinA.
+      rewrite /smap => Hmem. move/mem_of_list_inA: Hmem => HinA.
       move: (inA_map_exists HinA) => {HinA} [a [Heq HinA]].
       exists a; split; first assumption. apply/memP. exact: elements_2.
     Qed.
 
-    Lemma fsetmap_singleton a :
-      Equal (fsetmap (singleton a)) (singleton (f a)).
+    Lemma smap_singleton a :
+      Equal (smap (singleton a)) (singleton (f a)).
     Proof.
       move=> x; split => /memP Hmem; apply: memP.
-      - move: (mem_fsetmap_exists Hmem) => [y [Hy Hmemy]].
+      - move: (mem_smap_exists Hmem) => [y [Hy Hmemy]].
         apply: eq_mem_singleton. rewrite Hy.
         exact: (f_compat _ (mem_singleton_eq Hmemy)).
-      - rewrite (mem_singleton_eq Hmem) mem_fsetmap.
+      - rewrite (mem_singleton_eq Hmem) mem_smap.
         apply: eq_mem_singleton. reflexivity.
     Qed.
 
-    Lemma fsetmap_add a s :
-      Equal (fsetmap (add a s)) (add (f a) (fsetmap s)).
+    Lemma smap_add a s :
+      Equal (smap (add a s)) (add (f a) (smap s)).
     Proof.
       move=> x; split; move=> /memP Hmem; apply/memP.
-      - move: (mem_fsetmap_exists Hmem) => [y [Hfy Hmemy]].
+      - move: (mem_smap_exists Hmem) => [y [Hfy Hmemy]].
         case: (mem_add_or Hmemy) => {Hmemy} Hy.
         + rewrite Hfy. apply: mem_add_eq. exact: (f_compat _ Hy).
-        + apply: mem_add_mem. rewrite Hfy mem_fsetmap. assumption.
+        + apply: mem_add_mem. rewrite Hfy mem_smap. assumption.
       - case: (mem_add_or Hmem) => {Hmem} Hx.
-        + rewrite Hx mem_fsetmap. apply: mem_add_eq. reflexivity.
-        + move: (mem_fsetmap_exists Hx) => [y [Hfy Hmemy]]. rewrite Hfy mem_fsetmap.
+        + rewrite Hx mem_smap. apply: mem_add_eq. reflexivity.
+        + move: (mem_smap_exists Hx) => [y [Hfy Hmemy]]. rewrite Hfy mem_smap.
           apply: mem_add_mem. assumption.
     Qed.
 
-    Lemma fsetmap_union s1 s2 :
-      Equal (fsetmap (union s1 s2)) (union (fsetmap s1) (fsetmap s2)).
+    Lemma smap_union s1 s2 :
+      Equal (smap (union s1 s2)) (union (smap s1) (smap s2)).
     Proof.
       move=> x; split; move=> /memP Hmem; apply/memP.
-      - move: (mem_fsetmap_exists Hmem) => [y [Hy Hmemy]].
+      - move: (mem_smap_exists Hmem) => [y [Hy Hmemy]].
         case: (mem_union_or Hmemy) => {} Hmemy.
-        + apply: mem_union_l. rewrite Hy mem_fsetmap. assumption.
-        + apply: mem_union_r. rewrite Hy mem_fsetmap. assumption.
+        + apply: mem_union_l. rewrite Hy mem_smap. assumption.
+        + apply: mem_union_r. rewrite Hy mem_smap. assumption.
       - case: (mem_union_or Hmem) => {Hmem} Hmemx.
-        + move: (mem_fsetmap_exists Hmemx) => [y [Hy Hmemy]].
-          rewrite Hy mem_fsetmap. apply/mem_union_l; assumption.
-        + move: (mem_fsetmap_exists Hmemx) => [y [Hy Hmemy]].
-          rewrite Hy mem_fsetmap. apply/mem_union_r; assumption.
+        + move: (mem_smap_exists Hmemx) => [y [Hy Hmemy]].
+          rewrite Hy mem_smap. apply/mem_union_l; assumption.
+        + move: (mem_smap_exists Hmemx) => [y [Hy Hmemy]].
+          rewrite Hy mem_smap. apply/mem_union_r; assumption.
     Qed.
 
-    Lemma mem_fsetmap_union b s1 s2 :
-      mem b (fsetmap (union s1 s2)) =
-        (mem b (fsetmap s1)) || (mem b (fsetmap s2)).
-    Proof. rewrite fsetmap_union. rewrite union_b. reflexivity. Qed.
+    Lemma mem_smap_union b s1 s2 :
+      mem b (smap (union s1 s2)) =
+        (mem b (smap s1)) || (mem b (smap s2)).
+    Proof. rewrite smap_union. rewrite union_b. reflexivity. Qed.
 
-    Lemma mem_fsetmap_union_or b s1 s2 :
-      mem b (fsetmap (union s1 s2)) ->
-      mem b (fsetmap s1) \/ mem b (fsetmap s2).
+    Lemma mem_smap_union_or b s1 s2 :
+      mem b (smap (union s1 s2)) ->
+      mem b (smap s1) \/ mem b (smap s2).
     Proof.
-      rewrite fsetmap_union => Hmem. case: (mem_union_or Hmem); [by left | by right].
+      rewrite smap_union => Hmem. case: (mem_union_or Hmem); [by left | by right].
     Qed.
 
-    Lemma mem_fsetmap_union_l b s1 s2 :
-      mem b (fsetmap s1) -> mem b (fsetmap (union s1 s2)).
-    Proof. rewrite mem_fsetmap_union. by move=> ->. Qed.
+    Lemma mem_smap_union_l b s1 s2 :
+      mem b (smap s1) -> mem b (smap (union s1 s2)).
+    Proof. rewrite mem_smap_union. by move=> ->. Qed.
 
-    Lemma mem_fsetmap_union_r b s1 s2 :
-      mem b (fsetmap s2) -> mem b (fsetmap (union s1 s2)).
-    Proof. rewrite mem_fsetmap_union. by move=> ->; rewrite orbT. Qed.
+    Lemma mem_smap_union_r b s1 s2 :
+      mem b (smap s2) -> mem b (smap (union s1 s2)).
+    Proof. rewrite mem_smap_union. by move=> ->; rewrite orbT. Qed.
 
-    Lemma subset_fsetmap s1 s2 :
-      subset (fsetmap s1) (fsetmap s2) = subset s1 s2.
+    Lemma subset_smap s1 s2 :
+      subset (smap s1) (smap s2) = subset s1 s2.
     Proof.
       case H: (subset s1 s2).
       - apply: subset_1 => x /memP Hmem. apply/memP.
-        move: (mem_fsetmap_exists Hmem) => {Hmem} [fx [Heq Hmem]].
-        rewrite Heq mem_fsetmap. exact: (mem_subset Hmem H).
+        move: (mem_smap_exists Hmem) => {Hmem} [fx [Heq Hmem]].
+        rewrite Heq mem_smap. exact: (mem_subset Hmem H).
       - apply/negP => Hsubset. apply/negPf: H.
         apply: subset_1 => x /memP Hmem. apply/memP.
-        rewrite -mem_fsetmap. apply: (mem_subset _ Hsubset).
-        rewrite mem_fsetmap. assumption.
+        rewrite -mem_smap. apply: (mem_subset _ Hsubset).
+        rewrite mem_smap. assumption.
     Qed.
 
   End FSetMap.
 
-  Notation "{ 'set' E | i <- s }" := (fsetmap (fun i => E) s)
+  Notation "{ 'set' E | i <- s }" := (smap (fun i => E) s)
                                        (at level 0, E at level 99, i name,
                                          format "{ '[hv'  'set'  E '/'  |  i  <-  s  } ']'") : fset_scope.
 
   #[global]
-   Hint Resolve Empty_Empty_fsetmap : set.
+   Hint Resolve Empty_Empty_smap : set.
   #[global]
-   Hint Immediate mem_fsetmap_union_l mem_fsetmap_union_r : set.
+   Hint Immediate mem_smap_union_l mem_smap_union_r : set.
 
 End L.
 
 
 (** * FSetInterface.S is a fsetType *)
 
+Module Type FSet.
+  Parameter elt : orderedType.
+  Parameter t : fsetType elt.
+End FSet.
+
 Module FSetInterface_as_FS
        (E : Ordered)
        (S : FSetInterface.S
         with Definition E.t := E.t
         with Definition E.eq := E.eq
-        with Definition E.lt := E.lt).
+        with Definition E.lt := E.lt) <: FSet.
 
   Definition fset_mixin :=
     @FSetMixin E.T S.t S.In S.empty S.is_empty S.mem S.add S.singleton
@@ -5238,47 +5258,25 @@ Module FSetInterface_as_FS
 
   #[global]
    Canonical t := Eval hnf in @FSetType E.T S.t fset_mixin.
+
+  Definition elt : orderedType := E.T.
 
 End FSetInterface_as_FS.
 
-Module FSetInterface_as_DFS
-       (E : DecidableOrdered)
-       (S : FSetInterface.S
-        with Definition E.t := E.t
-        with Definition E.eq := E.eq
-        with Definition E.lt := E.lt).
 
-  Definition fset_mixin :=
-    @FSetMixin E.T S.t S.In S.empty S.is_empty S.mem S.add S.singleton
-               S.remove S.union S.inter S.diff S.eq_dec S.equal S.subset
-               S.fold S.for_all S.exists_ S.filter S.partition S.cardinal
-               S.elements S.choose S.In_1 S.eq_refl S.eq_sym S.eq_trans
-               S.mem_1 S.mem_2 S.equal_1 S.equal_2 S.subset_1 S.subset_2
-               S.empty_1 S.is_empty_1 S.is_empty_2 S.add_1 S.add_2 S.add_3
-               S.remove_1 S.remove_2 S.remove_3 S.singleton_1 S.singleton_2
-               S.union_1 S.union_2 S.union_3 S.inter_1 S.inter_2 S.inter_3
-               S.diff_1 S.diff_2 S.diff_3 S.fold_1 S.cardinal_1
-               S.filter_1 S.filter_2 S.filter_3 S.for_all_1 S.for_all_2
-               S.exists_1 S.exists_2 S.partition_1 S.partition_2
-               S.elements_1 S.elements_2 S.elements_3w S.choose_1 S.choose_2
-               S.lt S.compare S.min_elt S.max_elt S.lt_trans S.lt_not_eq
-               S.elements_3 S.min_elt_1 S.min_elt_2 S.min_elt_3
-               S.max_elt_1 S.max_elt_2 S.max_elt_3 S.choose_3.
-
-  #[global]
-   Canonical t := Eval hnf in @FSetType E.T S.t fset_mixin.
-
-End FSetInterface_as_DFS.
-
-
-(* Sets that can generate new elements. *)
+Module Type FSetWithNewElt <: FSet.
+  Import O.
+  Include FSet.
+  Parameter new_elt : t -> elt.
+  Axiom new_elt_is_new : forall (s : t), ~~ FS.mem (new_elt s) s.
+End FSetWithNewElt.
 
 Module FSetInterface_as_FS_WDS
        (E : OrderedWithDefaultSucc)
        (S : FSetInterface.S
         with Definition E.t := E.t
         with Definition E.eq := E.eq
-        with Definition E.lt := E.lt).
+        with Definition E.lt := E.lt) <: FSetWithNewElt.
 
   Module SS := FSetInterface_as_FS E S.
   Include SS.
@@ -5298,29 +5296,3 @@ Module FSetInterface_as_FS_WDS
   Qed.
 
 End FSetInterface_as_FS_WDS.
-
-Module FSetInterface_as_DFS_WDS
-       (E : DecidableOrderedWithDefaultSucc)
-       (S : FSetInterface.S
-        with Definition E.t := E.t
-        with Definition E.eq := E.eq
-        with Definition E.lt := E.lt).
-
-  Module SS := FSetInterface_as_DFS E S.
-  Include SS.
-
-  Definition new_elt (s : S.t) : E.t :=
-    match max_elt s with
-    | Some x => E.succ x
-    | None => E.default
-    end.
-
-  Lemma new_elt_is_new : forall (s : S.t), ~~ mem (new_elt s) s.
-  Proof.
-    move=> s. apply/negP => Hmem. move/mem_2: Hmem.
-    rewrite /new_elt. case H: (max_elt s) => Hin.
-    - apply: (max_elt_2 H Hin). exact: E.lt_succ.
-    - move: (max_elt_3 H) => {} H. apply: (H E.default). assumption.
-  Qed.
-
-End FSetInterface_as_DFS_WDS.
