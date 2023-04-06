@@ -1,5 +1,5 @@
 
-(** * Variables *)
+(** * Variables using eq_op for eq *)
 
 From Coq Require Import FMaps FSets ZArith OrderedType String.
 From mathcomp Require Import ssreflect ssrbool eqtype.

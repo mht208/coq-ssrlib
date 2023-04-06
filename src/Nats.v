@@ -1,4 +1,6 @@
 
+(** * Extra lemmas for nat *)
+
 From Coq Require Import Arith BinNat.
 From mathcomp Require Import ssreflect ssrbool ssrnat div eqtype.
 From ssrlib Require Import Types.

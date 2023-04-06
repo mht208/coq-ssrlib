@@ -1,7 +1,4 @@
 
-From Coq Require Import Arith FMaps Bool DecidableType DecidableTypeEx OrderedType List Morphisms.
-From ssrlib Require Import Tactics Sets Orders.
-
 (**
    A structure [fmapType] is defined in the module [FM]. The structure
    [fmapType] contains the interface from Coq's [FMapInterface.S].
@@ -35,6 +32,8 @@ From ssrlib Require Import Tactics Sets Orders.
 
 *)
 
+From Coq Require Import Arith FMaps Bool DecidableType DecidableTypeEx OrderedType List Morphisms.
+From ssrlib Require Import Tactics Sets Orders.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

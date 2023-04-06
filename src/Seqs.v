@@ -1,4 +1,6 @@
 
+(** * Extra lemmas for seq *)
+
 From Coq Require Import List Relations Morphisms.
 From mathcomp Require Import ssreflect ssrbool ssrnat seq eqtype ssrfun.
 From ssrlib Require Import Compatibility Lists.

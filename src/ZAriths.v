@@ -1,4 +1,6 @@
 
+(** * Extra lemmas for positive, N, and Z *)
+
 From Coq Require Import Arith ZArith Lia.
 From mathcomp Require Import ssreflect eqtype ssrbool ssrnat ssralg ssrfun choice.
 From ssrlib Require Import Types Nats Compatibility.

@@ -1,8 +1,4 @@
 
-From Coq Require Import Arith FSets OrderedType Zerob.
-From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq.
-From ssrlib Require Import Tactics Orders Seqs.
-
 (** * Coq [FSetInterface] as a structure [fsetType] *)
 
 (**
@@ -41,6 +37,10 @@ From ssrlib Require Import Tactics Orders Seqs.
                                             oinP
 >>
  *)
+
+From Coq Require Import Arith FSets OrderedType Zerob.
+From mathcomp Require Import ssreflect ssrbool ssrfun ssrnat eqtype seq.
+From ssrlib Require Import Tactics Orders Seqs.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

@@ -1,4 +1,6 @@
 
+(** * Some module types *)
+
 From Coq Require Import OrderedType FMaps FSets ZArith.
 From mathcomp Require Import ssreflect ssrbool ssrnat ssrint eqtype tuple.
 

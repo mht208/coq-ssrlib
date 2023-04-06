@@ -1,13 +1,4 @@
 
-From Coq Require Import OrderedType Bool Arith ZArith.
-From mathcomp Require Import ssreflect ssrbool ssrnat ssrfun eqtype order choice.
-From ssrlib Require Import Types Tactics ZAriths.
-
-Set Implicit Arguments.
-Unset Strict Implicit.
-Import Prenex Implicits.
-
-
 (** * Coq [OrderedType] as a structure [orderedType] *)
 
 (**
@@ -48,6 +39,14 @@ Import Prenex Implicits.
    - [HOT_as_OT_WDS]: instantiate a module of [OrderedWithDefaultSucc] from an
                       [orderedType]
 *)
+
+From Coq Require Import OrderedType Bool Arith ZArith.
+From mathcomp Require Import ssreflect ssrbool ssrnat ssrfun eqtype order choice.
+From ssrlib Require Import Types Tactics ZAriths.
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+Import Prenex Implicits.
 
 (** ** orderedType: OrderedType with decidable equality *)
 

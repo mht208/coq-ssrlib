@@ -10,7 +10,7 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 
-(** Environments for variables with the same type *)
+(** ** Environments for variables with the same type *)
 
 Module Type SEnv.
 
@@ -123,7 +123,7 @@ Module MakeSEnv (VV : OrderedWithDefaultSucc) <: SEnv with Module V := VV.
 End MakeSEnv.
 
 
-(** Environments for variables with heterogeneous types *)
+(** ** Environments for variables with heterogeneous types *)
 
 Module Type TEnv.
 
@@ -340,9 +340,13 @@ Module MakeTEnv (Import VV : OrderedWithDefaultSucc) <: TEnv with Module V := VV
 End MakeTEnv.
 
 
-(** Environments for variables with heterogeneous types. Indices for the access
- of values in a heterogeneous list (HList) are defined in the environments.
- Need Leibniz equality to rewrite a term `find x (add y ty E)` using `x = y`. *)
+(** ** Environments for variables with heterogeneous types. *)
+
+(**
+ * Indices for the access of values in a heterogeneous list (HList) are
+ * defined in the environments. Need Leibniz equality to rewrite a term
+ * `find x (add y ty E)` using `x = y`.
+*)
 
 From Coq Require Import Program Program.Tactics.
 

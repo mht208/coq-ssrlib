@@ -1,4 +1,6 @@
 
+(** * Extra lemmas for list *)
+
 From Coq Require Import List.
 From mathcomp Require Import ssreflect.
 From ssrlib Require Import Tactics.

@@ -1,7 +1,9 @@
 
+(** * Coq OrderedType using eq_op for eq. *)
+
 From Coq Require Import OrderedType ZArith.
-From mathcomp Require Import ssreflect ssrbool ssrnat eqtype.
-From ssrlib Require Import Types Nats ZAriths.
+From mathcomp Require Import ssreflect ssrbool ssrnat eqtype seq.
+From ssrlib Require Import Types Nats ZAriths Seqs.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -538,3 +540,61 @@ End ZOrderMinimal.
 
 Module ZOrder <: EqOrder := MakeEqOrder ZOrderMinimal.
 
+
+(** A sequence of EqOrder *)
+
+Module SeqOrderMinimal (X : EqOrder) <: EqOrderMinimal.
+  Definition t := seq_eqType X.T.
+  Definition eqn (x y : t) : bool := x == y.
+  Fixpoint ltn (x y : t) : bool :=
+    match x, y with
+    | _, [::] => false
+    | [::], hd::_ => true
+    | hd1::tl1, hd2::tl2 => (X.ltn hd1 hd2) || ((hd1 == hd2) && (ltn tl1 tl2))
+    end.
+  Lemma ltn_trans (x y z : t) : ltn x y -> ltn y z -> ltn x z.
+  Proof.
+    elim: x y z.
+    - case; first by trivial.
+      move=> hdy tly. elim; by trivial.
+    - move=> hdx tlx IHx. case; first by trivial.
+      move=> hdy tly. case; first by trivial.
+      move=> hdz tlz /= /orP H1 /orP H2. case: H1; case: H2.
+      + move=> Hyz Hxy. by rewrite (X.lt_trans Hxy Hyz).
+      + move=> /andP [Hyz_hd Hyz_tl] Hxy_hd. by rewrite -(eqP Hyz_hd) Hxy_hd.
+      + move=> Hyz_hd /andP [Hxy_hd Hxy_tl]. by rewrite (eqP Hxy_hd) Hyz_hd.
+      + move=> /andP [Hyz_hd Hyz_tl] /andP [Hxy_hd Hxy_tl].
+        by rewrite (eqP Hxy_hd) (eqP Hyz_hd) eqxx (IHx _ _ Hxy_tl Hyz_tl) orbT.
+  Qed.
+  Lemma ltn_not_eqn (x y : t) : ltn x y -> x != y.
+  Proof.
+    elim: x y.
+    - case; by trivial.
+    - move=> hdx tlx IHx. case; first by trivial.
+      move=> hdy tly /=. rewrite seq_neq_split. case/orP.
+      + move=> Hhd. move/negP: (X.lt_not_eq Hhd). by move=> ->.
+      + move/andP=> [Hhd Htl]. by rewrite (IHx _ Htl) orbT.
+  Qed.
+  Definition compare (x y : t) : Compare ltn eqn x y.
+    elim: x y.
+    - case.
+      + by apply: EQ.
+      + move=> hdy tly. by apply: LT.
+    - move=> hdx tlx IHx. case.
+      + by apply: GT.
+      + move=> hdy tly. case (X.compare hdx hdy) => Hhd.
+        * apply: LT. by rewrite /= Hhd.
+        * case: (IHx tly) => Htl.
+          -- apply: LT. by rewrite /= Hhd Htl orbT.
+          -- apply: EQ. apply/andP; rewrite -/eqseq. split; first assumption.
+             rewrite /eq in Htl. apply/eqP. exact: (eqP Htl).
+          -- apply: GT. by rewrite /= eq_sym Hhd Htl orbT.
+        * apply: GT. by rewrite /= Hhd.
+  Defined.
+End SeqOrderMinimal.
+
+Module SeqOrder (X : EqOrder) <: EqOrder.
+  Module Y := SeqOrderMinimal X.
+  Module M := MakeEqOrder Y.
+  Include M.
+End SeqOrder.

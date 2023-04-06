@@ -1,5 +1,5 @@
 
-(** Lemmas for compatibility. *)
+(** * Lemmas for compatibility *)
 
 From mathcomp Require Import ssreflect eqtype ssrbool seq.
 

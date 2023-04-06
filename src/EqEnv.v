@@ -11,7 +11,7 @@ Import Prenex Implicits.
 
 
 
-(** Environments for variables with the same type *)
+(** ** Environments for variables with the same type *)
 
 Module Type SEnv.
 
@@ -106,7 +106,7 @@ End MakeSEnv.
 
 
 
-(** Environments for variables with heterogeneous types *)
+(** ** Environments for variables with heterogeneous types *)
 
 Module Type TEnv.
 
@@ -301,8 +301,12 @@ End MakeTEnv.
 
 
 
-(** Environments for variables with heterogeneous types. Indices for the access
- of values in a heterogeneous list (HList) are defined in the environments. *)
+(** ** Environments for variables with heterogeneous types. *)
+
+(**
+ * Indices for the access of values in a heterogeneous list (HList)
+ * are defined in the environments.
+*)
 
 Module Type HEnv.
 

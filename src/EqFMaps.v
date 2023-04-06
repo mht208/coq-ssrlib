@@ -1,7 +1,5 @@
 
-(** * Some auxiliary lemmas for FMaps. *)
-
-(** These lemmas can be proven by facts in Coq.FSets.FMapFacts. *)
+(** * Finite maps with eqType keys *)
 
 From Coq Require Import FunInd FMaps FMapAVL OrderedType.
 From mathcomp Require Import ssreflect ssrbool eqtype seq.
@@ -13,7 +11,7 @@ Import Prenex Implicits.
 
 
 
-(* Finite maps of elements with decidable equality *)
+(* Finite maps with eqType keys *)
 
 Module Type EqFMap <: FMapInterface.S.
   Declare Module SE : EqOrder.

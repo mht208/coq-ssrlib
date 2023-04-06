@@ -1,5 +1,5 @@
 
-(** * Some auxiliary lemmas for FSets. *)
+(** * Finite sets with eqType elements *)
 
 From Coq Require Import FSets OrderedType.
 From mathcomp Require Import ssreflect ssrbool ssrnat eqtype seq.
@@ -11,7 +11,7 @@ Import Prenex Implicits.
 
 
 
-(* Finite sets of elements with decidable equality. *)
+(* Finite sets with eqType elements *)
 
 Module Type EqFSet <: FSetInterface.S.
   Declare Module SE : EqOrder.

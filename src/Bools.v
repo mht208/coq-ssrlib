@@ -1,4 +1,6 @@
 
+(** * Some lemmas about bool *)
+
 From mathcomp Require Import ssreflect ssrbool eqtype.
 
 Set Implicit Arguments.

@@ -1,4 +1,6 @@
 
+(** * Extra lemmas for tuple *)
+
 From mathcomp Require Import ssreflect ssrbool ssrnat eqtype seq fintype tuple.
 
 Lemma mapCons {n A B} (f: A -> B) b (p: n.-tuple A) :

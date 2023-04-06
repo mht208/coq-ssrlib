@@ -1,8 +1,8 @@
 
+(** * General tactics *)
+
 From Coq Require Import Bool.
 From mathcomp Require Import ssreflect ssrbool eqtype.
-
-(** General tactics *)
 
 Ltac dcase t := move: (refl_equal t); generalize t at -1.
 

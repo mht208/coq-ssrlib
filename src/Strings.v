@@ -1,4 +1,6 @@
 
+(** * Extra functions from decimal numbers to strings *)
+
 From Coq Require Import ZArith Decimal String DecimalString.
 
 Section DecimalStringConversions.
